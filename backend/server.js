@@ -5,6 +5,7 @@ const path = require("path");
 const connectDB = require("./config/db");
 
 const authRoutes = require("./routes/authRoutes")
+const usersRoutes = require("./routes/userRoutes")
 
 const app = express();
 
@@ -24,7 +25,7 @@ connectDB();
 app.use(express.json());
 // Routes
 app.use("/api/auth", authRoutes);
-// app.use("/api/users", usersRoutes);
+app.use("/api/users", usersRoutes);
 // app.use("/api/tasks", tasksRoutes);
 // app.use("/api/reports", reportRoutes);
 
