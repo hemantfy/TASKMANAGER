@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { API_PATHS } from "../../utils/apiPaths";
 import axiosInstance from "../../utils/axiosInstance";
-import Modal from "../Modal";
+import Modal from "../Modal"
+import { LuUsers } from "react-icons/lu";
+import AvatarGroup from "../AvatarGroup";
 
 const SelectUsers = ({ selectedUsers, setSelectedUsers }) => {
   const [allUsers, setAllUsers] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [tempSelectedUsers, setTempSelectedUsers] = useState([]);
 
   const getAllUsers = async () => {
@@ -49,11 +51,18 @@ const SelectUsers = ({ selectedUsers, setSelectedUsers }) => {
   
   return (
     <div className="space-y-4 mt-2">
-      {selectedUserAvatars.length === 0 && (
+      {selectedUserAvatars.length > 0 ? (
+        <div className="flex items-center gap-2">
+          <AvatarGroup avatars={selectedUserAvatars} />
+          <button className="card-btn" onClick={() => setIsModalOpen(true)}>
+            <LuUsers className="text-sm" /> Add Members
+          </button>
+        </div>
+      ) : (
         <button className="card-btn" onClick={() => setIsModalOpen(true)}>
-          <LuUsers className="text-sm" /> Add Members
-        </button>
-      )}
+        <LuUsers className="text-sm" /> Add Members
+      </button>
+    )}
 
     <Modal
       isOpen={isModalOpen}
@@ -79,16 +88,16 @@ const SelectUsers = ({ selectedUsers, setSelectedUsers }) => {
           </div>
 
           <input
-            type="checkbox"
-            checked={tempSelectedUsers.includes(user._id)}
-            onChange={() => toggleUserSelection(user._id)}
-            className="w-h h-4 text-primary bg-gray-100 border-gray-300 rounded-sm outline-none"
-          />
-        </div>
+                type="checkbox"
+                checked={tempSelectedUsers.includes(user._id)}
+                onChange={() => toggleUserSelection(user._id)}
+                className="w-h h-4 text-primary bg-gray-100 border-gray-300 rounded-sm outline-none"
+              />
+            </div>
           ))}    
       </div>
 
-      <div className="flex justify-end gap-4 pt-4">
+        <div className="flex justify-end gap-4 pt-4">
           <button className="card-btn" onClick={() => setIsModalOpen(false)}>
             CANCEL
           </button>
@@ -96,7 +105,7 @@ const SelectUsers = ({ selectedUsers, setSelectedUsers }) => {
             DONE
           </button>
         </div>
-    </Modal>
+      </Modal>
     </div>
   );  
 };

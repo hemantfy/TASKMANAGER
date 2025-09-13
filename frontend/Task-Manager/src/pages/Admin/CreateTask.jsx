@@ -9,13 +9,14 @@ import moment from "moment";
 import { LuTrash2 } from "react-icons/lu";
 import SelectDropdown from '../../components/inputs/SelectDropdown';
 import SelectUsers from '../../components/inputs/SelectUsers';
+import TodoListInput from '../../components/inputs/TodoListInput';
 
 const CreateTask = () => {
 
   const location = useLocation();
   const { taskId } = location.state || {};
   const navigate = useNavigate();
-  
+
   const [taskData, setTaskData] = useState({
     title: "",
     description: "",
@@ -28,42 +29,42 @@ const CreateTask = () => {
   
   const [currentTask, setCurrentTask] = useState(null);
 
-const [error, setError] = useState("");
-const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
 
-const [openDeleteAlert, setOpenDeleteAlert] = useState(false);
+    const [openDeleteAlert, setOpenDeleteAlert] = useState(false);
 
-const handleValueChange = (key, value) => {
-  setTaskData((prevData) => ({ ...prevData, [key]: value }));
-};
+    const handleValueChange = (key, value) => {
+      setTaskData((prevData) => ({ ...prevData, [key]: value }));
+    };
 
 const clearData = () => {
-//reset form
-setTaskData({
-  title: "",
-  description: "",
-  priority: "Low",
-  dueDate: null,
-  assignedTo: [],
-  todoChecklist: [],
-  attachements: [],
-});
+  //reset form
+  setTaskData({
+    title: "",
+    description: "",
+    priority: "Low",
+    dueDate: null,
+    assignedTo: [],
+    todoChecklist: [],
+    attachements: [],
+  });
 };
 
-// Create Task
-const createTask = async () => {};
+  // Create Task
+  const createTask = async () => {};
 
-// Update Task
-const updateTask = async () => {};
+  // Update Task
+  const updateTask = async () => {};
 
-// Handle Submit
-const handleSubmit = async () => {};
+  // Handle Submit
+  const handleSubmit = async () => {};
 
-// get Task info by ID
-const getTaskDetailsByID = async () => {};
+  // get Task info by ID
+  const getTaskDetailsByID = async () => {};
 
-// Delete Task
-const deleteTask = async () => {};
+  // Delete Task
+  const deleteTask = async () => {};
 
   return (
     <DashboardLayout activeMenu="CreateTasK">
@@ -142,12 +143,21 @@ const deleteTask = async () => {};
                   }}
                 />
               </div>
+              <div className="md:col-span-4">
+                <label className="text-xs font-medium text-slate-600">
+                  Todo List
+                </label>
+                <TodoListInput
+                  todoList={taskData.todoChecklist}
+                  setTodoList={(value) => handleValueChange("todoChecklist", value)}
+                />
+              </div>
             </div>
           </div>
         </div>
       </div>
     </DashboardLayout>
-  )
-}
+  );
+};
 
-export default CreateTask
+export default CreateTask;
