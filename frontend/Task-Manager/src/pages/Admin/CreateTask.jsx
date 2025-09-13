@@ -10,6 +10,7 @@ import { LuTrash2 } from "react-icons/lu";
 import SelectDropdown from '../../components/inputs/SelectDropdown';
 import SelectUsers from '../../components/inputs/SelectUsers';
 import TodoListInput from '../../components/inputs/TodoListInput';
+import AddAttachmentsInput from '../../components/inputs/AddAttachmentsInput';
 
 const CreateTask = () => {
 
@@ -152,6 +153,19 @@ const clearData = () => {
                   setTodoList={(value) => handleValueChange("todoChecklist", value)}
                 />
               </div>
+
+              <div className="mt-3">
+                  <label className="text-xs font-medium text-slate-600">
+                    Add Attachments
+                  </label>
+
+                  <AddAttachmentsInput
+                    attachments={taskData?.attachments}
+                    setAttachments={(value) =>
+                      handleValueChange("attachments", value)
+                    }
+                  />
+                </div>
             </div>
           </div>
         </div>
