@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { HiMiniPlus, HiOutlineTrash } from "react-icons/hi2";
 import { LuPaperclip } from "react-icons/lu";
 
-const AddAttachmentsInput = ({attachments, setAttachments}) => {
+const AddAttachmentsInput = ({attachments = [], setAttachments}) => {
   const [option, setOption] = useState("");
 
   // Function to handle adding an option

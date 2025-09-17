@@ -25,7 +25,7 @@ const CreateTask = () => {
     dueDate: null,
     assignedTo: [],
     todoChecklist: [],
-    attachements: [],
+    attachments: [],
   });
   
   const [currentTask, setCurrentTask] = useState(null);
@@ -48,18 +48,72 @@ const clearData = () => {
     dueDate: null,
     assignedTo: [],
     todoChecklist: [],
-    attachements: [],
+    attachments: [],
   });
 };
 
   // Create Task
-  const createTask = async () => {};
+  const createTask = async () => {
+    setLoading(true);
+
+    try {
+      const todolist = taskData.todoChecklist?.map((item) => ({
+        text: item,
+        completed: false,
+      }));
+    
+      const response = await axiosInstance.post(API_PATHS.TASKS.CREATE_TASK, {
+        ...taskData,
+        dueDate: new Date(taskData.dueDate).toISOString(),
+        todoChecklist: todolist,
+      });
+    
+      toast.success("Task Created Successfully");
+    
+      clearData();
+    } catch (error) {
+      console.error("Error creating task:", error);
+      setLoading(false);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Update Task
   const updateTask = async () => {};
 
   // Handle Submit
-  const handleSubmit = async () => {};
+  const handleSubmit = async () => {
+    setError(null);
+
+    // Input Validation
+    if (!taskData.title.trim()) {
+      setError("Title is required");
+      return;
+    }
+
+    if (!taskData.description.trim()) {
+      setError("Description is required.");
+      return;
+    }
+
+    if (!taskData.dueDate) {
+      setError("Due Date is required.");
+      return;
+    }
+
+    if (!taskData.assignedTo?.length === 0) {
+      setError("Task not assigned to any member.");
+      return;
+    };
+
+    if (!taskData.todoChecklist?.length === 0) {
+      setError("Add atleast one todo task.");
+      return;
+    };
+
+    createTask();
+  };  
 
   // get Task info by ID
   const getTaskDetailsByID = async () => {};
@@ -156,7 +210,7 @@ const clearData = () => {
 
               <div className="mt-3">
                   <label className="text-xs font-medium text-slate-600">
-                    Add Attachments
+                    Add Attachments (Link)
                   </label>
 
                   <AddAttachmentsInput
@@ -166,6 +220,20 @@ const clearData = () => {
                     }
                   />
                 </div>
+
+                {error && (
+                    <p className="text-xs font-medium text-red-500 mt-5">{error}</p>
+                  )}
+
+                  <div className="flex justify-end mt-7">
+                    <button
+                      className="add-btn"
+                      onClick={handleSubmit}
+                      disabled={loading}
+                    >
+                      {taskId ? "UPDATE TASK" : "CREATE TASK"}
+                    </button>
+                  </div>
             </div>
           </div>
         </div>
