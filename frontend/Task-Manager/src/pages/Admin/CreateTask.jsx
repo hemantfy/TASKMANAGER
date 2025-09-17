@@ -62,9 +62,17 @@ const clearData = () => {
         completed: false,
       }));
     
-      const response = await axiosInstance.post(API_PATHS.TASKS.CREATE_TASK, {
+      const dueDateMoment = taskData.dueDate ? moment(taskData.dueDate) : null;
+
+      if (!dueDateMoment || !dueDateMoment.isValid()) {
+        setError("Due Date is required.");
+        setLoading(false);
+        return;
+      }
+
+      await axiosInstance.post(API_PATHS.TASKS.CREATE_TASK, {
         ...taskData,
-        dueDate: new Date(taskData.dueDate).toISOString(),
+        dueDate: dueDateMoment.toISOString(),
         todoChecklist: todolist,
       });
     
@@ -84,7 +92,7 @@ const clearData = () => {
 
   // Handle Submit
   const handleSubmit = async () => {
-    setError(null);
+    setError("");
 
     // Input Validation
     if (!taskData.title.trim()) {
@@ -102,12 +110,12 @@ const clearData = () => {
       return;
     }
 
-    if (!taskData.assignedTo?.length === 0) {
+    if (!taskData.assignedTo?.length) {
       setError("Task not assigned to any member.");
       return;
     };
 
-    if (!taskData.todoChecklist?.length === 0) {
+    if (!taskData.todoChecklist?.length) {
       setError("Add atleast one todo task.");
       return;
     };

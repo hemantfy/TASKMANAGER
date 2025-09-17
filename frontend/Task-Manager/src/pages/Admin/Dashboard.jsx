@@ -56,7 +56,7 @@ const getDashboardData = async () => {
     );
     if (response.data) {
       setDashboardData(response.data);
-      repareChartData(response.data?.charts || null)
+      prepareChartData(response.data?.charts || null)
     }
   } catch (error) {
     console.error("Error fetching users:", error);
