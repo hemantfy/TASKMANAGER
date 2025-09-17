@@ -33,7 +33,7 @@ const SelectUsers = ({ selectedUsers, setSelectedUsers }) => {
     setSelectedUsers(tempSelectedUsers);
     setIsModalOpen(false);
   };
-  
+
   const selectedUserAvatars = allUsers
     .filter((user) => selectedUsers.includes(user._id))
     .map((user) => user.profileImageUrl);
@@ -50,59 +50,79 @@ const SelectUsers = ({ selectedUsers, setSelectedUsers }) => {
   }, [selectedUsers]);
   
   return (
-    <div className="space-y-4 mt-2">
-      {selectedUserAvatars.length > 0 ? (
-        <div className="flex items-center gap-2">
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-3">
+        {selectedUserAvatars.length > 0 && (
           <AvatarGroup avatars={selectedUserAvatars} />
-          <button className="card-btn" onClick={() => setIsModalOpen(true)}>
-            <LuUsers className="text-sm" /> Add Members
-          </button>
-        </div>
-      ) : (
-        <button className="card-btn" onClick={() => setIsModalOpen(true)}>
-        <LuUsers className="text-sm" /> Add Members
-      </button>
-    )}
+        )}
 
-    <Modal
-      isOpen={isModalOpen}
-      onClose={() => setIsModalOpen(false)}
-      title="Select Users"
-    >
-      <div className="space-y-4 h-[60vh] overflow-y-auto">
-          {allUsers.map((user) => (
-          <div
-            key={user._id}
-            className="flex items-center gap-4 p-3 border-b border-gray-200"
-          >
-          <img
-            src={user.profileImageUrl}
-            alt={user.name}
-            className="w-10 h-10 rounded-full"
-          />
-          <div className="flex-1">
-             <p className="font-medium text-gray-800 dark:text-white">
-              {user.name}
-            </p>
-            <p className="text-[13px] text-gray-500">{user.email}</p>
-          </div>
-
-          <input
-                type="checkbox"
-                checked={tempSelectedUsers.includes(user._id)}
-                onChange={() => toggleUserSelection(user._id)}
-                className="w-h h-4 text-primary bg-gray-100 border-gray-300 rounded-sm outline-none"
-              />
-            </div>
-          ))}    
+        <button
+          className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-white px-4 py-2 text-sm font-semibold text-primary shadow-sm shadow-primary/10 transition hover:border-primary hover:bg-primary/5"
+          onClick={() => {
+            setTempSelectedUsers(selectedUsers);
+            setIsModalOpen(true);
+          }}
+        >
+          <LuUsers className="text-base" />
+          {selectedUserAvatars.length > 0 ? "Manage Members" : "Add Members"}
+        </button>  
       </div>
 
-        <div className="flex justify-end gap-4 pt-4">
-          <button className="card-btn" onClick={() => setIsModalOpen(false)}>
-            CANCEL
+      {selectedUserAvatars.length === 0 && (
+        <p className="text-xs font-medium text-slate-500">
+          No members assigned yet.
+        </p>
+      )}
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Select Users"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-500">
+            Choose the team members who will collaborate on this task.
+          </p>
+
+          <div className="space-y-3 overflow-y-auto rounded-2xl border border-slate-200/80 bg-slate-50 p-3">
+            {allUsers.map((user) => (
+              <div
+                key={user._id}
+                className="flex items-center gap-4 rounded-xl bg-white px-4 py-3 shadow-sm shadow-slate-200/60"
+              >
+                <img
+                  src={user.profileImageUrl}
+                  alt={user.name}
+                  className="h-10 w-10 rounded-full object-cover"
+                />
+                <div className="flex-1">
+                  <p className="font-medium text-slate-800">{user.name}</p>
+                  <p className="text-xs text-slate-500">{user.email}</p>
+                </div>
+
+                <input
+                  type="checkbox"
+                  checked={tempSelectedUsers.includes(user._id)}
+                  onChange={() => toggleUserSelection(user._id)}
+                  className="h-4 w-4 rounded-sm border-slate-300 text-primary focus:ring-primary"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-6 flex justify-end gap-3">
+          <button
+            className="inline-flex items-center rounded-full border border-slate-200 bg-white px-5 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100"
+            onClick={() => setIsModalOpen(false)}
+          >
+            Cancel
           </button>
-          <button className="card-btn-fill" onClick={handleAssign}>
-            DONE
+          <button
+            className="inline-flex items-center rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white shadow-sm shadow-primary/20 transition hover:bg-primary/90"
+            onClick={handleAssign}
+          >
+            Done
           </button>
         </div>
       </Modal>

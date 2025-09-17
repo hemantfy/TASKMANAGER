@@ -1,37 +1,49 @@
 import React, { useState } from "react";
 import { LuChevronDown } from "react-icons/lu";
+
 const SelectDropdown = ({ options, value, onChange, placeholder }) => {
     const [isOpen, setIsOpen] = useState(false);
 
     const handleSelect = (option) => {
         onChange(option);
         setIsOpen(false);
-    }
-  return <div className="relative w-full">
-    {/* DropDown Button*/}
-    <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full text-sm text-black outline-none bg-white border border-slate-100 px-2.5 py-3 rounded-md mt-2 flex justify-between items-center"
-       >
-        {value ? options.find((opt) => opt.value === value)?.label : placeholder}
-        <span className="ml-2">{isOpen ? <LuChevronDown className="rotate-180" /> : <LuChevronDown/>}</span>
-    </button>
+    };
 
-    {/* Dropdown Menu */}
-    {isOpen && (
-    <div className="absolute w-full bg-white border border-slate-100 rounded-md mt-1 shadow-md z-10">
-        {options.map((option) => (
-        <div
-            key={option.value}
-            onClick={() => handleSelect(option.value)}
-            className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100"
-        >
-            {option.label}
+    return (
+        <div className="relative w-full">
+          <button
+            type="button"
+            onClick={() => setIsOpen((prev) => !prev)}
+            className={`flex w-full items-center justify-between rounded-2xl bg-transparent px-4 py-3 text-left text-sm font-medium text-slate-600 transition hover:text-slate-900 ${
+              isOpen ? "text-slate-900" : ""
+            }`}
+          >
+            <span>
+              {value ? options.find((opt) => opt.value === value)?.label : placeholder}
+            </span>
+            <LuChevronDown
+              className={`ml-2 transition-transform ${isOpen ? "rotate-180" : "rotate-0"}`}
+            />
+          </button>
+    
+          {isOpen && (
+        <div className="absolute left-0 top-full z-20 mt-2 w-full overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xl shadow-slate-200/70">
+          {options.map((option) => (
+            <button
+              key={option.value}
+              onClick={() => handleSelect(option.value)}
+              className={`w-full px-4 py-2.5 text-left text-sm font-medium text-slate-600 transition hover:bg-primary/5 hover:text-slate-900 ${
+                option.value === value ? "bg-primary/5 text-primary" : ""
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+    
         </div>
-        ))}
+        )}
     </div>
-    )}
-    </div> 
+    );
 };
 
 export default SelectDropdown;

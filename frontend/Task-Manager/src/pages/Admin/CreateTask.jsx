@@ -4,9 +4,8 @@ import { PRIORITY_DATA } from "../../utils/data";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import toast from "react-hot-toast";
-import { useLocation, useNavigate } from "react-router-dom";
-import moment from "moment";
-import { LuTrash2 } from "react-icons/lu";
+import { useLocation } from "react-router-dom";
+import { LuCalendarDays, LuTrash2 } from "react-icons/lu";
 import SelectDropdown from '../../components/inputs/SelectDropdown';
 import SelectUsers from '../../components/inputs/SelectUsers';
 import TodoListInput from '../../components/inputs/TodoListInput';
@@ -16,8 +15,6 @@ const CreateTask = () => {
 
   const location = useLocation();
   const { taskId } = location.state || {};
-  const navigate = useNavigate();
-
   const [taskData, setTaskData] = useState({
     title: "",
     description: "",
@@ -28,29 +25,27 @@ const CreateTask = () => {
     attachments: [],
   });
   
-  const [currentTask, setCurrentTask] = useState(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-    const [error, setError] = useState("");
-    const [loading, setLoading] = useState(false);
+  const [, setOpenDeleteAlert] = useState(false);
 
-    const [openDeleteAlert, setOpenDeleteAlert] = useState(false);
+  const handleValueChange = (key, value) => {
+    setTaskData((prevData) => ({ ...prevData, [key]: value }));
+  };
 
-    const handleValueChange = (key, value) => {
-      setTaskData((prevData) => ({ ...prevData, [key]: value }));
-    };
-
-const clearData = () => {
-  //reset form
-  setTaskData({
-    title: "",
-    description: "",
-    priority: "Low",
-    dueDate: null,
-    assignedTo: [],
-    todoChecklist: [],
-    attachments: [],
-  });
-};
+  const clearData = () => {
+    // Reset form
+    setTaskData({
+      title: "",
+      description: "",
+      priority: "Low",
+      dueDate: null,
+      assignedTo: [],
+      todoChecklist: [],
+      attachments: [],
+    });
+  };
 
   // Create Task
   const createTask = async () => {
@@ -62,14 +57,6 @@ const clearData = () => {
         completed: false,
       }));
     
-      const dueDateMoment = taskData.dueDate ? moment(taskData.dueDate) : null;
-
-      if (!dueDateMoment || !dueDateMoment.isValid()) {
-        setError("Due Date is required.");
-        setLoading(false);
-        return;
-      }
-
       await axiosInstance.post(API_PATHS.TASKS.CREATE_TASK, {
         ...taskData,
         dueDate: dueDateMoment.toISOString(),
@@ -131,117 +118,142 @@ const clearData = () => {
 
   return (
     <DashboardLayout activeMenu="CreateTasK">
-      <div className="mt-5">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
-          <div className="form-card col-span-3">
-            <h2 className="flex items-center justify-between">
-              {taskId ? "Update Task" : "Create Task"}
-            </h2>
+      <div className="mt-6 max-w-5xl mx-auto">
+        <div className="rounded-3xl border border-slate-200/70 bg-white shadow-md shadow-slate-200/60">
+          <div className="flex flex-col gap-4 border-b border-slate-100 px-6 py-5 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">
+                {taskId ? "Update Task" : "Create Task"}
+              </h2>
+              <p className="text-sm text-slate-500">
+                Keep everything organised by sharing the right details with your team.
+              </p>
+            </div>
 
             {taskId && (
               <button
-                className="flex items-center gap-1.5 text-[13px] font-medium text-rose-500 bg-rose-50 rounded px-2 py-1 border border-rose-100 hover:border-rose-300 cursor-pointer"
+                className="inline-flex items-center gap-1.5 rounded-full border border-rose-100 bg-rose-50 px-3 py-1.5 text-sm font-medium text-rose-500 transition hover:border-rose-200 hover:bg-rose-100"
                 onClick={() => setOpenDeleteAlert(true)}
               >
-                <LuTrash2 className="text-base" /> Delete
+                <LuTrash2 className="text-base" /> Delete Task
               </button>
             )}
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
-              <div className="md:col-span-3">
-                <label className="text-xs font-medium text-slate-600">Task Title</label>
+          </div>
+          <div className="px-6 py-6">
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                  Task Title
+                </label>
                 <input
                   placeholder="Create App UI"
-                  className="form-input"
+                  className="form-input  mt-0 h-12 bg-slate-50 focus:border-primary focus:ring-2 focus:ring-primary/10"
                   value={taskData.title}
                   onChange={({ target }) => handleValueChange("title", target.value)}
                 />
               </div>
 
-              <div className="md:col-span-1">
-                <label className="text-xs font-medium text-slate-600">Priority</label>
-                <SelectDropdown
-                  options={PRIORITY_DATA}
-                  value={taskData.priority}
-                  onChange={(value) => handleValueChange("priority", value)}
-                  placeholder="Select Priority"
-                />
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                  Priority
+                </label>
+                <div className="form-input mt-0 h-12 bg-slate-50 p-0 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10">
+                  <SelectDropdown
+                    options={PRIORITY_DATA}
+                    value={taskData.priority}
+                    onChange={(value) => handleValueChange("priority", value)}
+                    placeholder="Select Priority"
+                  />
+                </div>
               </div>
 
-              <div className="md:col-span-4">
-                <label className="text-xs font-medium text-slate-600">Description</label>
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                  Description
+                </label>
                 <textarea
                   placeholder="Describe task"
-                  className="form-input"
+                  className="form-input mt-0 min-h-[140px] bg-slate-50 focus:border-primary focus:ring-2 focus:ring-primary/10"
                   rows={4}
                   value={taskData.description}
                   onChange={({ target }) => handleValueChange("description", target.value)}
                 />
               </div>
 
-              <div className="col-span-6 md:col-span-4">
-                <label className="text-xs font-medium text-slate-600">
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
                   Due Date
                 </label>
 
-                <input
-                  placeholder="Create App UI"
-                  className="form-input"
-                  value={taskData.dueDate}
-                  onChange={({ target }) =>
-                    handleValueChange("dueDate", target.value)
-                  }
-                  type="date"
-                />
+                <div className="relative">
+                  <input
+                    className="form-input mt-0 h-12 bg-slate-50 pr-11 focus:border-primary focus:ring-2 focus:ring-primary/10"
+                    value={taskData.dueDate}
+                    onChange={({ target }) => handleValueChange("dueDate", target.value)}
+                    type="date"
+                  />
+                  <LuCalendarDays className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                </div>
               </div>
-              <div className="col-span-12 md:col-span-3">
-                <label className="text-xs font-medium text-slate-600">
+              
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
                   Assign To
                 </label>
 
-                <SelectUsers
-                  selectedUsers={taskData.assignedTo}
-                  setSelectedUsers={(value) => {
-                    handleValueChange("assignedTo", value);
-                  }}
-                />
+                <div className="rounded-2xl border border-slate-200/80 bg-slate-50 px-4 py-3">
+                  <SelectUsers
+                    selectedUsers={taskData.assignedTo}
+                    setSelectedUsers={(value) => {
+                      handleValueChange("assignedTo", value);
+                    }}
+                  />
+                </div>
               </div>
-              <div className="md:col-span-4">
-                <label className="text-xs font-medium text-slate-600">
-                  Todo List
-                </label>
+              </div>
+
+                <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
+                  <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold text-slate-700">Todo Checklist</p>
+                      <span className="text-xs font-medium uppercase tracking-[0.12em] text-slate-400">Tasks</span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Break the work into smaller action items for better progress tracking.
+                    </p>
                 <TodoListInput
                   todoList={taskData.todoChecklist}
                   setTodoList={(value) => handleValueChange("todoChecklist", value)}
                 />
               </div>
 
-              <div className="mt-3">
-                  <label className="text-xs font-medium text-slate-600">
-                    Add Attachments (Link)
-                  </label>
-
-                  <AddAttachmentsInput
-                    attachments={taskData?.attachments}
-                    setAttachments={(value) =>
-                      handleValueChange("attachments", value)
-                    }
-                  />
+              <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-slate-700">Add Attachments</p>
+                  <span className="text-xs font-medium uppercase tracking-[0.12em] text-slate-400">Link</span>
                 </div>
+                <p className="mt-1 text-xs text-slate-500">
+                  Share helpful references, documents or design assets with the team.
+                </p>
+                <AddAttachmentsInput
+                  attachments={taskData?.attachments}
+                  setAttachments={(value) => handleValueChange("attachments", value)}
+                />
+              </div>
+            </div>
 
-                {error && (
-                    <p className="text-xs font-medium text-red-500 mt-5">{error}</p>
-                  )}
+            {error && (
+              <p className="mt-6 text-sm font-medium text-rose-500">{error}</p>
+            )}
 
-                  <div className="flex justify-end mt-7">
-                    <button
-                      className="add-btn"
-                      onClick={handleSubmit}
-                      disabled={loading}
-                    >
-                      {taskId ? "UPDATE TASK" : "CREATE TASK"}
-                    </button>
-                  </div>
+              <div className="mt-8 border-t border-slate-100 pt-6">
+              <button
+                className="add-btn"
+                onClick={handleSubmit}
+                disabled={loading}
+              >
+                {taskId ? "Update Task" : "Create Task"}
+              </button>
             </div>
           </div>
         </div>
