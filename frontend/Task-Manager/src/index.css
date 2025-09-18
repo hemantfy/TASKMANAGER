@@ -49,3 +49,7 @@
 .add-btn {
   @apply inline-flex w-full items-center justify-center gap-2 rounded-full border border-primary bg-primary px-6 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-white shadow-lg shadow-primary/20 transition hover:bg-primary/90 hover:shadow-primary/30 disabled:cursor-not-allowed disabled:opacity-70;
 }
+
+.download-btn{
+  @apply items-center gap-3 text-xs md:text-[13px] text-lime-900 bg-lime-100 px-2 md:px-3 py-2 rounded border border-lime-200 hover:border-lime-400 cursor-pointer;
+}
