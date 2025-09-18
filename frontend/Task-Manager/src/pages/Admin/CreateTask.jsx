@@ -10,6 +10,7 @@ import SelectDropdown from '../../components/inputs/SelectDropdown';
 import SelectUsers from '../../components/inputs/SelectUsers';
 import TodoListInput from '../../components/inputs/TodoListInput';
 import AddAttachmentsInput from '../../components/inputs/AddAttachmentsInput';
+import moment from "moment";
 
 const CreateTask = () => {
 
@@ -27,6 +28,7 @@ const CreateTask = () => {
   
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [currentTask, setCurrentTask] = useState(null);
 
   const [, setOpenDeleteAlert] = useState(false);
 
@@ -52,6 +54,8 @@ const CreateTask = () => {
     setLoading(true);
 
     try {
+      const dueDateMoment = moment(taskData.dueDate);
+
       const todolist = taskData.todoChecklist?.map((item) => ({
         text: item,
         completed: false,
@@ -148,6 +152,16 @@ const CreateTask = () => {
       if (response.data) {
         const taskInfo = response.data;
         setCurrentTask(taskInfo);
+
+        const assignedTo = Array.isArray(taskInfo?.assignedTo)
+          ? taskInfo.assignedTo
+          : taskInfo?.assignedTo
+          ? [taskInfo.assignedTo]
+          : [];
+
+        const todoChecklist = Array.isArray(taskInfo?.todoChecklist)
+          ? taskInfo.todoChecklist
+          : [];
     
         setTaskData((prevState) => ({
           title: taskInfo.title,
@@ -156,9 +170,8 @@ const CreateTask = () => {
           dueDate: taskInfo.dueDate
             ? moment(taskInfo.dueDate).format("YYYY-MM-DD")
             : null,
-          assignedTo: taskInfo?.assignedTo?.map((item) => item?._id) || [],
-          todoChecklist:
-            taskInfo?.todoChecklist?.map((item) => item?.text) || [],
+            assignedTo: assignedTo.map((item) => item?._id).filter(Boolean),
+            todoChecklist: todoChecklist.map((item) => item?.text || item).filter(Boolean),
           attachments: taskInfo?.attachments || [],
         }));
       }
