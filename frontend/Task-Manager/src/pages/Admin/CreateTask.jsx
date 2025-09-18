@@ -11,6 +11,8 @@ import SelectUsers from '../../components/inputs/SelectUsers';
 import TodoListInput from '../../components/inputs/TodoListInput';
 import AddAttachmentsInput from '../../components/inputs/AddAttachmentsInput';
 import moment from "moment";
+import DeleteAlert from '../../components/DeleteAlert';
+import Modal from '../../components/Modal';
 
 const CreateTask = () => {
 
@@ -30,7 +32,7 @@ const CreateTask = () => {
   const [loading, setLoading] = useState(false);
   const [currentTask, setCurrentTask] = useState(null);
 
-  const [, setOpenDeleteAlert] = useState(false);
+  const [openDeleteAlert, setOpenDeleteAlert] = useState(false);
 
   const handleValueChange = (key, value) => {
     setTaskData((prevData) => ({ ...prevData, [key]: value }));
@@ -139,8 +141,13 @@ const CreateTask = () => {
       return;
     };
 
+    if (taskId) {
+      updateTask();
+      return;
+    }
+
     createTask();
-  };  
+  };
 
   // get Task info by ID
   const getTaskDetailsByID = async () => {
@@ -181,7 +188,20 @@ const CreateTask = () => {
   };
 
   // Delete Task
-  const deleteTask = async () => {};
+  const deleteTask = async () => {
+    try {
+      await axiosInstance.delete(API_PATHS.TASKS.DELETE_TASK(taskId));
+    
+      setOpenDeleteAlert(false);
+      toast.success("Task deleted successfully");
+      navigate('/admin/tasks')
+    } catch (error) {
+      console.error(
+        "Error deleting expense:",
+        error.response?.data?.message || error.message
+      );
+    }    
+  };
 
   useEffect(() => {
     if(taskId){
@@ -334,6 +354,18 @@ const CreateTask = () => {
           </div>
         </div>
       </div>
+
+      <Modal
+        isOpen={openDeleteAlert}
+        onClose={() => setOpenDeleteAlert(false)}
+        title="Delete Task"
+      >
+        <DeleteAlert
+          content="Are you sure you want to delete this task?"
+          onDelete={() => deleteTask()}
+        />
+      </Modal>
+
     </DashboardLayout>
   );
 };
