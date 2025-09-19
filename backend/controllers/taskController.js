@@ -308,7 +308,8 @@ const taskPriorityLevels = taskPriorities.reduce((acc, priority) => {
 const recentTasks = await Task.find()
   .sort({ createdAt: -1 })
   .limit(10)
-  .select("title status priority dueDate createdAt");
+  .select("title status priority dueDate createdAt assignedTo")
+  .populate("assignedTo", "name email");
 
 res.status(200).json({
   statistics: {
