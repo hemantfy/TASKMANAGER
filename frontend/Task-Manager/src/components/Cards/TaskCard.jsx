@@ -12,12 +12,35 @@ const TaskCard = ({
   progress,
   createdAt,
   dueDate,
-  assignedTo,
-  attachmentCount,
+  assignedTo = [],
+  attachmentCount = 0,
   completedTodoCount,
   todoChecklist,
   onClick
 }) => {
+
+  const assigneeAvatars = Array.isArray(assignedTo)
+  ? assignedTo.map((user) => {
+      if (typeof user === "string") {
+        return { profileImageUrl: user };
+      }
+
+      if (user && typeof user === "object") {
+        return {
+          profileImageUrl:
+            user.profileImageUrl || user.src || user.avatar || "",
+          name: user.name || user.fullName || ""
+        };
+      }
+
+      return { profileImageUrl: "" };
+    })
+  : [];
+
+const totalAttachments =
+  typeof attachmentCount === "number" && !Number.isNaN(attachmentCount)
+    ? attachmentCount
+    : 0;
 
     const getStatusTagColor = () => {
         switch (status) {
@@ -107,14 +130,12 @@ const TaskCard = ({
             </div>
 
             <div className="flex items-center justify-between mt-3">
-            <AvatarGroup avatars={assignedTo || []} />
+            <AvatarGroup avatars={assigneeAvatars} />
 
-            {attachmentCount > 0 && (
             <div className="flex items-center gap-2 bg-blue-50 px-2.5 py-1.5 rounded-lg">
                 <LuPaperclip className="text-primary" />{" "}
-                <span className="text-xs text-gray-900">{attachmentCount}</span>
+                <span className="text-xs text-gray-900">{totalAttachments}</span>
             </div>
-            )}
             </div>
         </div>
     </div>
