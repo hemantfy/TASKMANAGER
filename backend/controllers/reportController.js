@@ -23,7 +23,14 @@ worksheet.columns = [
 ];
 
 tasks.forEach((task) => {
-    const assignedTo = task.assignedTo
+  const assignedUsers = Array.isArray(task.assignedTo)
+    ? task.assignedTo
+    : task.assignedTo
+    ? [task.assignedTo]
+    : [];
+
+  const assignedTo = assignedUsers
+    .filter(Boolean)
       .map((user) => `${user.name} (${user.email})`)
       .join(", ");
   
@@ -33,7 +40,9 @@ tasks.forEach((task) => {
       description: task.description,
       priority: task.priority,
       status: task.status,
-      dueDate: task.dueDate.toISOString().split("T")[0],
+      dueDate: task.dueDate
+        ? task.dueDate.toISOString().split("T")[0]
+        : "",   
       assignedTo: assignedTo || "Unassigned",
     });
   });
