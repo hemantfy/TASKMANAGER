@@ -4,6 +4,7 @@ import { API_PATHS } from "../../utils/apiPaths";
 import axiosInstance from "../../utils/axiosInstance";
 import { LuFileSpreadsheet } from "react-icons/lu";
 import UserCard from "../../components/Cards/UserCard";
+import toast from "react-hot-toast";
 
 const ManageUsers = () => {
   const [allUsers, setAllUsers] = useState([]);
@@ -37,7 +38,7 @@ const ManageUsers = () => {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Error downloading expense details:", error);
-      toast.error("Failed to download expense details. Please try again.");
+      toast.error("Failed to download Team Members Report. Please try again later.");
     }    
   };
 

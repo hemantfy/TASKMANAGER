@@ -83,18 +83,24 @@ users.forEach((user) => {
 
 userTasks.forEach((task) => {
     if (task.assignedTo) {
-      task.assignedTo.forEach((assignedUser) => {
-        if (userTaskMap[assignedUser._id]) {
-          userTaskMap[assignedUser._id].taskCount += 1;
-          if (task.status === "Pending") {
-            userTaskMap[assignedUser._id].pendingTasks += 1;
-          } else if (task.status === "In Progress") {
-            userTaskMap[assignedUser._id].inProgressTasks += 1;
-          } else if (task.status === "Completed") {
-            userTaskMap[assignedUser._id].completedTasks += 1;
+      const assignedUsers = Array.isArray(task.assignedTo)
+        ? task.assignedTo
+        : [task.assignedTo];
+
+      assignedUsers
+        .filter(Boolean)
+        .forEach((assignedUser) => {
+          if (userTaskMap[assignedUser._id]) {
+            userTaskMap[assignedUser._id].taskCount += 1;
+            if (task.status === "Pending") {
+              userTaskMap[assignedUser._id].pendingTasks += 1;
+            } else if (task.status === "In Progress") {
+              userTaskMap[assignedUser._id].inProgressTasks += 1;
+            } else if (task.status === "Completed") {
+              userTaskMap[assignedUser._id].completedTasks += 1;
+            }
           }
-        }
-      });
+        });
     }
   });
   
