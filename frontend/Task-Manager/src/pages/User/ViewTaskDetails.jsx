@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import axiosInstance from '../../utils/axiosInstance';
-import { API_PATHS } from '../../utils/apiPaths';
-import DashboardLayout from '../../components/layouts/DashboardLayout';
+import React, { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import axiosInstance from "../../utils/axiosInstance";
+import { API_PATHS } from "../../utils/apiPaths";
+import DashboardLayout from "../../components/layouts/DashboardLayout";
 import AvatarGroup from "../../components/AvatarGroup";
 import moment from "moment";
-import { LuSquareArrowOutUpRight } from 'react-icons/lu';
+import { LuSquareArrowOutUpRight } from "react-icons/lu";
 
 const ViewTaskDetails = () => {
   const { id } = useParams();
@@ -14,13 +14,11 @@ const ViewTaskDetails = () => {
   const getStatusTagColor = (status) => {
     switch (status) {
       case "In Progress":
-        return "text-cyan-500 bg-cyan-50 border border-cyan-500/10";
-
+        return "bg-gradient-to-r from-sky-500 via-cyan-500 to-blue-500 text-white";
       case "Completed":
-        return "text-lime-500 bg-lime-50 border border-lime-500/20";
-
+        return "bg-gradient-to-r from-emerald-500 via-lime-400 to-green-500 text-white";
       default:
-        return "text-violet-500 bg-violet-50 border border-violet-500/10";
+        return "bg-gradient-to-r from-purple-500 via-pink-500 to-rose-500 text-white";
     }
   };
 
@@ -57,8 +55,8 @@ const ViewTaskDetails = () => {
             todoChecklist: todoChecklist.map((item) => ({
               _id: item?._id,
               text: item?.text,
-              completed: !!item?.completed,
-            })),
+              completed: !!item?.completed
+            }))
           }
         );
         if (response.status === 200) {
@@ -100,131 +98,139 @@ const ViewTaskDetails = () => {
     : [];
 
   return (
-    <DashboardLayout activeMenu='My Tasks'>
-        <div className="mt-5">
-        {task && (
-          <div className="grid grid-cols-1 md:grid-cols-4 mt-4">
-          <div className="form-card col-span-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm md:text-xl font-medium">{task?.title}</h2>
+    <DashboardLayout activeMenu="My Tasks">
+      <section className="relative overflow-hidden rounded-[32px] border border-white/60 bg-gradient-to-br from-slate-900 via-indigo-700 to-sky-600 px-6 py-8 text-white shadow-[0_20px_45px_rgba(30,64,175,0.35)]">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.18),_transparent_65%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,_rgba(56,189,248,0.2),_transparent_60%)]" />
+        <div className="relative flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.42em] text-white/60">Task Detail</p>
+            <h2 className="mt-3 text-3xl font-semibold leading-tight sm:text-4xl">{task?.title}</h2>
+          </div>
 
-              <div
-                className={`text-[11px] md:text-[13px] font-medium ${getStatusTagColor(
-                  task?.status
-                )} px-4 py-0.5 rounded `}
-              >
-                {task?.status}
-              </div>
+          {task?.status && (
+            <div className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.26em] ${getStatusTagColor(task.status)}`}>
+              {task.status}
             </div>
+          )}
+        </div>
+      </section>
 
-               <div className="mt-4">
-                <InfoBox label="Description" value={task?.description} />
+      {task && (
+        <section className="grid gap-6 lg:grid-cols-[2fr,1fr]">
+          <div className="form-card">
+            <div className="grid grid-cols-1 gap-6">
+              <InfoBox label="Description" value={task?.description} />
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <InfoBox label="Priority" value={task?.priority} />
+                <InfoBox
+                  label="Due Date"
+                  value={task?.dueDate ? moment(task?.dueDate).format("Do MMM YYYY") : "N/A"}
+                />
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.26em] text-slate-500">Assigned To</p>
+                  <div className="mt-2 rounded-2xl border border-white/60 bg-white/80 p-3">
+                    <AvatarGroup
+                      avatars={assignedMembers?.map?.((item) => item?.profileImageUrl)}
+                      maxVisible={5}
+                    />
+                  </div>
+                </div>
                 </div>
 
-                <div className="grid grid-cols-12 gap-4 mt-4">
-                    <div className="col-span-6 md:col-span-4">
-                      <InfoBox label="Priority" value={task?.priority} />
-                    </div>
+                <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.26em] text-slate-500">Todo Checklist</p>
+                <div className="mt-3 space-y-3">
+                  {todoChecklistItems?.map?.((item, index) => (
+                    <TodoCheckList
+                      key={`todo_${index}`}
+                      text={item.text}
+                      isChecked={item?.completed}
+                      onChange={() => updateTodoCheckList(index)}
+                    />
+                  ))}
+                </div>
+              </div>
 
-                    <div className="col-span-6 md:col-span-4">
-                      <InfoBox
-                        label="Due Date"
-                        value={
-                          task?.dueDate
-                            ? moment(task?.dueDate).format("Do MMM YYYY")
-                            : "N/A"
-                        }
-                      />
-                    </div>
-
-                    <div className="col-span-6 md:col-span-4">
-                      <label className="text-xs font-medium text-slate-500">
-                        Assigned To
-                      </label>
-
-                      <AvatarGroup
-                         avatars={assignedMembers?.map?.((item) => item?.profileImageUrl)}
-                        maxVisible={5}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mt-2">
-                    <label className="text-xs font-medium text-slate-500">
-                      Todo Checklist
-                    </label>
-
-                    {todoChecklistItems?.map?.((item, index) => (
-                      <TodoCheckList
-                        key={`todo_${index}`}
-                        text={item.text}
-                        isChecked={item?.completed}
-                        onChange={() => updateTodoCheckList(index)}
+              {task?.attachments?.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.26em] text-slate-500">Attachments</p>
+                  <div className="mt-3 space-y-3">
+                    {task?.attachments?.map?.((link, index) => (
+                      <Attachment
+                        key={`link_${index}`}
+                        link={link}
+                        index={index}
+                        onClick={() => handleLinkClick(link)}
                       />
                     ))}
                   </div>
 
-                  {task?.attachments?.length > 0 && (
-                    <div className="mt-2">
-                      <label className="text-xs font-medium text-slate-500">
-                        Attachments
-                      </label>
-
-                      {task?.attachments?.map?.((link, index) => (
-                        <Attachment
-                          key={`link_${index}`}
-                          link={link}
-                          index={index}
-                          onClick={() => handleLinkClick(link)}
-                        />
-                      ))}
-                    </div>
-                  )}
+                  </div>
+              )}
+            </div>
  
           </div>
-        </div>
-        )}
-      </div>
+          <aside className="form-card space-y-4">
+            <h3 className="text-lg font-semibold text-slate-900">Project Pulse</h3>
+            <p className="text-sm text-slate-500">
+              Track status, due dates and collaboration at a glance.
+            </p>
+            <Link
+              to="/user/tasks"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-white/60 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600 transition hover:-translate-y-0.5 hover:bg-gradient-to-r hover:from-slate-900 hover:to-indigo-600 hover:text-white"
+            >
+              Back to Tasks
+            </Link>
+          </aside>
+        </section>
+      )}
     </DashboardLayout>
-  )
-}
+  );
+};
 
 export default ViewTaskDetails;
 
-const InfoBox = ({label, value})=>{
-  return <>
-  <label className="text-xs font-medium text-slate-500">{label}</label>
-      <p className="text-[12px] md:text-[13px] font-medium text-gray-700 mt-0.5">
-        {value}
-      </p>
-    </>
-}
+const InfoBox = ({ label, value }) => {
+  return (
+    <div className="rounded-2xl border border-white/60 bg-white/80 p-4 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
+      <p className="text-xs font-semibold uppercase tracking-[0.26em] text-slate-500">{label}</p>
+      <p className="mt-2 text-sm font-medium text-slate-900">{value}</p>
+    </div>
+  );
+};
 
 const TodoCheckList = ({ text, isChecked, onChange }) => {
-  return <div className="flex items-center gap-3 p-3">
-    <input
-      type="checkbox"
-      checked={isChecked}
-      onChange={onChange}
-      className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded-sm outline-none cursor-pointer"
-    />
-    <p className="text-[13px] text-gray-800">{text}</p>
-  </div>
+  return (
+    <div className="flex items-center gap-3 rounded-2xl border border-white/60 bg-white/80 px-4 py-3 shadow-[0_12px_24px_rgba(15,23,42,0.08)]">
+      <input
+        type="checkbox"
+        checked={isChecked}
+        onChange={onChange}
+        className="h-5 w-5 cursor-pointer rounded-full border border-slate-300 text-primary focus:ring-0"
+      />
+      <p className="text-sm text-slate-700">{text}</p>
+    </div>
+  );
 };
 
 const Attachment = ({ link, index, onClick }) => {
-  return <div
-    className="flex justify-between bg-gray-50 border border-gray-100 px-3 py-2 rounded-md mb-3 mt-2 cursor-pointer"
-    onClick={onClick}
-  >
-    <div className="flex-1 flex items-center gap-3">
-      <span className="text-xs text-gray-400 font-semibold mr-2">
-        {index < 9 ? `0${index + 1}` : index + 1}
-      </span>
+  return (
+    <button
+      type="button"
+      className="flex w-full items-center justify-between gap-3 rounded-2xl border border-white/60 bg-white/80 px-4 py-3 text-left text-sm text-slate-700 shadow-[0_12px_24px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5 hover:border-primary/40 hover:text-primary"
+      onClick={onClick}
+    >
+      <div className="flex flex-1 items-center gap-3">
+        <span className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">
+          {index < 9 ? `0${index + 1}` : index + 1}
+        </span>
 
-      <p className="text-xs text-black">{link}</p>
-    </div>
+        <p className="line-clamp-1 text-sm">{link}</p>
+      </div>
 
-    <LuSquareArrowOutUpRight className="text-gray-400" />
-  </div>
+      <LuSquareArrowOutUpRight className="text-base" />
+    </button>
+  );
 };

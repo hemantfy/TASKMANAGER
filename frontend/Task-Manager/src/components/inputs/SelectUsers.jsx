@@ -88,7 +88,7 @@ const SelectUsers = ({ selectedUsers, setSelectedUsers }) => {
             {allUsers.map((user) => (
               <div
                 key={user._id}
-                className="flex items-center gap-4 rounded-xl bg-white px-4 py-3 shadow-sm shadow-slate-200/60"
+                className="flex items-center gap-4 rounded-xl bg-white px-4 py-3 shadow-[0_12px_24px_rgba(15,23,42,0.08)]"
               >
                 <img
                   src={user.profileImageUrl}

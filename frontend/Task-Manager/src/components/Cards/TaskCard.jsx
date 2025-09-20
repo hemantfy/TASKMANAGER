@@ -18,127 +18,113 @@ const TaskCard = ({
   todoChecklist,
   onClick
 }) => {
-
   const assigneeAvatars = Array.isArray(assignedTo)
   ? assignedTo.map((user) => {
-      if (typeof user === "string") {
-        return { profileImageUrl: user };
-      }
+    if (typeof user === "string") {
+      return { profileImageUrl: user };
+    }
 
-      if (user && typeof user === "object") {
-        return {
-          profileImageUrl:
-            user.profileImageUrl || user.src || user.avatar || "",
-          name: user.name || user.fullName || ""
-        };
-      }
+    if (user && typeof user === "object") {
+      return {
+        profileImageUrl: user.profileImageUrl || user.src || user.avatar || "",
+        name: user.name || user.fullName || ""
+      };
+    }
 
-      return { profileImageUrl: "" };
-    })
-  : [];
+    return { profileImageUrl: "" };
+  })
+: [];
 
 const totalAttachments =
-  typeof attachmentCount === "number" && !Number.isNaN(attachmentCount)
-    ? attachmentCount
-    : 0;
+typeof attachmentCount === "number" && !Number.isNaN(attachmentCount)
+  ? attachmentCount
+  : 0;
 
-    const getStatusTagColor = () => {
-        switch (status) {
-          case "In Progress":
-            return "text-cyan-500 bg-cyan-50 border border-cyan-500/10";
-      
-          case "Completed":
-            return "text-lime-500 bg-lime-50 border border-lime-500/20";
-      
-          default:
-            return "text-violet-500 bg-violet-50 border border-violet-500/10";
-        }
-      };
-    
-      const getPriorityTagColor = () => {
-        switch (priority) {
-          case "Low":
-            return "text-emerald-500 bg-emerald-50 border border-emerald-500/10";
-      
-          case "Medium":
-            return "text-amber-500 bg-amber-50 border border-amber-500/10";
-      
-          default:
-            return "text-rose-500 bg-rose-50 border border-rose-500/10";
-        }
-      };
-      
-      return <div
-          className="bg-white rounded-xl py-4  shadow-md shadow-gray-100 border border-gray-200/50 cursor-pointer"
-          onClick={onClick}
-        >
-            <div className="flex items-end gap-3 px-4">
-            <div
-              className={`text-[11px] font-medium ${getStatusTagColor()} px-4 py-0.5 rounded`}
-            >
-              {status}
-            </div>
-            <div
-              className={`text-[11px] font-medium ${getPriorityTagColor()} px-4 py-0.5 rounded`}
-            >
-              {priority} Priority
-            </div>
-          </div>
-      
-          <div
-            className={`px-4 border-l-[3px] ${
-              status === "In Progress"
-                ? "border-cyan-500"
-                : status === "Completed"
-                ? "border-indigo-500"
-                : "border-violet-500"
-            }`}
-          >
-            <p className="text-sm font-medium text-gray-800 mt-4 line-clamp-2">
-                {title}
-            </p>
+  const getStatusAccent = () => {
+    switch (status) {
+      case "In Progress":
+        return "from-sky-400 via-cyan-500 to-blue-500";
+      case "Completed":
+        return "from-emerald-400 via-lime-400 to-green-500";
+      default:
+        return "from-purple-500 via-pink-500 to-rose-500";
+    }
+  };
 
-            <p className="text-xs text-gray-500 mt-1.5 line-clamp-2 leading-[18px]">
-                {description}
-            </p>
+  const getStatusTagColor = () => {
+    switch (status) {
+      case "In Progress":
+        return "bg-gradient-to-r from-sky-500 to-cyan-500 text-white";
+      case "Completed":
+        return "bg-gradient-to-r from-emerald-500 to-lime-400 text-white";
+      default:
+        return "bg-gradient-to-r from-purple-500 to-pink-500 text-white";
+    }
+  };
 
-            <p className="text-[13px] text-gray-700/80 font-medium mt-2 mb-2 leading-[18px]">
-               Task Done: {""}
-               <span className="font-semibold text-gray-700">
-                {completedTodoCount} / {todoChecklist.length || 0}
-               </span>
-            </p>
+  const getPriorityTagColor = () => {
+    switch (priority) {
+      case "Low":
+        return "bg-gradient-to-r from-emerald-400 to-teal-400 text-white";
+      case "Medium":
+        return "bg-gradient-to-r from-amber-400 to-orange-400 text-white";
+      default:
+        return "bg-gradient-to-r from-rose-500 to-red-500 text-white";
+    }
+  };
+  return (
+    <div
+      className="relative cursor-pointer overflow-hidden rounded-[30px] border border-white/60 bg-white/80 p-6 shadow-[0_22px_50px_rgba(15,23,42,0.12)] transition hover:-translate-y-1 hover:shadow-[0_32px_70px_rgba(59,130,246,0.2)]"
+      onClick={onClick}
+    >
+      <span className={`absolute inset-0 -z-10 bg-gradient-to-br ${getStatusAccent()} opacity-[0.12]`} />
 
-            <Progress progress={progress} status={status} />
-           </div>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] ${getStatusTagColor()}`}>
+          {status}
+        </div>
+        <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] ${getPriorityTagColor()}`}>
+          {priority} Priority
+        </div>
+      </div>
 
-            <div className="px-4">
-            <div className="flex items-center justify-between my-1">
-                <div>
-                <label className="text-xs text-gray-500">Start Date</label>
-                <p className="text-[13px] font-medium text-gray-900">
-                    {moment(createdAt).format("Do MMM YYYY")}
-                </p>
-                </div>
+      <div className="mt-5 space-y-3">
+        <h3 className="text-lg font-semibold leading-tight text-slate-900 line-clamp-2">{title}</h3>
+        <p className="text-sm leading-relaxed text-slate-600 line-clamp-3">{description}</p>
+      </div>
+      <div className="mt-5 rounded-2xl border border-white/60 bg-white/80 p-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.26em] text-slate-500">
+          Task Done
+        </p>
+        <p className="mt-2 text-sm font-medium text-slate-700">
+          <span className="text-lg font-semibold text-slate-900">{completedTodoCount}</span> / {todoChecklist.length || 0}
+        </p>
+        <div className="mt-3">
+          <Progress progress={progress} status={status} />
+        </div>
+      </div>
 
-                <div>
-                <label className="text-xs text-gray-500">Due Date</label>
-                <p className="text-[13px] font-medium text-gray-900">
-                    {moment(dueDate).format("Do MMM YYYY")}
-                </p>
-                </div>
-            </div>
+      <div className="mt-5 grid grid-cols-2 gap-3 text-sm text-slate-600">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Start Date</p>
+          <p className="mt-1 text-sm font-medium text-slate-900">{moment(createdAt).format("Do MMM YYYY")}</p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Due Date</p>
+          <p className="mt-1 text-sm font-medium text-slate-900">{moment(dueDate).format("Do MMM YYYY")}</p>
+        </div>
+      </div>
 
-            <div className="flex items-center justify-between mt-3">
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
             <AvatarGroup avatars={assigneeAvatars} />
 
-            <div className="flex items-center gap-2 bg-blue-50 px-2.5 py-1.5 rounded-lg">
-                <LuPaperclip className="text-primary" />{" "}
-                <span className="text-xs text-gray-900">{totalAttachments}</span>
-            </div>
-            </div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/80 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
+          <LuPaperclip className="text-base text-slate-500" />
+          {totalAttachments}
         </div>
+        </div> 
     </div>
+    );
 };
 
 export default TaskCard;

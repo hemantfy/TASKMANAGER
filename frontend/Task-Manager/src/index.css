@@ -13,8 +13,11 @@
   }
 
   body {
-    background-color: #fcfbfc;
+    background: radial-gradient(circle at 0% -20%, #dbeafe 0%, transparent 55%),
+    radial-gradient(circle at 100% 0%, #ede9fe 0%, transparent 45%),
+    linear-gradient(180deg, #f8fafc 0%, #eef2ff 35%, #f8fafc 100%);
     overflow-x: hidden;
+    min-height: 100vh;
   }
 }
 
@@ -35,11 +38,42 @@
 }
 
 .card {
-  @apply bg-white p-6 rounded-2xl shadow-md shadow-gray-100 border border-gray-200/50;
+  position: relative;
+  @apply overflow-hidden rounded-3xl border border-slate-200/60 bg-white/90 p-6 backdrop-blur;
+  box-shadow: 0 26px 60px rgba(15, 23, 42, 0.08);
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  inset: -60% auto auto -40%;
+  width: 260px;
+  height: 260px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(79, 70, 229, 0.18), transparent 65%);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.card::after {
+  content: "";
+  position: absolute;
+  inset: auto -40% -70% auto;
+  width: 220px;
+  height: 220px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.16), transparent 65%);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.card > * {
+  position: relative;
 }
 
 .card-btn {
-  @apply flex items-center gap-3 text-[12px] font-medium text-gray-700 hover:text-primary bg-gray-50 hover:bg-blue-50 px-4 py-1.5 rounded-lg border border-gray-200/50 cursor-pointer;
+  @apply inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/80 px-5 py-2 text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-600 transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-gradient-to-r hover:from-primary/90 hover:to-sky-500 hover:text-white;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
 }
 
 .card-btn-fill {
@@ -47,7 +81,8 @@
 }
 
 .form-card {
-  @apply bg-white p-6 rounded-lg shadow-md shadow-gray-100 border border-gray-200/50;
+  @apply relative overflow-hidden rounded-3xl border border-slate-200/60 bg-white/90 p-6 backdrop-blur;
+  box-shadow: 0 26px 60px rgba(15, 23, 42, 0.08);
 }
 
 .form-input {
@@ -59,9 +94,39 @@
 }
 
 .download-btn{
-  @apply items-center gap-3 text-xs md:text-[13px] text-lime-900 bg-lime-100 px-2 md:px-3 py-2 rounded border border-lime-200 hover:border-lime-400 cursor-pointer;
+  @apply inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600 transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-gradient-to-r hover:from-primary/90 hover:to-sky-500 hover:text-white;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
 }
 
 .user-card{
-  @apply bg-white p-4 rounded-xl shadow-md shadow-gray-100 border border-gray-200/50;
+  @apply relative overflow-hidden rounded-3xl border border-slate-200/70 bg-white/90 p-4 backdrop-blur;
+  box-shadow: 0 26px 60px rgba(15, 23, 42, 0.08);
+}
+
+.user-card::before {
+  content: "";
+  position: absolute;
+  inset: -50% auto auto -30%;
+  width: 220px;
+  height: 220px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.18), transparent 65%);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.user-card::after {
+  content: "";
+  position: absolute;
+  inset: auto -30% -55% auto;
+  width: 200px;
+  height: 200px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.2), transparent 70%);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.user-card > * {
+  position: relative;
 }

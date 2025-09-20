@@ -4,20 +4,22 @@ const Progress = ({ progress, status }) => {
   const getColor = () => {
     switch (status) {
       case "In Progress":
-        return 'text-cyan-500 bg-cyan-500 border border-cyan-500/10';
+        return "bg-gradient-to-r from-sky-500 via-cyan-500 to-blue-500";
 
       case "Completed":
-        return 'text-indigo-500 bg-indigo-500 border border-indigo-500/10';
+        return "bg-gradient-to-r from-emerald-500 via-lime-400 to-green-500";
 
       default:
-        return 'text-violet-500 bg-violet-500 border border-violet-500/10';
+        return "bg-gradient-to-r from-purple-500 via-pink-500 to-rose-500";
     }
   };
 
   return (
-    <div className="w-full bg-gray-200 rounded-full h-1.5">
-      <div className={`${getColor()} h-1.5 rounded-full text-center text-xs font-medium`} style={{ width: `${progress}%` }}>
-      </div>
+    <div className="h-2 w-full overflow-hidden rounded-full bg-white/60">
+      <div
+        className={`${getColor()} h-2 rounded-full text-center text-xs font-medium transition-all duration-500`}
+        style={{ width: `${progress}%` }}
+      />
     </div>
   );
 };

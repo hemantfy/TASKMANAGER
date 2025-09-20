@@ -216,7 +216,7 @@ const CreateTask = () => {
   return (
     <DashboardLayout activeMenu="Create TasK">
       <div className="mt-6 max-w-5xl mx-auto">
-        <div className="rounded-3xl border border-slate-200/70 bg-white shadow-md shadow-slate-200/60">
+      <div className="rounded-3xl border border-slate-200/70 bg-white shadow-[0_26px_60px_rgba(15,23,42,0.08)]">
           <div className="flex flex-col gap-4 border-b border-slate-100 px-6 py-5 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-lg font-semibold text-slate-900">

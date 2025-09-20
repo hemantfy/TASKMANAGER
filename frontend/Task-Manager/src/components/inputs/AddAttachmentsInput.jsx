@@ -23,7 +23,7 @@ const AddAttachmentsInput = ({ attachments = [], setAttachments }) => {
         {attachments.map((item, index) => (
           <div
             key={item}
-            className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm shadow-slate-200/70"
+            className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-[0_12px_24px_rgba(15,23,42,0.08)]"
           >
             <div className="flex flex-1 items-center gap-3">
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">

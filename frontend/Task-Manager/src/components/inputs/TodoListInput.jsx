@@ -23,7 +23,7 @@ const TodoListInput = ({ todoList, setTodoList }) => {
         {todoList.map((item, index) => (
             <div
             key={item}
-            className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm shadow-slate-200/70"
+            className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-[0_12px_24px_rgba(15,23,42,0.08)]"
           >
             <p className="flex items-center gap-3 text-sm font-medium text-slate-700">
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold uppercase tracking-[0.1em] text-primary">

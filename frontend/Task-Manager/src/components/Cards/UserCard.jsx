@@ -1,39 +1,36 @@
-import React from 'react';
+import React from "react";
 
 const UserCard = ({ userInfo }) => {
+  const stats = [
+    { label: "Pending", count: userInfo?.pendingTasks || 0, status: "Pending" },
+    { label: "In Progress", count: userInfo?.inProgressTasks || 0, status: "In Progress" },
+    { label: "Completed", count: userInfo?.completedTasks || 0, status: "Completed" }
+  ];
+
   return (
-    <div className="user-card p-2">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+    <div className="user-card">
+      <div className="relative overflow-hidden rounded-[26px] border border-white/50 bg-white/70 p-4 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
+        <span className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,_rgba(79,70,229,0.18),_transparent_60%)]" />
+        <span className="absolute inset-0 -z-20 bg-[radial-gradient(circle_at_bottom_right,_rgba(56,189,248,0.18),_transparent_60%)]" />
+
+        <div className="relative flex items-center gap-4">
           <img
             src={userInfo?.profileImageUrl}
             alt="Avatar"
-            className="w-12 h-12 rounded-full border-2 border-white"
+            className="h-14 w-14 rounded-2xl border-4 border-white object-cover shadow-[0_12px_24px_rgba(79,70,229,0.25)]"
           />
 
           <div>
-            <p className="text-sm font-medium">{userInfo?.name}</p>
-            <p className="text-xs text-gray-500">{userInfo?.email}</p>
+            <p className="text-base font-semibold text-slate-900">{userInfo?.name}</p>
+            <p className="text-xs text-slate-500">{userInfo?.email}</p>
           </div>
         </div>
-      </div>
 
-      <div className="flex items-end gap-3 mt-5">
-        <StatCard
-         label="Pending"
-         count={userInfo?.pendingTasks || 0}
-         status="Pending"
-        />
-        <StatCard
-         label="In Progress"
-         count={userInfo?.inProgressTasks || 0}
-         status="In Progress"
-        />
-        <StatCard
-         label="Completed"
-         count={userInfo?.completedTasks || 0}
-         status="Completed"
-        />
+        <div className="mt-6 grid grid-cols-3 gap-2">
+          {stats.map((item) => (
+            <StatCard key={item.label} label={item.label} count={item.count} status={item.status} />
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -41,28 +38,26 @@ const UserCard = ({ userInfo }) => {
 
 export default UserCard;
 
-const StatCard = ({ label, count, status })=>{
+const StatCard = ({ label, count, status }) => {
+  const getAccent = () => {
+    switch (status) {
+      case "In Progress":
+        return "from-cyan-400 via-sky-500 to-blue-500";
+      case "Completed":
+        return "from-emerald-400 via-lime-400 to-green-500";
+      default:
+        return "from-purple-500 via-pink-500 to-rose-500";
+    }
+  };
 
-    const getStatusTagColor = () => {
-        switch (status) {
-          case "In Progress":
-            return "text-cyan-500 bg-gray-50";
-      
-          case "Completed":
-            return "text-indigo-500 bg-gray-50";
-      
-          default:
-            return "text-violet-500 bg-gray-50";
-        }
-      };
-    
-      return (
-        <div
-          className={`flex-1 text-[10px] font-medium ${getStatusTagColor()} px-4 py-0.5 rounded`}
-        >
-          <span className="text-[12px] font-semibold">{count}</span> <br /> {label}
-        </div>
-      );      
-}
+  const accent = getAccent();
 
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-white/50 bg-white/70 p-3 text-center shadow-[0_12px_24px_rgba(15,23,42,0.08)]">
+      <span className={`absolute inset-0 -z-10 bg-gradient-to-br ${accent} opacity-[0.12]`} />
+      <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">{label}</p>
+      <p className="mt-2 text-xl font-semibold text-slate-900">{count}</p>
+    </div>
+  );
+};
 

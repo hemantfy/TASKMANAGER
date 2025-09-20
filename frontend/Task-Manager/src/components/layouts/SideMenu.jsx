@@ -52,54 +52,78 @@ const SideMenu = ({ activeMenu }) => {
   }, [user]);
 
   return (
-    <div className="w-64 h-[calc(100vh-61px)] bg-white border-r border-gray-200/50 sticky top-[61px] z-20">
-      <div className="flex flex-col items-center justify-center mb-7 pt-5">
+    <aside className="relative w-full overflow-hidden rounded-[26px] border border-white/50 bg-white/75 p-6 shadow-[0_24px_48px_rgba(15,23,42,0.08)] backdrop-blur-xl lg:sticky lg:top-28">
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,_rgba(79,70,229,0.08),_transparent_65%)]" />
+      <div className="absolute inset-0 -z-20 bg-[radial-gradient(circle_at_bottom_right,_rgba(56,189,248,0.12),_transparent_60%)]" />
+
+      <div className="flex flex-col items-center justify-center rounded-2xl border border-white/50 bg-white/60 px-4 py-5 text-center shadow-inner">
         <div className="relative">
-          <img src={user?.profileImageUrl || ""} alt="Profile Image" className="w-20 h-20 bg-slate-400 rounded-full" />
+        <span className="absolute inset-0 -z-10 animate-pulse rounded-full bg-gradient-to-tr from-primary/30 to-cyan-200/30 blur-xl" />
+          <img
+            src={user?.profileImageUrl || ""}
+            alt="Profile Image"
+            className="h-20 w-20 rounded-full border-4 border-white object-cover shadow-lg shadow-primary/20"
+          />
         </div>
 
-        {user?.role === "admin" && <div className="text-[10px] font-medium text-white bg-primary px-3 py-0.5 rounded mt-1">Admin</div>}
+        {user?.role === "admin" && (
+          <div className="mt-3 rounded-full bg-gradient-to-r from-primary via-indigo-500 to-sky-400 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.26em] text-white shadow-md">
+            Admin
+          </div>
+        )}
 
-        <h5 className="text-gray-950 font-medium leading-6 mt-3">{user?.name || ""}</h5>
-        <p className="text-[12px] text-gray-500">{user?.email || ""}</p>
+        <h5 className="mt-4 text-base font-semibold text-slate-900">{user?.name || ""}</h5>
+        <p className="text-xs text-slate-500">{user?.email || ""}</p>
       </div>
 
-      {(Array.isArray(sideMenuData)
-        ? sideMenuData.filter((menu) => menu && typeof menu.label === "string")
-        : []
-      ).map((item, index) => {
-        const Icon = item.icon;
+      <nav className="mt-8 space-y-1.5">
+        {(Array.isArray(sideMenuData)
+          ? sideMenuData.filter((menu) => menu && typeof menu.label === "string")
+          : []
+        ).map((item, index) => {
+          const Icon = item.icon;
 
-        const normalizedLabel =
-          typeof item.label === "string" ? item.label.trim().toLowerCase() : "";
-        const normalizedPath =
-          typeof item.path === "string"
-            ? item.path.trim().replace(/\/+$/, "") || "/"
-            : "";
+          const normalizedLabel =
+            typeof item.label === "string" ? item.label.trim().toLowerCase() : "";
+          const normalizedPath =
+            typeof item.path === "string"
+              ? item.path.trim().replace(/\/+$/, "") || "/"
+              : "";
 
-        const isActiveLabel =
-          normalizedActiveMenu && normalizedLabel && normalizedActiveMenu === normalizedLabel;
-        const isActivePath =
-          normalizedPath && normalizedPath !== "logout" && normalizedLocationPath === normalizedPath;
+          const isActiveLabel =
+            normalizedActiveMenu && normalizedLabel && normalizedActiveMenu === normalizedLabel;
+          const isActivePath =
+            normalizedPath && normalizedPath !== "logout" && normalizedLocationPath === normalizedPath;
 
-        const isActive = isActiveLabel || isActivePath;
+          const isActive = isActiveLabel || isActivePath;
 
-        return (
-          <button
-            key={`menu_${index}`}
-            className={`w-full flex items-center gap-4 text-[15px] ${
-              isActive
-                ? "text-primary bg-linear-to-r from-blue-50/40 to-blue-100/50 border-r-3"
-                : ""
-            } py-3 px-6 mb-3 cursor-pointer`}
-            onClick={() => handleClick(item?.path)}
-          >
-            {Icon && <Icon className="text-xl" />}
-            {item.label}
-          </button>
-        );
-      })}
-    </div>
+          return (
+            <button
+              key={`menu_${index}`}
+              className={`group flex w-full items-center gap-4 rounded-2xl border px-4 py-3 text-sm font-medium transition ${
+                isActive
+                  ? "border-transparent bg-gradient-to-r from-primary/90 via-indigo-500 to-sky-400 text-white shadow-[0_18px_40px_rgba(59,130,246,0.35)]"
+                  : "border-white/60 bg-white/60 text-slate-600 shadow-[0_12px_24px_rgba(15,23,42,0.08)] hover:border-primary/40 hover:bg-blue-50/70 hover:text-primary"
+              }`}
+              onClick={() => handleClick(item?.path)}
+            >
+              {Icon && (
+                <span
+                  className={`flex h-10 w-10 items-center justify-center rounded-2xl border text-base transition ${
+                    isActive
+                      ? "border-white/40 bg-white/20 text-white"
+                      : "border-slate-200 bg-white/80 text-primary/70 group-hover:border-primary/30"
+                  }`}
+                >
+                  <Icon />
+                </span>
+              )}
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+    </aside>
   );
 };
 
