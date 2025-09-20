@@ -42,7 +42,9 @@ const ViewTaskDetails = () => {
 
   // handle todo check
   const updateTodoCheckList = async (index) => {
-    const todoChecklist = [...task?.todoChecklist];
+    const todoChecklist = Array.isArray(task?.todoChecklist)
+      ? [...task.todoChecklist]
+      : null;
     const taskId = id;
   
     if (todoChecklist && todoChecklist[index]) {
@@ -51,7 +53,13 @@ const ViewTaskDetails = () => {
       try {
         const response = await axiosInstance.put(
           API_PATHS.TASKS.UPDATE_TODO_CHECKLIST(taskId),
-          { todoChecklist }
+          {
+            todoChecklist: todoChecklist.map((item) => ({
+              _id: item?._id,
+              text: item?.text,
+              completed: !!item?.completed,
+            })),
+          }
         );
         if (response.status === 200) {
           setTask(response.data?.task || task);
@@ -80,6 +88,16 @@ const ViewTaskDetails = () => {
     }
     return () => {};
   }, [id]);
+
+  const assignedMembers = Array.isArray(task?.assignedTo)
+    ? task.assignedTo
+    : task?.assignedTo
+    ? [task.assignedTo]
+    : [];
+
+  const todoChecklistItems = Array.isArray(task?.todoChecklist)
+    ? task.todoChecklist
+    : [];
 
   return (
     <DashboardLayout activeMenu='My Tasks'>
@@ -125,9 +143,7 @@ const ViewTaskDetails = () => {
                       </label>
 
                       <AvatarGroup
-                        avatars={
-                          task?.assignedTo?.map((item) => item?.profileImageUrl) || []
-                        }
+                         avatars={assignedMembers?.map?.((item) => item?.profileImageUrl)}
                         maxVisible={5}
                       />
                     </div>
@@ -138,7 +154,7 @@ const ViewTaskDetails = () => {
                       Todo Checklist
                     </label>
 
-                    {task?.todoChecklist?.map((item, index) => (
+                    {todoChecklistItems?.map?.((item, index) => (
                       <TodoCheckList
                         key={`todo_${index}`}
                         text={item.text}
@@ -154,7 +170,7 @@ const ViewTaskDetails = () => {
                         Attachments
                       </label>
 
-                      {task?.attachments?.map((link, index) => (
+                      {task?.attachments?.map?.((link, index) => (
                         <Attachment
                           key={`link_${index}`}
                           link={link}

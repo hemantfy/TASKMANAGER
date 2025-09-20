@@ -1,6 +1,11 @@
 import React from "react";
 import moment from "moment";
 const TaskListTable = ({ tableData }) => {
+  const safeTableData = Array.isArray(tableData)
+    ? tableData
+    : tableData?.tasks && Array.isArray(tableData.tasks)
+    ? tableData.tasks
+    : [];
   const getStatusBadgeColor = (status) => {
     switch (status) {
       case "Completed":
@@ -74,7 +79,7 @@ const TaskListTable = ({ tableData }) => {
           </tr>
         </thead>
         <tbody>
-          {tableData.map((task) => (
+          {safeTableData.map((task) => (
             <tr key={task._id} className="border-t border-gray-200">
               <td className="my-3 mx-4 text-[13px] line-clamp-1 overflow-hidden">
                 {task.title}
