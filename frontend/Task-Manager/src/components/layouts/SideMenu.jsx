@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { SIDE_MENU_DATA, SIDE_MENU_USER_DATA } from "../../utils/data";
 import { UserContext } from "../../context/userContext";
 
@@ -8,14 +8,31 @@ const SideMenu = ({ activeMenu }) => {
   const [sideMenuData, setSideMenuData] = useState([]);
 
   const navigate = useNavigate();
+  const location = useLocation();
+  const normalizedLocationPath =
+    typeof location.pathname === "string"
+      ? location.pathname.replace(/\/+$/, "") || "/"
+      : "/";
+  const normalizedActiveMenu =
+    typeof activeMenu === "string" ? activeMenu.trim().toLowerCase() : "";
 
   const handleClick = (route) => {
-    if (route === "logout") {
+    if (typeof route !== "string") {
+      return;
+    }
+
+    const trimmedRoute = route.trim();
+
+    if (!trimmedRoute) {
+      return;
+    }
+
+    if (trimmedRoute === "logout") {
       handelLogout();
       return;
     }
 
-    navigate(route);
+    navigate(trimmedRoute);
   };
 
   const handelLogout = () => {
@@ -47,20 +64,41 @@ const SideMenu = ({ activeMenu }) => {
         <p className="text-[12px] text-gray-500">{user?.email || ""}</p>
       </div>
 
-      {sideMenuData.map((item, index) => (
-        <button
-          key={`menu_${index}`}
-          className={`w-full flex items-center gap-4 text-[15px] ${
-            activeMenu == item.label
-              ? "text-primary bg-linear-to-r from-blue-50/40 to-blue-100/50 border-r-3"
-              : ""
-          } py-3 px-6 mb-3 cursor-pointer`}
-          onClick={() => handleClick(item.path)}
-        >
-          <item.icon className="text-xl" />
-          {item.label}
-        </button>
-      ))}
+      {(Array.isArray(sideMenuData)
+        ? sideMenuData.filter((menu) => menu && typeof menu.label === "string")
+        : []
+      ).map((item, index) => {
+        const Icon = item.icon;
+
+        const normalizedLabel =
+          typeof item.label === "string" ? item.label.trim().toLowerCase() : "";
+        const normalizedPath =
+          typeof item.path === "string"
+            ? item.path.trim().replace(/\/+$/, "") || "/"
+            : "";
+
+        const isActiveLabel =
+          normalizedActiveMenu && normalizedLabel && normalizedActiveMenu === normalizedLabel;
+        const isActivePath =
+          normalizedPath && normalizedPath !== "logout" && normalizedLocationPath === normalizedPath;
+
+        const isActive = isActiveLabel || isActivePath;
+
+        return (
+          <button
+            key={`menu_${index}`}
+            className={`w-full flex items-center gap-4 text-[15px] ${
+              isActive
+                ? "text-primary bg-linear-to-r from-blue-50/40 to-blue-100/50 border-r-3"
+                : ""
+            } py-3 px-6 mb-3 cursor-pointer`}
+            onClick={() => handleClick(item?.path)}
+          >
+            {Icon && <Icon className="text-xl" />}
+            {item.label}
+          </button>
+        );
+      })}
     </div>
   );
 };

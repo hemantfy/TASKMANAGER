@@ -4,7 +4,7 @@ import { PRIORITY_DATA } from "../../utils/data";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import toast from "react-hot-toast";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { LuCalendarDays, LuTrash2 } from "react-icons/lu";
 import SelectDropdown from '../../components/inputs/SelectDropdown';
 import SelectUsers from '../../components/inputs/SelectUsers';
@@ -17,6 +17,7 @@ import Modal from '../../components/Modal';
 const CreateTask = () => {
 
   const location = useLocation();
+  const navigate = useNavigate();
   const { taskId } = location.state || {};
   const [taskData, setTaskData] = useState({
     title: "",
@@ -213,7 +214,7 @@ const CreateTask = () => {
   
 
   return (
-    <DashboardLayout activeMenu="CreateTasK">
+    <DashboardLayout activeMenu="Create TasK">
       <div className="mt-6 max-w-5xl mx-auto">
         <div className="rounded-3xl border border-slate-200/70 bg-white shadow-md shadow-slate-200/60">
           <div className="flex flex-col gap-4 border-b border-slate-100 px-6 py-5 md:flex-row md:items-center md:justify-between">
