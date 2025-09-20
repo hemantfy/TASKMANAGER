@@ -1,5 +1,5 @@
-import React, { useContext, useState } from 'react'
-import AuthLayout from '../../components/layouts/AuthLayout'
+import React, { useContext, useState } from 'react';
+import AuthLayout from '../../components/layouts/AuthLayout';
 import { Link, useNavigate } from 'react-router-dom';
 import ProfilePhotoSelector from '../../components/inputs/ProfilePhotoSelector';
 import Input from '../../components/inputs/input';
@@ -18,14 +18,14 @@ const SignUp = () => {
 
   const [error, setError] = useState(null);
 
-  const {updateUser} = useContext(UserContext)
+  const {updateUser} = useContext(UserContext);
   const navigate = useNavigate();
 
   // Handle SignUp Form Submit
   const handleSignUp = async (e) => {
     e.preventDefault();
 
-    let profileImageUrl = ''
+    let profileImageUrl = '';
     
     // Clear previous errors
     setError(null);
@@ -46,11 +46,10 @@ const SignUp = () => {
     }
     // SignUp API call here.
     try{
-
       // Upload image if present
       if (profilePic) {
-      const imgUploadRes = await uploadImage(profilePic);
-      profileImageUrl = imgUploadRes.imageUrl || "";
+        const imgUploadRes = await uploadImage(profilePic);
+        profileImageUrl = imgUploadRes.imageUrl || "";
       }
 
       const response = await axiosInstance.post(API_PATHS.AUTH.REGISTER, {
@@ -71,7 +70,7 @@ const SignUp = () => {
       // Redirect based on role
       if (role === "admin") {
         navigate("/admin/dashboard");
-        } else {
+      } else {
         navigate("/user/dashboard");
       }
 
@@ -80,67 +79,89 @@ const SignUp = () => {
         setError(error.response.data.message);
       } else {
         setError("Something went wrong. Please try again.");
-      }      
+      }
     }
   };
+
   return (
     <AuthLayout>
-      <div className="lg:w-[100%] h-auto md:h-full mt-10 md:mt-0 flex flex-col justify-center ">
-        <h3 className="text-xl font-semibold text-black">Create an Account</h3>
-        <p className="text-xs text-slate-700 mt-[5px] mb-6">
-          Join us today by entering your details below.
-        </p>
-
-        <form onSubmit={handleSignUp}>
-          <ProfilePhotoSelector image={profilePic} setImage={setProfilePic} />
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Input
-          value={fullName}
-          onChange={({ target }) => setFullName(target.value)}
-          label="Full Name"
-          placeholder="John"
-          type="text"
-          />
-          <Input
-            value={email}
-            onChange={({ target }) => setEmail(target.value)}
-            label="Email Address"
-            placeholder="john@example.com"
-            type="email"
-          />
-          <Input
-            value={password}
-            onChange={({ target }) => setPassword(target.value)}
-            label="Password"
-            placeholder="Minimum 8 characters"
-            type="password"
-          />
-          <Input
-            value={adminInviteToken}
-            onChange={({ target }) => setAdminInviteToken(target.value)}
-            label="Admin Invite Token"
-            placeholder="6 Digit Code"
-            type="text"
-          />
+     <div className="space-y-5">
+        <div className="space-y-2">
+          <h3 className="text-3xl font-semibold text-slate-900">Create your account</h3>
+          <p className="text-sm text-slate-500">
+            Join a community of makers who plan smarter, ship faster, and celebrate the wins together.
+          </p>
         </div>
-          {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+        <form onSubmit={handleSignUp} className="mt-6 space-y-6">
+          <div className="flex justify-center">
+            <ProfilePhotoSelector image={profilePic} setImage={setProfilePic} />
+          </div>
 
-            <button type="submit" className="btn-primary">
-              SIGNUP
-            </button>
-            
-            <p className="text-[13px] text-slate-800 mt-3 text-center">
-              Already have an account?{" "}
-              <Link className="font-medium text-blue-600 underline hover:text-blue-800" to="/login">
-                Login
-              </Link>
-            </p>
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <Input
+              value={fullName}
+              onChange={({ target }) => setFullName(target.value)}
+              label="Full Name"
+              placeholder="Alex Johnson"
+              type="text"
+            />
+            <Input
+              value={email}
+              onChange={({ target }) => setEmail(target.value)}
+              label="Email Address"
+              placeholder="alex@studio.com"
+              type="email"
+            />
+            <Input
+              value={password}
+              onChange={({ target }) => setPassword(target.value)}
+              label="Password"
+              placeholder="Minimum 8 characters"
+              type="password"
+            />
+            <Input
+              value={adminInviteToken}
+              onChange={({ target }) => setAdminInviteToken(target.value)}
+              label="Admin Invite Token"
+              placeholder="6 digit token (optional)"
+              type="text"
+            />
+          </div>
+
+          {error && (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50/80 px-4 py-3 text-sm text-rose-600 shadow-sm">
+              {error}
+            </div>
+          )}
+
+          <button type="submit" className="auth-submit">
+            Launch my workspace
+          </button>
+
+          <p className="text-center text-xs text-slate-500">
+            By continuing, you agree to our{' '}
+            <a href="#" className="font-semibold text-blue-600 hover:text-blue-500">
+              Terms of Service
+            </a>{' '}
+            and{' '}
+            <a href="#" className="font-semibold text-blue-600 hover:text-blue-500">
+              Privacy Policy
+            </a>
+            .
+          </p>
+          </form>
+
+        <div className="text-center text-sm text-slate-600">
+          Already have an account?{' '}
+          <Link className="font-semibold text-blue-600 transition hover:text-blue-500" to="/login">
+            Log in instead
+          </Link>
+        </div>
           
-        </form>
+        
       </div>
     </AuthLayout>
   );
 };
 
-export default SignUp
+export default SignUp;
