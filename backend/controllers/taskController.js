@@ -188,9 +188,17 @@ const updateTaskStatus = async (req, res) => {
       const task = await Task.findById(req.params.id);
 if (!task) return res.status(404).json({ message: "Task not found" });
 
-const isAssigned = task.assignedTo.some(
-  (userId) => userId.toString() === req.user._id.toString()
-);
+const assignedUsers = Array.isArray(task.assignedTo)
+  ? task.assignedTo
+  : task.assignedTo
+  ? [task.assignedTo]
+  : [];
+
+const isAssigned = assignedUsers.some((user) => {
+  if (!user) return false;
+  const userId = user._id ? user._id.toString() : user.toString();
+  return userId === req.user._id.toString();
+});
 
 if (!isAssigned && req.user.role !== "admin") {
   return res.status(403).json({ message: "Not authorized" });
@@ -220,7 +228,19 @@ const task = await Task.findById(req.params.id);
 
 if (!task) return res.status(404).json({ message: "Task not found" });
 
-if (!task.assignedTo.includes(req.user._id) && req.user.role !== "admin") {
+const assignedUsers = Array.isArray(task.assignedTo)
+  ? task.assignedTo
+  : task.assignedTo
+  ? [task.assignedTo]
+  : [];
+
+const isAssigned = assignedUsers.some((user) => {
+  if (!user) return false;
+  const userId = user._id ? user._id.toString() : user.toString();
+  return userId === req.user._id.toString();
+});
+
+if (!isAssigned && req.user.role !== "admin") {
   return res
     .status(403)
     .json({ message: "Not authorized to update checklist" });
