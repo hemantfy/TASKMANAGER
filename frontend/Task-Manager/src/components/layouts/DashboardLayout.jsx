@@ -1,10 +1,52 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import { UserContext } from "../../context/userContext";
 import Navbar from "./Navbar";
 import SideMenu from "./SideMenu";
+import BirthdayModal from "../modals/BirthdayModal";
 
 const DashboardLayout = ({ children, activeMenu }) => {
   const { user } = useContext(UserContext);
+  const [showBirthdayModal, setShowBirthdayModal] = useState(false);
+
+  const shouldShowBirthday = useMemo(() => {
+    if (!user?.birthdate) {
+      return false;
+    }
+
+    const birthDate = new Date(user.birthdate);
+    if (Number.isNaN(birthDate.getTime())) {
+      return false;
+    }
+
+    const today = new Date();
+    return (
+      birthDate.getDate() === today.getDate() &&
+      birthDate.getMonth() === today.getMonth()
+    );
+  }, [user?.birthdate]);
+
+  useEffect(() => {
+    if (!shouldShowBirthday || !user?._id) {
+      setShowBirthdayModal(false);
+      return;
+    }
+
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const storageKey = `birthdayShown:${user._id}`;
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const alreadyShown = window.localStorage.getItem(storageKey);
+
+    if (alreadyShown === todayKey) {
+      setShowBirthdayModal(false);
+      return;
+    }
+
+    window.localStorage.setItem(storageKey, todayKey);
+    setShowBirthdayModal(true);
+  }, [shouldShowBirthday, user?._id]);
 
   return (
     <div className="relative min-h-screen">
@@ -28,6 +70,13 @@ const DashboardLayout = ({ children, activeMenu }) => {
             </div>
           </main>
         </div>
+      )}
+      
+      {showBirthdayModal && (
+        <BirthdayModal
+          name={user?.name}
+          onClose={() => setShowBirthdayModal(false)}
+        />
       )}
     </div>
   );

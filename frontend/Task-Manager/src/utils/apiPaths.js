@@ -19,6 +19,7 @@ export const API_PATHS = {
   PROFILE: {
     UPDATE_PHOTO: "/api/users/profile/photo",
     CHANGE_PASSWORD: "/api/users/profile/password",   // Delete a user
+    UPDATE_PROFILE: "/api/auth/profile",
   },
 
   TASKS: {

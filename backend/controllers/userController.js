@@ -98,8 +98,6 @@ const updateProfileImage = async (req, res) => {
 
     const profileImageUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
     user.profileImageUrl = profileImageUrl;
-
-module.exports = { getUsers, getUserById};
     const updatedUser = await user.save();
 
     res.json({
@@ -111,6 +109,7 @@ module.exports = { getUsers, getUserById};
         email: updatedUser.email,
         role: updatedUser.role,
         profileImageUrl: updatedUser.profileImageUrl,
+        birthdate: updatedUser.birthdate,
       },
     });
   } catch (error) {

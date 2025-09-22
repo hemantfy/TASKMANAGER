@@ -11,6 +11,11 @@ const ProfileSettings = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [isUpdatingPhoto, setIsUpdatingPhoto] = useState(false);
+  const [displayName, setDisplayName] = useState(user?.name || "");
+  const [birthdate, setBirthdate] = useState(
+    user?.birthdate ? user.birthdate.slice(0, 10) : ""
+  );
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -21,12 +26,51 @@ const ProfileSettings = () => {
   }, [previewUrl, user?.profileImageUrl]);
 
   useEffect(() => {
+    setDisplayName(user?.name || "");
+    setBirthdate(user?.birthdate ? user.birthdate.slice(0, 10) : "");
+  }, [user?.name, user?.birthdate]);
+
+  useEffect(() => {
     return () => {
       if (previewUrl) {
         URL.revokeObjectURL(previewUrl);
       }
     };
   }, [previewUrl]);
+
+  const handleProfileSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!displayName.trim()) {
+      toast.error("Name is required");
+      return;
+    }
+
+    try {
+      setIsUpdatingProfile(true);
+      const response = await axiosInstance.put(API_PATHS.PROFILE.UPDATE_PROFILE, {
+        name: displayName.trim(),
+        birthdate: birthdate || null,
+      });
+
+      const existingToken = localStorage.getItem("token");
+
+      const { token: newToken, message, ...updatedUserData } = response.data || {};
+
+      updateUser({
+        ...(user || {}),
+        ...updatedUserData,
+        token: newToken || existingToken,
+      });
+
+      toast.success(message || "Profile updated successfully");
+    } catch (error) {
+      const message = error?.response?.data?.message || "Failed to update profile";
+      toast.error(message);
+    } finally {
+      setIsUpdatingProfile(false);
+    }
+  };
 
   const handleImageChange = (event) => {
     const file = event.target.files?.[0];
@@ -141,6 +185,63 @@ const ProfileSettings = () => {
       </section>
 
       <div className="grid gap-6 lg:grid-cols-2">
+      <form onSubmit={handleProfileSubmit} className="card flex flex-col gap-6 lg:col-span-2">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900">Profile Information</h3>
+              <p className="mt-1 text-sm text-slate-500">
+                Update your display name and share your birthdate to receive a special greeting.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-2">
+              <label htmlFor="displayName" className="text-sm font-medium text-slate-600">
+                Display Name
+              </label>
+              <input
+                id="displayName"
+                type="text"
+                value={displayName}
+                onChange={(event) => setDisplayName(event.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-2 text-sm text-slate-700 shadow-inner focus:border-primary focus:outline-none"
+                placeholder="Enter your name"
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label htmlFor="birthdate" className="text-sm font-medium text-slate-600">
+                Birthdate
+              </label>
+              <input
+                id="birthdate"
+                type="date"
+                value={birthdate}
+                onChange={(event) => setBirthdate(event.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-2 text-sm text-slate-700 shadow-inner focus:border-primary focus:outline-none"
+                max={new Date().toISOString().slice(0, 10)}
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={isUpdatingProfile}
+              className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-slate-900 via-indigo-800 to-primary px-6 py-2 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(30,64,175,0.35)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {isUpdatingProfile ? (
+                <>
+                  <LuLoader className="mr-2 animate-spin" /> Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </button>
+          </div>
+        </form>
+
         <form onSubmit={handlePhotoSubmit} className="card flex flex-col gap-6">
           <div className="flex items-start justify-between gap-4">
             <div>

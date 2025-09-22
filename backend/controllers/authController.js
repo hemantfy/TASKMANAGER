@@ -12,7 +12,7 @@ const generateToken = (userId) => {
 // @access  Public
 const registerUser = async (req, res) => {
     try {
-        const { name, email, password, profileImageUrl, adminInviteToken } =
+        const { name, email, password, profileImageUrl, adminInviteToken, birthdate } =
             req.body;
            
         //Check if User already exist
@@ -36,12 +36,15 @@ const registerUser = async (req, res) => {
 
         //Create new User
         // Create new user
+        const parsedBirthdate = birthdate ? new Date(birthdate) : null;
+
 const user = await User.create({
     name,
     email,
     password: hashedPassword,
     profileImageUrl,
     role,
+    birthdate: parsedBirthdate && !isNaN(parsedBirthdate) ? parsedBirthdate : null,
   });
   
   // Return user data with JWT
@@ -51,6 +54,7 @@ const user = await User.create({
     email: user.email,
     role: user.role,
     profileImageUrl: user.profileImageUrl,
+    birthdate: user.birthdate,
     token: generateToken(user._id),
   });
     }  catch (error) {
@@ -83,6 +87,7 @@ const loginUser = async (req, res) => {
           email: user.email,
           role: user.role,
           profileImageUrl: user.profileImageUrl,
+          birthdate: user.birthdate,
           token: generateToken(user._id),
         });
 }  catch (error) {
@@ -119,6 +124,19 @@ if (!user) {
 user.name = req.body.name || user.name;
 user.email = req.body.email || user.email;
 
+if (Object.prototype.hasOwnProperty.call(req.body, "birthdate")) {
+  const providedBirthdate = req.body.birthdate;
+
+  if (!providedBirthdate) {
+    user.birthdate = null;
+  } else {
+    const parsedBirthdate = new Date(providedBirthdate);
+    if (!isNaN(parsedBirthdate)) {
+      user.birthdate = parsedBirthdate;
+    }
+  }
+}
+
 if (req.body.password) {
   const salt = await bcrypt.genSalt(10);
   user.password = await bcrypt.hash(req.body.password, salt);
@@ -127,10 +145,13 @@ if (req.body.password) {
 const updatedUser = await user.save();
 
 res.json({
+  message: "Profile updated successfully",
   _id: updatedUser._id,
   name: updatedUser.name,
   email: updatedUser.email,
   role: updatedUser.role,
+  profileImageUrl: updatedUser.profileImageUrl,
+  birthdate: updatedUser.birthdate,
   token: generateToken(updatedUser._id),
 });
 
