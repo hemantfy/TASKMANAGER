@@ -12,32 +12,85 @@ const STATUS_STYLES = {
   danger: "bg-rose-50 text-rose-600",
 };
 
+const parseNotificationDate = (notification) => {
+  if (!notification?.date) {
+    return 0;
+  }
+
+  const timestamp = Date.parse(notification.date);
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+};
+
 const NotificationBell = () => {
   const { user } = useContext(UserContext);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [badgeCount, setBadgeCount] = useState(0);
+  const [lastSeenReady, setLastSeenReady] = useState(false);
   const dropdownRef = useRef(null);
+  const lastSeenRef = useRef(null);
+  const storageKey = user ? `notifications:lastSeen:${user._id}` : null;
 
-  const fetchNotifications = useCallback(async () => {
-    if (!user) return;
-
-    try {
-      setLoading(true);
-      const response = await axiosInstance.get(
-        API_PATHS.TASKS.GET_NOTIFICATIONS
-      );
-      setNotifications(response.data?.notifications || []);
-    } catch (error) {
-      console.error("Failed to fetch notifications", error);
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (!user) {
+      lastSeenRef.current = null;
+      setLastSeenReady(false);
+      setNotifications([]);
+      setBadgeCount(0);
+      return;
     }
-  }, [user]);
+
+    setLastSeenReady(false);
+    lastSeenRef.current = null;
+
+    if (typeof window !== "undefined" && storageKey) {
+      const storedValue = window.localStorage.getItem(storageKey);
+      if (storedValue) {
+        const parsed = Date.parse(storedValue);
+        if (!Number.isNaN(parsed)) {
+          lastSeenRef.current = parsed;
+        }
+      }
+    }
+    
+    setLastSeenReady(true);
+  }, [storageKey, user]);
+
+  const fetchNotifications = useCallback(
+    async (shouldUpdateBadge = true) => {
+      if (!user) return;
+
+      try {
+        setLoading(true);
+        const response = await axiosInstance.get(
+          API_PATHS.TASKS.GET_NOTIFICATIONS
+        );
+        const fetchedNotifications = response.data?.notifications || [];
+        setNotifications(fetchedNotifications);
+        if (shouldUpdateBadge) {
+          if (!lastSeenRef.current) {
+            setBadgeCount(fetchedNotifications.length);
+          } else {
+            const unreadCount = fetchedNotifications.filter((notification) => {
+              const timestamp = parseNotificationDate(notification);
+              return timestamp > lastSeenRef.current;
+            }).length;
+            setBadgeCount(unreadCount);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch notifications", error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [user]
+  );
 
   useEffect(() => {
     fetchNotifications();
-  }, [fetchNotifications]);
+  }, [fetchNotifications, lastSeenReady, user]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -54,13 +107,36 @@ const NotificationBell = () => {
 
   const toggleDropdown = () => {
     if (!open) {
-      fetchNotifications();
+      fetchNotifications(false);
     }
     setOpen((prev) => !prev);
   };
 
+  useEffect(() => {
+    if (!open) return;
+
+    setBadgeCount(0);
+
+    const newestTimestamp = notifications.reduce((latest, notification) => {
+      const timestamp = parseNotificationDate(notification);
+      return timestamp > latest ? timestamp : latest;
+    }, 0);
+
+    const nextLastSeen = newestTimestamp || Date.now();
+    lastSeenRef.current = nextLastSeen;
+
+    if (typeof window !== "undefined" && storageKey) {
+      window.localStorage.setItem(
+        storageKey,
+        new Date(nextLastSeen).toISOString()
+      );
+    }
+  }, [notifications, open, storageKey]);
+  
   const hasNotifications = notifications.length > 0;
-  const badgeCount = notifications.length > 9 ? "9+" : notifications.length;
+  const showBadge = badgeCount > 0;
+  const displayBadgeValue = badgeCount > 9 ? "9+" : badgeCount;
+  const visibleNotifications = notifications.slice(0, 5);
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -70,9 +146,9 @@ const NotificationBell = () => {
         className="relative flex h-11 w-11 items-center justify-center rounded-full border border-slate-200/80 bg-white/80 text-slate-600 shadow-[0_10px_25px_rgba(15,23,42,0.08)] transition hover:border-slate-300 hover:text-primary"
       >
         <LuBell className="text-xl" />
-        {hasNotifications && (
+        {showBadge && (
           <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-semibold text-white">
-            {badgeCount}
+            {displayBadgeValue}
           </span>
         )}
       </button>
@@ -83,7 +159,7 @@ const NotificationBell = () => {
             <h3 className="text-sm font-semibold text-slate-900">Notifications</h3>
             <button
               type="button"
-              onClick={fetchNotifications}
+              onClick={() => fetchNotifications(false)}
               className="text-xs font-medium text-primary transition hover:text-primary/80"
             >
               Refresh
@@ -97,7 +173,7 @@ const NotificationBell = () => {
                 Loading...
               </div>
             ) : hasNotifications ? (
-              notifications.map((notification) => {
+              visibleNotifications.map((notification) => {
                 const statusClass =
                   STATUS_STYLES[notification.status] || STATUS_STYLES.info;
                 let indicator = "★";

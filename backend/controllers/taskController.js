@@ -415,9 +415,11 @@ dueSoonTasks.forEach((task) => {
 
 notifications.sort((a, b) => new Date(b.date) - new Date(a.date));
 
+const recentNotifications = notifications.slice(0, 5);
+
 res.json({
-notifications,
-count: notifications.length,
+  notifications: recentNotifications,
+  count: recentNotifications.length,
 });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
