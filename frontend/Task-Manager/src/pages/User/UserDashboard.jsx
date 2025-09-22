@@ -25,6 +25,7 @@ const UserDashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [pieChartData, setPieChartData] = useState([]);
   const [barChartData, setBarChartData] = useState([]);
+  const [activeNotice, setActiveNotice] = useState(null);
 
   const prepareChartData = (data) => {
     const taskDistribution = data?.taskDistribution || null;
@@ -61,12 +62,24 @@ const UserDashboard = () => {
     }
   };
 
+  const fetchActiveNotice = async () => {
+    try {
+      const response = await axiosInstance.get(
+        API_PATHS.NOTICES.GET_ACTIVE
+      );
+      setActiveNotice(response.data?.notice || null);
+    } catch (error) {
+      console.error("Error fetching notice:", error);
+    }
+  };
+
   const onSeeMore = () => {
     navigate("/admin/tasks");
   };
 
   useEffect(() => {
     getDashboardData();
+    fetchActiveNotice();
 
     return () => {};
   }, []);
@@ -100,6 +113,20 @@ const UserDashboard = () => {
 
   return (
     <DashboardLayout activeMenu="Dashboard">
+            {activeNotice && (
+        <section className="overflow-hidden rounded-[24px] border border-indigo-100 bg-indigo-50/80 shadow-[0_18px_40px_rgba(79,70,229,0.12)]">
+          <div className="flex items-center gap-2 bg-indigo-100/80 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.38em] text-indigo-600">
+            <span className="inline-flex h-2 w-2 rounded-full bg-indigo-500" />
+            Notice Board
+          </div>
+          <div className="notice-marquee-wrapper">
+            <div className="notice-marquee px-4 py-3 text-sm font-medium text-indigo-700">
+              {activeNotice.message}
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="relative overflow-hidden rounded-[32px] border border-white/60 bg-gradient-to-br from-slate-900 via-indigo-700 to-sky-600 px-6 py-10 text-white shadow-[0_20px_45px_rgba(30,64,175,0.35)]">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.18),_transparent_65%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,_rgba(56,189,248,0.22),_transparent_60%)]" />

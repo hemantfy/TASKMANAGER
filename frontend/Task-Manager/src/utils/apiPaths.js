@@ -39,6 +39,11 @@ export const API_PATHS = {
     EXPORT_USERS: "/api/reports/export/users", // Download user-task report
   },
   
+  NOTICES: {
+    PUBLISH: "/api/notices",
+    GET_ACTIVE: "/api/notices/active",
+  },
+  
   IMAGE: {
     UPLOAD_IMAGE: "api/auth/upload-image",
   },

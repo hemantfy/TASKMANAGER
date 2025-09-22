@@ -130,3 +130,24 @@
 .user-card > * {
   position: relative;
 }
+
+.notice-marquee-wrapper {
+  position: relative;
+  overflow: hidden;
+}
+
+.notice-marquee {
+  display: inline-block;
+  white-space: nowrap;
+  padding-left: 100%;
+  animation: notice-marquee 18s linear infinite;
+}
+
+@keyframes notice-marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}

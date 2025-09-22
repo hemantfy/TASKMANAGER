@@ -1,9 +1,16 @@
-import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import moment from "moment";
 import { LuBell, LuLoader } from "react-icons/lu";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { UserContext } from "../../context/userContext";
+import PublishNoticeModal from "./PublishNoticeModal.jsx";
 
 const STATUS_STYLES = {
   info: "bg-blue-50 text-blue-600",
@@ -31,6 +38,7 @@ const NotificationBell = () => {
   const dropdownRef = useRef(null);
   const lastSeenRef = useRef(null);
   const storageKey = user ? `notifications:lastSeen:${user._id}` : null;
+  const [noticeModalOpen, setNoticeModalOpen] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -157,13 +165,27 @@ const NotificationBell = () => {
         <div className="absolute right-0 mt-3 w-80 overflow-hidden rounded-2xl border border-slate-200/70 bg-white/95 shadow-[0_18px_45px_rgba(15,23,42,0.12)] backdrop-blur">
           <div className="flex items-center justify-between border-b border-slate-200/70 px-4 py-3">
             <h3 className="text-sm font-semibold text-slate-900">Notifications</h3>
-            <button
-              type="button"
-              onClick={() => fetchNotifications(false)}
-              className="text-xs font-medium text-primary transition hover:text-primary/80"
-            >
-              Refresh
-            </button>
+            <div className="flex items-center gap-2">
+              {user?.role === "admin" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNoticeModalOpen(true);
+                    setOpen(false);
+                  }}
+                  className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-primary transition hover:bg-primary/20"
+                >
+                  Notice
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => fetchNotifications(false)}
+                className="text-xs font-medium text-primary transition hover:text-primary/80"
+              >
+                Refresh
+              </button>
+            </div>
           </div>
 
           <div className="max-h-96 overflow-y-auto">
@@ -216,6 +238,15 @@ const NotificationBell = () => {
             )}
           </div>
         </div>
+      )}
+            {user?.role === "admin" && (
+        <PublishNoticeModal
+          open={noticeModalOpen}
+          onClose={() => setNoticeModalOpen(false)}
+          onSuccess={() => {
+            setNoticeModalOpen(false);
+          }}
+        />
       )}
     </div>
   );
