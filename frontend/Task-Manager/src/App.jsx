@@ -7,11 +7,12 @@ import SignUp from "./pages/Auth/SignUp";
 import ManageTasks from "./pages/Admin/ManageTasks";
 import CreateTask from "./pages/Admin/CreateTask";
 import ManageUsers from "./pages/Admin/ManageUsers";
+import ProfileSettings from "./pages/Profile/ProfileSettings";
 
 import UserDashboard from "./pages/User/UserDashboard";
 import MyTasks from "./pages/User/MyTasks";
 import ViewTaskDetails from "./pages/User/ViewTaskDetails";
-import UserProvider from "./context/userContext";
+import UserProvider, { UserContext } from "./context/userContext";
 import { Toaster } from "react-hot-toast";
 
 
@@ -30,7 +31,8 @@ const App = () => {
             <Route path="/admin/dashboard" element={<Dashboard />} />
             <Route path="/admin/tasks" element={<ManageTasks />} />
             <Route path="/admin/create-task" element={<CreateTask />} />
-            <Route path="/admin/users" element={<ManageUsers/>} />
+            <Route path="/admin/users" element={<ManageUsers />} />
+            <Route path="/admin/profile-settings" element={<ProfileSettings />} />
           </Route>
 
           {/* User Routes */}
@@ -38,6 +40,7 @@ const App = () => {
             <Route path="/user/dashboard" element={<UserDashboard />} />
             <Route path="/user/tasks" element={<MyTasks />} />
             <Route path="/user/task-details/:id" element={<ViewTaskDetails />} />
+            <Route path="/user/profile-settings" element={<ProfileSettings />} />
           </Route>
 
           {/* Default Route*/}
