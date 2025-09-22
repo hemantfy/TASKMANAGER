@@ -173,7 +173,7 @@ const NotificationBell = () => {
                     setNoticeModalOpen(true);
                     setOpen(false);
                   }}
-                  className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-primary transition hover:bg-primary/20"
+                                    className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary transition hover:bg-primary/20"
                 >
                   Notice
                 </button>
