@@ -6,7 +6,7 @@ import DashboardLayout from "../../components/layouts/DashboardLayout";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import moment from "moment";
-import { addThousandsSeparator } from "../../utils/helper";
+import { addThousandsSeparator, getGreetingMessage } from "../../utils/helper";
 import InfoCard from "../../components/Cards/infoCard";
 import { LuArrowRight, LuBadgeCheck, LuClipboardList, LuClock3, LuRefreshCcw } from "react-icons/lu";
 import TaskListTable from "../../components/TaskListTable";
@@ -22,6 +22,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   const [dashboardData, setDashboardData] = useState(null);
+  const [currentMoment, setCurrentMoment] = useState(moment());
   const [pieChartData, setPieChartData] = useState([]);
   const [barChartData, setBarChartData] = useState([]);
 
@@ -70,6 +71,22 @@ const Dashboard = () => {
     return () => {};
   }, []);
 
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      setCurrentMoment(moment());
+    }, 1000);
+
+    return () => clearInterval(intervalId);
+  }, []);
+
+  const hour = currentMoment.hour();
+  const greetingMessage =
+    hour < 12
+      ? "Good Morning"
+      : hour < 17
+        ? "Good Afternoon"
+        : "Good Evening";
+
   const infoCards = [
     {
       label: "Total Tasks",
@@ -106,10 +123,10 @@ const Dashboard = () => {
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.42em] text-white/70">Welcome Back</p>
             <h2 className="mt-3 text-3xl font-semibold leading-tight sm:text-4xl">
-              Good Morning, {user?.name}
+            {greetingMessage}, {user?.name || "User"}
             </h2>
             <p className="mt-3 text-sm text-white/70">
-              {moment().format("dddd Do MMMM YYYY")}
+              {currentMoment.format("dddd Do MMMM YYYY • HH:mm:ss")}
             </p>
           </div>
 

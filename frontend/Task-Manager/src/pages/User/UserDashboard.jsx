@@ -6,7 +6,7 @@ import DashboardLayout from "../../components/layouts/DashboardLayout";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import moment from "moment";
-import { addThousandsSeparator } from "../../utils/helper";
+import { addThousandsSeparator, getGreetingMessage } from "../../utils/helper";
 import InfoCard from "../../components/Cards/infoCard";
 import { LuArrowRight, LuBadgeCheck, LuClipboardList, LuClock3, LuRefreshCcw } from "react-icons/lu";
 import TaskListTable from "../../components/TaskListTable";
@@ -134,7 +134,7 @@ const UserDashboard = () => {
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.42em] text-white/60">Hello</p>
             <h2 className="mt-3 text-3xl font-semibold leading-tight sm:text-4xl">
-              You&apos;ve got this, {user?.name}
+            {getGreetingMessage()}, {user?.name}
             </h2>
             <p className="mt-3 text-sm text-white/70">
               {moment().format("dddd Do MMMM YYYY")}
