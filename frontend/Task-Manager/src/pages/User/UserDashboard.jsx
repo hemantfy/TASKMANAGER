@@ -25,6 +25,7 @@ const UserDashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [pieChartData, setPieChartData] = useState([]);
   const [barChartData, setBarChartData] = useState([]);
+  const [currentMoment, setCurrentMoment] = useState(moment());
   const [activeNotice, setActiveNotice] = useState(null);
 
   const prepareChartData = (data) => {
@@ -84,6 +85,14 @@ const UserDashboard = () => {
     return () => {};
   }, []);
 
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      setCurrentMoment(moment());
+    }, 1000);
+
+    return () => clearInterval(intervalId);
+  }, []);
+
   const infoCards = [
     {
       label: "Total Tasks",
@@ -134,10 +143,10 @@ const UserDashboard = () => {
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.42em] text-white/60">Hello</p>
             <h2 className="mt-3 text-3xl font-semibold leading-tight sm:text-4xl">
-            {getGreetingMessage()}, {user?.name}
+              {getGreetingMessage()}, {user?.name}
             </h2>
             <p className="mt-3 text-sm text-white/70">
-              {moment().format("dddd Do MMMM YYYY")}
+              {currentMoment.format("dddd Do MMMM YYYY • HH:mm:ss")}
             </p>
           </div>
 
