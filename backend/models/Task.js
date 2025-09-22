@@ -19,6 +19,7 @@ const taskSchema = new mongoose.Schema(
     attachments: [{ type: String }],
     todoChecklist: [todoSchema],
     progress: { type: Number, default: 0 },
+    completedAt: { type: Date, default: null },
   },
   { timestamps: true }
 );

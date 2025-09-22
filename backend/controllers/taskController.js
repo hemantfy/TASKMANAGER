@@ -196,7 +196,10 @@ const assignedUsers = Array.isArray(task.assignedTo)
 
 const isAssigned = assignedUsers.some((user) => {
   if (!user) return false;
-  const userId = user._id ? user._id.toString() : user.toString();
+  const userId =
+    typeof user === "object" && user !== null && user._id
+      ? user._id.toString()
+      : user.toString();
   return userId === req.user._id.toString();
 });
 
@@ -204,11 +207,19 @@ if (!isAssigned && req.user.role !== "admin") {
   return res.status(403).json({ message: "Not authorized" });
 }
 
-task.status = req.body.status || task.status;
+const previousStatus = task.status;
+if (req.body.status) {
+  task.status = req.body.status;
+}
 
 if (task.status === "Completed") {
   task.todoChecklist.forEach((item) => (item.completed = true));
   task.progress = 100;
+  if (previousStatus !== "Completed" || !task.completedAt) {
+    task.completedAt = new Date();
+  }
+} else if (previousStatus === "Completed" && task.status !== "Completed") {
+  task.completedAt = null;
 }
 
 await task.save();
@@ -248,6 +259,8 @@ if (!isAssigned && req.user.role !== "admin") {
 
 task.todoChecklist = todoChecklist; // Replace with updated checklist
 
+const previousStatus = task.status;
+
 // Auto-update progress based on checklist completion
 const completedCount = task.todoChecklist.filter(
   (item) => item.completed
@@ -259,10 +272,14 @@ task.progress =
   // Auto-mark task as completed if all items are checked
 if (task.progress === 100) {
   task.status = "Completed";
-} else if (task.progress > 0) {
-  task.status = "In Progress";
+  if (previousStatus !== "Completed" || !task.completedAt) {
+    task.completedAt = new Date();
+  }
 } else {
-  task.status = "Pending";
+  task.status = task.progress > 0 ? "In Progress" : "Pending";
+  if (previousStatus === "Completed") {
+    task.completedAt = null;
+  }
 }
 
 await task.save();
@@ -275,6 +292,136 @@ res.json({ message: "Task checklist updated", task: updatedTask });
     } catch (error) {
       res.status(500).json({ message: "Server error", error: error.message });
     }
+};
+
+// @desc    Fetch dashboard notifications
+// @route   GET /api/tasks/notifications
+// @access  Private
+const getNotifications = async (req, res) => {
+  try {
+    const notifications = [];
+const now = new Date();
+
+if (req.user.role === "admin") {
+const completedTasks = await Task.find({
+  status: "Completed",
+  completedAt: { $ne: null },
+})
+  .sort({ completedAt: -1 })
+  .limit(30)
+  .select("title completedAt dueDate assignedTo")
+  .populate("assignedTo", "name");
+
+completedTasks.forEach((task) => {
+  const assigneesArray = Array.isArray(task.assignedTo)
+    ? task.assignedTo
+    : task.assignedTo
+    ? [task.assignedTo]
+    : [];
+  const assigneeNames = assigneesArray
+    .map((assignee) => assignee?.name)
+    .filter(Boolean)
+    .join(", ");
+
+  const completedOnTime =
+    task.completedAt && task.dueDate
+      ? task.completedAt.getTime() <= task.dueDate.getTime()
+      : false;
+
+  let message = `Task "${task.title}" was completed ${
+    completedOnTime ? "on time" : "late"
+  }`;
+  if (assigneeNames) {
+    message += ` by ${assigneeNames}`;
+  }
+  message += ".";
+
+  notifications.push({
+    id: `task-completed-${task._id}`,
+    type: "task_completed",
+    taskId: task._id,
+    title: task.title,
+    message,
+    date: task.completedAt,
+    status: completedOnTime ? "success" : "danger",
+    meta: {
+      completedOnTime,
+      dueDate: task.dueDate,
+      completedAt: task.completedAt,
+      assignedTo: assigneeNames,
+    },
+  });
+});
+} else {
+const lastSevenDays = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+const newTasks = await Task.find({
+  assignedTo: req.user._id,
+  createdAt: { $gte: lastSevenDays },
+})
+  .sort({ createdAt: -1 })
+  .limit(30)
+  .select("title createdAt priority dueDate");
+
+newTasks.forEach((task) => {
+  notifications.push({
+    id: `task-assigned-${task._id}`,
+    type: "task_assigned",
+    taskId: task._id,
+    title: task.title,
+    message: `New task "${task.title}" assigned to you.`,
+    date: task.createdAt,
+    status: "info",
+    meta: {
+      dueDate: task.dueDate,
+      priority: task.priority,
+    },
+  });
+});
+
+const upcomingDeadline = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+const dueSoonTasks = await Task.find({
+  assignedTo: req.user._id,
+  status: { $ne: "Completed" },
+  dueDate: { $gte: now, $lte: upcomingDeadline },
+})
+  .sort({ dueDate: 1 })
+  .select("title dueDate priority");
+
+dueSoonTasks.forEach((task) => {
+  const hoursLeft = Math.max(
+    1,
+    Math.ceil((task.dueDate.getTime() - now.getTime()) / (1000 * 60 * 60))
+  );
+
+  notifications.push({
+    id: `task-due-soon-${task._id}`,
+    type: "task_due_soon",
+    taskId: task._id,
+    title: task.title,
+    message: `"${task.title}" is due in ${hoursLeft} hour${
+      hoursLeft > 1 ? "s" : ""
+    }.`,
+    date: task.dueDate,
+    status: "warning",
+    meta: {
+      dueDate: task.dueDate,
+      hoursLeft,
+      priority: task.priority,
+    },
+  });
+});
+}
+
+notifications.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+res.json({
+notifications,
+count: notifications.length,
+});
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
 };
 
 // @desc    Dashboard Data (Admin only)
@@ -428,6 +575,7 @@ module.exports = {
     deleteTask,
     updateTaskStatus,
     updateTaskChecklist,
+    getNotifications,
     getDashboardData,
     getUserDashboardData,
   };
