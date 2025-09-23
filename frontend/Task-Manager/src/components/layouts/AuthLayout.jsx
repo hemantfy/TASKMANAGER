@@ -1,4 +1,5 @@
 import React from 'react';
+import logo from '../../assets/images/logo.png';
 
 const AuthLayout = ({ children }) => {
   return (
@@ -53,9 +54,11 @@ const AuthLayout = ({ children }) => {
           <div className="relative flex flex-col justify-center bg-white/90 px-6 py-10 text-slate-900 backdrop-blur-sm sm:px-10 md:px-12 lg:px-10 xl:px-12">
             <div className="absolute inset-x-10 top-0 h-1 rounded-b-full bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600" />
             <div className="mb-10 flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-lg font-semibold text-white shadow-lg shadow-blue-500/40">
-                TM
-              </div>
+            <img
+                src={logo}
+                alt="Task Manager logo"
+                className="h-12 w-12 rounded-2xl object-cover shadow-lg shadow-blue-500/40"
+              />
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.4em] text-slate-400">Task Manager</p>
                 <p className="text-base font-semibold text-slate-900">Productivity Suite</p>

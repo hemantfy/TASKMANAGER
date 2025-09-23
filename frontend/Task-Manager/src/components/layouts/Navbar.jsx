@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { HiOutlineMenu, HiOutlineX } from "react-icons/hi";
 import NotificationBell from "../Notifications/NotificationBell";
 import SideMenu from "./SideMenu";
+import logo from "../../assets/images/logo.png";
 
 const Navbar = ({ activeMenu }) => {
   const [openSideMenu, setOpenSideMenu] = useState(false);
@@ -23,16 +24,18 @@ const Navbar = ({ activeMenu }) => {
           </button>
 
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/90 via-indigo-500 to-sky-400 text-white shadow-lg shadow-primary/30">
-              <span className="text-lg font-semibold">TM</span>
-            </div>
+          <img
+              src={logo}
+              alt="Task Manager logo"
+              className="h-11 w-11 rounded-2xl object-cover shadow-lg shadow-primary/30"
+            />
 
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.32em] text-primary/70">
                 Task Manager
               </p>
               <h1 className="text-lg font-semibold text-slate-900 sm:text-xl">
-                Productivity Control Center
+                RAVAL & TRIVEDI ASSOCIATES
               </h1>
             </div>
           </div>
