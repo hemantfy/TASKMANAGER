@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route, Outlet, Navigate } from "react-
 import PrivateRoute from "./routes/PrivateRoute";
 import Dashboard from "./pages/Admin/Dashboard";
 import Login from "./pages/Auth/Login";
-import SignUp from "./pages/Auth/SignUp";
 import ManageTasks from "./pages/Admin/ManageTasks";
 import CreateTask from "./pages/Admin/CreateTask";
 import ManageUsers from "./pages/Admin/ManageUsers";
@@ -24,7 +23,6 @@ const App = () => {
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/signUp" element={<SignUp />} />
 
           {/* Admin Routes */}
           <Route element={<PrivateRoute allowedRoles={["admin"]} />}>

@@ -8,15 +8,79 @@ import toast from "react-hot-toast";
 
 const ManageUsers = () => {
   const [allUsers, setAllUsers] = useState([]);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    isAdmin: false,
+  });
 
   const getAllUsers = async () => {
     try {
       const response = await axiosInstance.get(API_PATHS.USERS.GET_ALL_USERS);
-      if (response.data?.length > 0) {
+      if (Array.isArray(response.data)) {
         setAllUsers(response.data);
+      } else {
+        setAllUsers([]);
       }
     } catch (error) {
       console.error("Error fetching users:", error);
+    }
+  };
+
+  const handleInputChange = ({ target: { name, value, type, checked } }) => {
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  const handleCreateUser = async (event) => {
+    event.preventDefault();
+    if (isSubmitting) return;
+
+    const payload = {
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      password: formData.password,
+      role: formData.isAdmin ? "admin" : "user",
+    };
+
+    if (!payload.name || !payload.email || !payload.password) {
+      toast.error("Please complete all required fields.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await axiosInstance.post(API_PATHS.USERS.CREATE_USER, payload);
+      toast.success("Team member added successfully.");
+      setShowCreateForm(false);
+      setFormData({ name: "", email: "", password: "", isAdmin: false });
+      await getAllUsers();
+    } catch (error) {
+      console.error("Error creating user:", error);
+      const message = error?.response?.data?.message || "Unable to add member. Please try again.";
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId) => {
+    const confirmDelete = window.confirm("Are you sure you want to delete this user? This action cannot be undone.");
+    if (!confirmDelete) return;
+
+    try {
+      await axiosInstance.delete(API_PATHS.USERS.DELETE_USER(userId));
+      toast.success("User removed successfully.");
+      await getAllUsers();
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      const message = error?.response?.data?.message || "Failed to delete user. Please try again.";
+      toast.error(message);
     }
   };
 
@@ -62,11 +126,100 @@ const ManageUsers = () => {
             </p>
           </div>
 
-          <button className="download-btn" onClick={handleDownloadReport}>
-            <LuFileSpreadsheet className="text-lg" /> Export Roster
-          </button>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <button
+              type="button"
+              className="download-btn"
+              onClick={() => setShowCreateForm((prev) => !prev)}
+            >
+              {showCreateForm ? "Close" : "Add Member"}
+            </button>
+            <button className="download-btn" onClick={handleDownloadReport}>
+              <LuFileSpreadsheet className="text-lg" /> Export Roster
+            </button>
+          </div>
         </div>
       </section>
+
+      {showCreateForm && (
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h3 className="text-lg font-semibold text-slate-900">Add a new team member</h3>
+          <p className="mt-1 text-sm text-slate-500">Provide the member's details and choose their access level.</p>
+
+          <form className="mt-6 grid gap-5 md:grid-cols-2" onSubmit={handleCreateUser}>
+            <div className="md:col-span-1">
+              <label className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500" htmlFor="name">
+                Full Name
+              </label>
+              <input
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleInputChange}
+                placeholder="Jane Cooper"
+                className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                type="text"
+                autoComplete="name"
+              />
+            </div>
+
+            <div className="md:col-span-1">
+              <label className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500" htmlFor="email">
+                Email Address
+              </label>
+              <input
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                placeholder="member@company.com"
+                className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                type="email"
+                autoComplete="email"
+              />
+            </div>
+
+            <div className="md:col-span-1">
+              <label className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500" htmlFor="password">
+                Temporary Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleInputChange}
+                placeholder="Create a secure password"
+                className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                type="password"
+                autoComplete="new-password"
+              />
+            </div>
+
+            <div className="md:col-span-1 flex items-end">
+              <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3 text-sm text-slate-600 shadow-inner">
+                <input
+                  type="checkbox"
+                  name="isAdmin"
+                  checked={formData.isAdmin}
+                  onChange={handleInputChange}
+                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                Grant admin access to this member
+              </label>
+            </div>
+
+            <div className="md:col-span-2 flex justify-end">
+              <button
+                type="submit"
+                className="rounded-2xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(79,70,229,0.35)] transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-indigo-300"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Adding Member..." : "Create Member"}
+              </button>
+            </div>
+          </form>
+        </section>
+      )}
 
       <section className="flex items-center gap-3 text-sm font-medium text-slate-600">
         <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 via-indigo-500 to-sky-500 text-white shadow-[0_12px_28px_rgba(126,58,242,0.35)]">
@@ -77,11 +230,11 @@ const ManageUsers = () => {
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {allUsers?.map((user) => (
-          <UserCard key={user._id} userInfo={user} />
+          <UserCard key={user._id} userInfo={user} onDelete={() => handleDeleteUser(user._id)} />
         ))}
       </section>
     </DashboardLayout>
-  );  
+  ); 
 };
 
 export default ManageUsers;

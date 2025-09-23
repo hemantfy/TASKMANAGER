@@ -1,6 +1,6 @@
 import React, { useContext, useState } from 'react';
 import AuthLayout from '../../components/layouts/AuthLayout';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../../utils/axiosInstance';
 import { API_PATHS } from '../../utils/apiPaths';
 import { UserContext } from '../../context/userContext';
@@ -142,10 +142,7 @@ const Login = () => {
         </form>
         
         <div className="text-center text-sm text-slate-600">
-          Don&apos;t have an account?{' '}
-          <Link className="font-semibold text-blue-600 transition hover:text-blue-500" to="/signUp">
-            Create one now
-          </Link>
+        Need access? Please reach out to your workspace admin to get an account.
         </div>
       </div>
     </AuthLayout>
