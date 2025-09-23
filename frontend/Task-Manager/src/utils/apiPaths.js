@@ -14,6 +14,7 @@ export const API_PATHS = {
     CREATE_USER: "/api/users", // Create a new user (Admin only)
     UPDATE_USER: (userId) => `/api/users/${userId}`, // Update user details
     DELETE_USER: (userId) => `/api/users/${userId}`, // Delete a user
+    RESET_USER_PASSWORD: (userId) => `/api/users/${userId}/password`,
   },
 
   PROFILE: {

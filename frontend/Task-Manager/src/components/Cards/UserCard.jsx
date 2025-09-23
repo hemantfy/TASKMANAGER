@@ -1,7 +1,7 @@
 import React from "react";
 import { LuTrash2 } from "react-icons/lu";
 
-const UserCard = ({ userInfo, onDelete }) => {
+const UserCard = ({ userInfo, onDelete, onResetPassword }) => {
   const stats = [
     { label: "Pending", count: userInfo?.pendingTasks || 0, status: "Pending" },
     { label: "Prog.", count: userInfo?.inProgressTasks || 0, status: "In Progress" },
@@ -43,15 +43,26 @@ const UserCard = ({ userInfo, onDelete }) => {
           </div>
         </div>
         
-        {typeof onDelete === "function" && (
-          <div className="mt-4 flex justify-end">
-            <button
-              type="button"
-              onClick={onDelete}
-              className="flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-rose-500 transition hover:border-rose-300 hover:bg-rose-100 hover:text-rose-600"
-            >
-              <LuTrash2 className="text-base" /> Delete User
-            </button>
+        {(typeof onDelete === "function" || typeof onResetPassword === "function") && (
+          <div className="mt-4 flex flex-wrap justify-end gap-2">
+            {typeof onResetPassword === "function" && (
+              <button
+                type="button"
+                onClick={onResetPassword}
+                className="flex items-center gap-2 rounded-2xl border border-indigo-200 bg-indigo-50/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-indigo-600 transition hover:border-indigo-300 hover:bg-indigo-100 hover:text-indigo-700"
+              >
+                Change Password
+              </button>
+            )}
+            {typeof onDelete === "function" && (
+              <button
+                type="button"
+                onClick={onDelete}
+                className="flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-rose-500 transition hover:border-rose-300 hover:bg-rose-100 hover:text-rose-600"
+              >
+                <LuTrash2 className="text-base" /> Delete User
+              </button>
+            )}
           </div>
         )}
       </div>

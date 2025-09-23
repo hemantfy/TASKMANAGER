@@ -11,104 +11,103 @@ const generateToken = (userId) => {
 // @route   POST /api/auth/register
 // @access  Public
 const registerUser = async (req, res) => {
-    try {
-        const { name, email, password, profileImageUrl, adminInviteToken, birthdate } =
-            req.body;
-           
-        //Check if User already exist
-        const userExists = await User.findOne({ email });
-        if (userExists) {
-            return res.status(400).json({ message: "User already exists"});
-        }
+  try {
+    const { name, email, password, profileImageUrl, adminInviteToken, birthdate } =
+      req.body;
 
-        //Determin user role: Admin if correct token is provided, otherwise Member
-        let role = "member";
-        if (
-            adminInviteToken &&
-            adminInviteToken == process.env.ADMIN_INVITE_TOKEN
-        ) {
-            role = "admin";
-        }
+    // Check if User already exist
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+      return res.status(400).json({ message: "User already exists" });
+    }
 
-        //Hash password
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
+    // Determine user role: Admin if correct token is provided, otherwise Member
+    let role = "member";
+    if (adminInviteToken && adminInviteToken === process.env.ADMIN_INVITE_TOKEN) {
+      role = "admin";
+    }
 
-        //Create new User
-        // Create new user
-        const parsedBirthdate = birthdate ? new Date(birthdate) : null;
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
-const user = await User.create({
-    name,
-    email,
-    password: hashedPassword,
-    profileImageUrl,
-    role,
-    birthdate: parsedBirthdate && !isNaN(parsedBirthdate) ? parsedBirthdate : null,
-  });
-  
-  // Return user data with JWT
-  res.status(201).json({
-    _id: user._id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    profileImageUrl: user.profileImageUrl,
-    birthdate: user.birthdate,
-    token: generateToken(user._id),
-  });
-    }  catch (error) {
-        res.status(500).json({ message: "Server Error", error: error.meassage });
-        }
+    const parsedBirthdate = birthdate ? new Date(birthdate) : null;
+
+    // Create new user
+    const user = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      profileImageUrl,
+      role,
+      birthdate: parsedBirthdate && !isNaN(parsedBirthdate) ? parsedBirthdate : null,
+      mustChangePassword: false,
+    });
+
+    // Return user data with JWT
+    res.status(201).json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      profileImageUrl: user.profileImageUrl,
+      birthdate: user.birthdate,
+      mustChangePassword: user.mustChangePassword,
+      token: generateToken(user._id),
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
 };
 
 // @desc    Login user
 // @route   POST /api/auth/login
 // @access  Public
 const loginUser = async (req, res) => {
-    try {
-        const { email, password } = req.body;
-      
-        const user = await User.findOne({ email });
-        if (!user) {
-          return res.status(401).json({ message: "Invalid email or password" });
-        }
-      
-        // Compare password
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-          return res.status(401).json({ message: "Invalid email or password" });
-        }
-      
-        // Return user data with JWT
-        res.json({
-          _id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          profileImageUrl: user.profileImageUrl,
-          birthdate: user.birthdate,
-          token: generateToken(user._id),
-        });
-}  catch (error) {
-    res.status(500).json({ message: "Server Error", error: error.meassage });
+  try {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(401).json({ message: "Invalid email or password" });
     }
+
+    // Compare password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    // Return user data with JWT
+    res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      profileImageUrl: user.profileImageUrl,
+      birthdate: user.birthdate,
+      mustChangePassword: user.mustChangePassword,
+      token: generateToken(user._id),
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
 };
 
 // @desc    Get user profile
 // @route   GET /api/auth/profile
 // @access  Private (Requires JWT)
 const getUserProfile = async (req, res) => {
-    try {
-        const user = await User.findById(req.user.id).select("-password");
-        if (!user) {
-         return res.status(404).json({ message: "User not found" });
-        }
-        res.json(user);
-            }  catch (error) {
-                 res.status(500).json({ message: "Server Error", error: error.meassage });
-            }
-        };
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
+};
 
 // @desc    Update user profile
 // @route   PUT /api/auth/profile
@@ -117,47 +116,47 @@ const updateUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
 
-if (!user) {
-  return res.status(404).json({ message: "User not found" });
-}
-
-user.name = req.body.name || user.name;
-user.email = req.body.email || user.email;
-
-if (Object.prototype.hasOwnProperty.call(req.body, "birthdate")) {
-  const providedBirthdate = req.body.birthdate;
-
-  if (!providedBirthdate) {
-    user.birthdate = null;
-  } else {
-    const parsedBirthdate = new Date(providedBirthdate);
-    if (!isNaN(parsedBirthdate)) {
-      user.birthdate = parsedBirthdate;
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
+
+    user.name = req.body.name || user.name;
+    user.email = req.body.email || user.email;
+
+    if (Object.prototype.hasOwnProperty.call(req.body, "birthdate")) {
+      const providedBirthdate = req.body.birthdate;
+
+      if (!providedBirthdate) {
+        user.birthdate = null;
+      } else {
+        const parsedBirthdate = new Date(providedBirthdate);
+        if (!isNaN(parsedBirthdate)) {
+          user.birthdate = parsedBirthdate;
+        }
+      }
+    }
+
+    if (req.body.password) {
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(req.body.password, salt);
+    }
+
+    const updatedUser = await user.save();
+
+    res.json({
+      message: "Profile updated successfully",
+      _id: updatedUser._id,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      profileImageUrl: updatedUser.profileImageUrl,
+      birthdate: updatedUser.birthdate,
+      mustChangePassword: updatedUser.mustChangePassword,
+      token: generateToken(updatedUser._id),
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
-}
-
-if (req.body.password) {
-  const salt = await bcrypt.genSalt(10);
-  user.password = await bcrypt.hash(req.body.password, salt);
-}
-
-const updatedUser = await user.save();
-
-res.json({
-  message: "Profile updated successfully",
-  _id: updatedUser._id,
-  name: updatedUser.name,
-  email: updatedUser.email,
-  role: updatedUser.role,
-  profileImageUrl: updatedUser.profileImageUrl,
-  birthdate: updatedUser.birthdate,
-  token: generateToken(updatedUser._id),
-});
-
-}  catch (error) {
-    res.status(500).json({ message: "Server Error", error: error.meassage });
-    }
 };
 
 module.exports = { registerUser, loginUser, getUserProfile, updateUserProfile };

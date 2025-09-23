@@ -59,6 +59,47 @@ const getUserById = async (req, res) => {
   }
 };
 
+// @desc    Create a new user (Admin only)
+// @route   POST /api/users
+// @access  Private (Admin)
+const createUser = async (req, res) => {
+  try {
+    const { name, email, password, role } = req.body || {};
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "Name, email and password are required" });
+    }
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "A user with this email already exists" });
+    }
+
+    const normalizedRole = role === "admin" ? "admin" : "member";
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const user = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      role: normalizedRole,
+      mustChangePassword: true,
+    });
+
+    res.status(201).json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      mustChangePassword: user.mustChangePassword,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 const deleteExistingProfileImage = (imageUrl) => {
   if (!imageUrl) return;
 
@@ -110,6 +151,7 @@ const updateProfileImage = async (req, res) => {
         role: updatedUser.role,
         profileImageUrl: updatedUser.profileImageUrl,
         birthdate: updatedUser.birthdate,
+        mustChangePassword: updatedUser.mustChangePassword,
       },
     });
   } catch (error) {
@@ -142,6 +184,7 @@ const changePassword = async (req, res) => {
 
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(newPassword, salt);
+    user.mustChangePassword = false;
     await user.save();
 
     res.json({ message: "Password updated successfully" });
@@ -150,9 +193,38 @@ const changePassword = async (req, res) => {
   }
 };
 
+// @desc    Reset a user's password (Admin only)
+// @route   PUT /api/users/:id/password
+// @access  Private (Admin)
+const resetUserPassword = async (req, res) => {
+  try {
+    const { newPassword } = req.body || {};
+
+    if (!newPassword) {
+      return res.status(400).json({ message: "New password is required" });
+    }
+
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    user.mustChangePassword = true;
+    await user.save();
+
+    res.json({ message: "Password reset successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 module.exports = {
   getUsers,
   getUserById,
+  createUser,
   updateProfileImage,
   changePassword,
+  resetUserPassword,
 };

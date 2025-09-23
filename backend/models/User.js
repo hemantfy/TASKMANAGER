@@ -8,6 +8,7 @@ const UserSchema = new mongoose.Schema(
     profileImageUrl: { type: String, default: null },
     birthdate: { type: Date, default: null },
     role: { type: String, enum: ["admin", "member"], default: "member" }, // Role-based access
+    mustChangePassword: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

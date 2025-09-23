@@ -14,8 +14,16 @@ const ManageUsers = () => {
     name: "",
     email: "",
     password: "",
+    confirmPassword: "",
     isAdmin: false,
   });
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [resetPasswordData, setResetPasswordData] = useState({
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   const getAllUsers = async () => {
     try {
@@ -45,11 +53,16 @@ const ManageUsers = () => {
       name: formData.name.trim(),
       email: formData.email.trim(),
       password: formData.password,
-      role: formData.isAdmin ? "admin" : "user",
+      role: formData.isAdmin ? "admin" : "member",
     };
 
     if (!payload.name || !payload.email || !payload.password) {
       toast.error("Please complete all required fields.");
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("Temporary password and confirmation do not match.");
       return;
     }
 
@@ -58,7 +71,7 @@ const ManageUsers = () => {
       await axiosInstance.post(API_PATHS.USERS.CREATE_USER, payload);
       toast.success("Team member added successfully.");
       setShowCreateForm(false);
-      setFormData({ name: "", email: "", password: "", isAdmin: false });
+      setFormData({ name: "", email: "", password: "", confirmPassword: "", isAdmin: false });
       await getAllUsers();
     } catch (error) {
       console.error("Error creating user:", error);
@@ -81,6 +94,49 @@ const ManageUsers = () => {
       console.error("Error deleting user:", error);
       const message = error?.response?.data?.message || "Failed to delete user. Please try again.";
       toast.error(message);
+    }
+  };
+
+  const openResetPasswordModal = (user) => {
+    setSelectedUser(user);
+    setResetPasswordData({ newPassword: "", confirmPassword: "" });
+    setShowResetPasswordModal(true);
+  };
+
+  const handleResetPasswordChange = ({ target: { name, value } }) => {
+    setResetPasswordData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleResetPasswordSubmit = async (event) => {
+    event.preventDefault();
+    if (!selectedUser || isResettingPassword) return;
+
+    if (!resetPasswordData.newPassword || !resetPasswordData.confirmPassword) {
+      toast.error("Please enter and confirm the new password.");
+      return;
+    }
+
+    if (resetPasswordData.newPassword !== resetPasswordData.confirmPassword) {
+      toast.error("New password and confirmation do not match.");
+      return;
+    }
+
+    try {
+      setIsResettingPassword(true);
+      await axiosInstance.put(API_PATHS.USERS.RESET_USER_PASSWORD(selectedUser._id), {
+        newPassword: resetPasswordData.newPassword,
+      });
+      toast.success("Password reset successfully. The user will be asked to change it on next login.");
+      setShowResetPasswordModal(false);
+      setSelectedUser(null);
+      setResetPasswordData({ newPassword: "", confirmPassword: "" });
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      const message =
+        error?.response?.data?.message || "Failed to reset password. Please try again.";
+      toast.error(message);
+    } finally {
+      setIsResettingPassword(false);
     }
   };
 
@@ -181,7 +237,7 @@ const ManageUsers = () => {
 
             <div className="md:col-span-1">
               <label className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500" htmlFor="password">
-                Temporary Password
+              Password
               </label>
               <input
                 id="password"
@@ -189,6 +245,22 @@ const ManageUsers = () => {
                 value={formData.password}
                 onChange={handleInputChange}
                 placeholder="Create a secure password"
+                className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                type="password"
+                autoComplete="new-password"
+              />
+            </div>
+
+            <div className="md:col-span-1">
+              <label className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500" htmlFor="confirmPassword">
+                Confirm Password
+              </label>
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
+                placeholder="Re-enter the password"
                 className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
                 type="password"
                 autoComplete="new-password"
@@ -230,11 +302,81 @@ const ManageUsers = () => {
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {allUsers?.map((user) => (
-          <UserCard key={user._id} userInfo={user} onDelete={() => handleDeleteUser(user._id)} />
+          <UserCard
+          key={user._id}
+          userInfo={user}
+          onDelete={() => handleDeleteUser(user._id)}
+          onResetPassword={() => openResetPasswordModal(user)}
+        />
         ))}
       </section>
+      
+      {showResetPasswordModal && selectedUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-4">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-slate-900">
+              Reset password for {selectedUser.name}
+            </h3>
+            <p className="mt-1 text-sm text-slate-500">
+              Create a temporary password. The user will be prompted to set their own password at next login.
+            </p>
+
+            <form className="mt-6 space-y-4" onSubmit={handleResetPasswordSubmit}>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500" htmlFor="newPassword">
+                Password
+                </label>
+                <input
+                  id="newPassword"
+                  name="newPassword"
+                  type="password"
+                  value={resetPasswordData.newPassword}
+                  onChange={handleResetPasswordChange}
+                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                  autoComplete="new-password"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500" htmlFor="confirmPassword">
+                  Confirm Password
+                </label>
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  value={resetPasswordData.confirmPassword}
+                  onChange={handleResetPasswordChange}
+                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                  autoComplete="new-password"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100"
+                  onClick={() => {
+                    setShowResetPasswordModal(false);
+                    setSelectedUser(null);
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-2xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(79,70,229,0.35)] transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-indigo-300"
+                  disabled={isResettingPassword}
+                >
+                  {isResettingPassword ? "Updating..." : "Reset Password"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
-  ); 
+  );
 };
 
 export default ManageUsers;
