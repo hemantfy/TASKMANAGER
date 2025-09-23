@@ -3,7 +3,7 @@ import React from "react";
 const UserCard = ({ userInfo }) => {
   const stats = [
     { label: "Pending", count: userInfo?.pendingTasks || 0, status: "Pending" },
-    { label: "In Progress", count: userInfo?.inProgressTasks || 0, status: "In Progress" },
+    { label: "Prog.", count: userInfo?.inProgressTasks || 0, status: "In Progress" },
     { label: "Completed", count: userInfo?.completedTasks || 0, status: "Completed" }
   ];
 
@@ -26,10 +26,20 @@ const UserCard = ({ userInfo }) => {
           </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-3 gap-2">
-          {stats.map((item) => (
-            <StatCard key={item.label} label={item.label} count={item.count} status={item.status} />
-          ))}
+        <div className="mt-6 rounded-2xl border border-white/40 bg-white/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]">
+          <div className="grid grid-cols-3 divide-x divide-white/50">
+            {stats.map((item) => (
+              <div key={item.label} className="flex flex-col items-center gap-1 py-4 text-center">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500">
+                  {item.label}
+                </span>
+                <span className="text-2xl font-semibold text-slate-900">{item.count}</span>
+                <span className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
+                  {item.count === 1 ? "Task" : "Tasks"}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -37,27 +47,3 @@ const UserCard = ({ userInfo }) => {
 };
 
 export default UserCard;
-
-const StatCard = ({ label, count, status }) => {
-  const getAccent = () => {
-    switch (status) {
-      case "In Progress":
-        return "from-cyan-400 via-sky-500 to-blue-500";
-      case "Completed":
-        return "from-emerald-400 via-lime-400 to-green-500";
-      default:
-        return "from-purple-500 via-pink-500 to-rose-500";
-    }
-  };
-
-  const accent = getAccent();
-
-  return (
-    <div className="relative overflow-hidden rounded-2xl border border-white/50 bg-white/70 p-3 text-center shadow-[0_12px_24px_rgba(15,23,42,0.08)]">
-      <span className={`absolute inset-0 -z-10 bg-gradient-to-br ${accent} opacity-[0.12]`} />
-      <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">{label}</p>
-      <p className="mt-2 text-xl font-semibold text-slate-900">{count}</p>
-    </div>
-  );
-};
-
