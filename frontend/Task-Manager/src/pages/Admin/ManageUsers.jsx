@@ -82,9 +82,25 @@ const ManageUsers = () => {
     }
   };
 
-  const handleDeleteUser = async (userId) => {
-    const confirmDelete = window.confirm("Are you sure you want to delete this user? This action cannot be undone.");
+  const handleDeleteUser = async (user) => {
+    const userId = typeof user === "object" ? user?._id : user;
+    const userName = typeof user === "object" ? user?.name : "";
+
+    if (!userId) {
+      toast.error("Unable to delete user. Please try again.");
+      return;
+    }
+
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete ${userName || "this user"}? This action cannot be undone.`
+    );
     if (!confirmDelete) return;
+
+    const confirmTaskCleanup = window.confirm(
+      "Deleting this team member will also remove any tasks assigned exclusively to them. Tasks shared with other members will remain available to the rest of the assignees. Do you want to proceed?"
+    );
+
+    if (!confirmTaskCleanup) return;
 
     try {
       await axiosInstance.delete(API_PATHS.USERS.DELETE_USER(userId));
