@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const Task = require("../models/Task");
 const User = require("../models/User");
@@ -132,6 +133,10 @@ const deleteUser = async (req, res) => {
       return res.status(400).json({ message: "User ID is required" });
     }
 
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
+
     const user = await User.findById(id);
 
     if (!user) {
@@ -140,11 +145,43 @@ const deleteUser = async (req, res) => {
 
     const userId = user._id;
 
-    await Task.updateMany({ assignedTo: userId }, { $pull: { assignedTo: userId } });
+    const tasksWithUser = await Task.find({ assignedTo: userId }).select("assignedTo");
+
+    const taskIdsToDelete = [];
+    const taskIdsToUpdate = [];
+
+    tasksWithUser.forEach((task) => {
+      const assigneeIds = Array.isArray(task.assignedTo)
+        ? task.assignedTo.filter(Boolean).map((assignee) => assignee.toString())
+        : [];
+
+      if (assigneeIds.length <= 1) {
+        taskIdsToDelete.push(task._id);
+      } else {
+        taskIdsToUpdate.push(task._id);
+      }
+    });
+
+    if (taskIdsToDelete.length > 0) {
+      await Task.deleteMany({ _id: { $in: taskIdsToDelete } });
+    }
+
+    if (taskIdsToUpdate.length > 0) {
+      await Task.updateMany(
+        { _id: { $in: taskIdsToUpdate } },
+        { $pull: { assignedTo: userId } }
+      );
+    }
+
+    deleteExistingProfileImage(user.profileImageUrl);
 
     await user.deleteOne();
 
-    res.json({ message: "User deleted successfully" });
+    res.json({
+      message: "User deleted successfully",
+      removedTasks: taskIdsToDelete.length,
+      updatedTasks: taskIdsToUpdate.length,
+    });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
