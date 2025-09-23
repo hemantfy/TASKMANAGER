@@ -16,27 +16,23 @@ const Navbar = ({ activeMenu }) => {
             className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200/80 bg-white/80 text-slate-600 shadow-[0_10px_25px_rgba(15,23,42,0.08)] transition hover:border-slate-300 hover:text-primary lg:hidden"
             onClick={() => setOpenSideMenu((prev) => !prev)}
           >
-            {openSideMenu ? (
-              <HiOutlineX className="text-xl" />
-            ) : (
-              <HiOutlineMenu className="text-xl" />
-            )}
+            {openSideMenu ? <HiOutlineX className="text-xl" /> : <HiOutlineMenu className="text-xl" />}
           </button>
 
           <div className="flex items-center gap-3">
-          <img
+           <img
               src={logo}
+              srcSet={`${logo} 1x, ${logo} 2x`}
+              sizes="44px"
               alt="Task Manager logo"
-              className="h-11 w-11 rounded-2xl object-cover shadow-lg shadow-primary/30"
+              loading="eager"
+              decoding="async"
+              className="h-11 w-11 shrink-0 rounded-2xl object-cover shadow-lg shadow-primary/30"
+              style={{ imageRendering: "-webkit-optimize-contrast" }}
             />
-
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.32em] text-primary/70">
-                Task Manager
-              </p>
-              <h1 className="text-lg font-semibold text-slate-900 sm:text-xl">
-                RAVAL & TRIVEDI ASSOCIATES
-              </h1>
+            <p className="text-xs font-semibold uppercase tracking-[0.32em] text-primary/70">Task Manager</p>
+            <h1 className="text-lg font-semibold text-slate-900 sm:text-xl">RAVAL & TRIVEDI ASSOCIATES</h1>
             </div>
           </div>
         </div>

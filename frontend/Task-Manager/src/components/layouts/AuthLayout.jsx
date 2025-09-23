@@ -1,5 +1,5 @@
-import React from 'react';
-import logo from '../../assets/images/logo.png';
+import React from "react";
+import logo from "../../assets/images/logo.png";
 
 const AuthLayout = ({ children }) => {
   return (
@@ -56,12 +56,17 @@ const AuthLayout = ({ children }) => {
             <div className="mb-10 flex items-center gap-3">
             <img
                 src={logo}
+                srcSet={`${logo} 1x, ${logo} 2x`}
+                sizes="48px"
                 alt="Task Manager logo"
-                className="h-12 w-12 rounded-2xl object-cover shadow-lg shadow-blue-500/40"
+                loading="eager"
+                decoding="async"
+                className="h-12 w-12 shrink-0 rounded-2xl object-cover shadow-lg shadow-blue-500/40"
+                style={{ imageRendering: "-webkit-optimize-contrast" }}
               />
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.4em] text-slate-400">Task Manager</p>
-                <p className="text-base font-semibold text-slate-900">Productivity Suite</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.4em] text-slate-400">RAVAL & TRIVEDI ASSOCIATES</p>
+                <p className="text-base font-semibold text-slate-900">TASK MANAGER</p>
               </div>
             </div>
             <div className="w-full">{children}</div>
