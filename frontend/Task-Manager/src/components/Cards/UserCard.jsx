@@ -1,4 +1,5 @@
 import React from "react";
+import { FaUser } from "react-icons/fa6";
 import { LuTrash2 } from "react-icons/lu";
 
 const UserCard = ({ userInfo, onDelete, onResetPassword }) => {
@@ -15,11 +16,11 @@ const UserCard = ({ userInfo, onDelete, onResetPassword }) => {
         <span className="absolute inset-0 -z-20 bg-[radial-gradient(circle_at_bottom_right,_rgba(56,189,248,0.18),_transparent_60%)]" />
 
         <div className="relative flex items-center gap-4">
-          <img
+          {userInfo?.profileImageUrl ? <img
             src={userInfo?.profileImageUrl}
             alt="Avatar"
             className="h-14 w-14 rounded-2xl border-4 border-white object-cover shadow-[0_12px_24px_rgba(79,70,229,0.25)]"
-          />
+          /> : <FaUser className="h-14 w-14 rounded-2xl border-4 border-white object-cover shadow-[0_12px_24px_rgba(79,70,229,0.25)] text-primary p-3"/>}
 
           <div>
             <p className="text-base font-semibold text-slate-900">{userInfo?.name}</p>
@@ -49,7 +50,7 @@ const UserCard = ({ userInfo, onDelete, onResetPassword }) => {
               <button
                 type="button"
                 onClick={onResetPassword}
-                className="flex items-center gap-2 rounded-2xl border border-indigo-200 bg-indigo-50/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-indigo-600 transition hover:border-indigo-300 hover:bg-indigo-100 hover:text-indigo-700"
+                className="flex items-center gap-2 rounded-2xl border border-indigo-200 bg-indigo-50/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-indigo-600 transition hover:border-indigo-300 hover:bg-indigo-100 hover:text-indigo-700 mx-auto"
               >
                 Change Password
               </button>
@@ -58,7 +59,7 @@ const UserCard = ({ userInfo, onDelete, onResetPassword }) => {
               <button
                 type="button"
                 onClick={onDelete}
-                className="flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-rose-500 transition hover:border-rose-300 hover:bg-rose-100 hover:text-rose-600"
+                className="flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-rose-500 transition hover:border-rose-300 hover:bg-rose-100 hover:text-rose-600 mx-auto"
               >
                 <LuTrash2 className="text-base" /> Delete User
               </button>

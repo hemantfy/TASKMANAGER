@@ -6,7 +6,7 @@ import DashboardLayout from "../../components/layouts/DashboardLayout";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import moment from "moment";
-import { addThousandsSeparator, getGreetingMessage } from "../../utils/helper";
+import { addThousandsSeparator } from "../../utils/helper";
 import InfoCard from "../../components/Cards/infoCard";
 import { LuArrowRight, LuBadgeCheck, LuClipboardList, LuClock3, LuRefreshCcw } from "react-icons/lu";
 import TaskListTable from "../../components/TaskListTable";
@@ -69,6 +69,7 @@ const Dashboard = () => {
     getDashboardData();
 
     return () => {};
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

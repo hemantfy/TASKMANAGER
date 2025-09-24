@@ -69,6 +69,7 @@ const ManageTasks = () => {
   useEffect(() => {
     getAllTasks(filterStatus);
     return () => {};
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterStatus]);
 
   return (

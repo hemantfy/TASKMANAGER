@@ -7,6 +7,7 @@ import ManageTasks from "./pages/Admin/ManageTasks";
 import CreateTask from "./pages/Admin/CreateTask";
 import ManageUsers from "./pages/Admin/ManageUsers";
 import ProfileSettings from "./pages/Profile/ProfileSettings";
+import SignUp from "./pages/Auth/SignUp";
 
 import UserDashboard from "./pages/User/UserDashboard";
 import MyTasks from "./pages/User/MyTasks";
@@ -17,12 +18,15 @@ import { Toaster } from "react-hot-toast";
 
 const App = () => {
   return (
+    
     <UserProvider>
     <div>
       <Router>
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/signUp" element={<SignUp />} />
+
 
           {/* Admin Routes */}
           <Route element={<PrivateRoute allowedRoles={["admin"]} />}>

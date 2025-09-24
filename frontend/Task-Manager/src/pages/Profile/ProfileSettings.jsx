@@ -5,6 +5,7 @@ import DashboardLayout from "../../components/layouts/DashboardLayout";
 import { UserContext } from "../../context/userContext";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
+import { FaUser } from "react-icons/fa6";
 
 const ProfileSettings = () => {
   const { user, updateUser } = useContext(UserContext);
@@ -255,11 +256,11 @@ const ProfileSettings = () => {
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
             <div className="relative">
               <span className="absolute inset-0 -z-10 animate-pulse rounded-full bg-gradient-to-tr from-primary/30 to-cyan-200/40 blur-2xl" />
-              <img
+              {currentProfileImage ? <img
                 src={currentProfileImage}
                 alt="Profile"
                 className="h-28 w-28 rounded-full border-4 border-white object-cover shadow-lg shadow-primary/20"
-              />
+              /> : <FaUser className="h-28 w-28 rounded-full border-4 border-white object-cover shadow-lg shadow-primary/20 text-primary p-3"/>}
               <label
                 htmlFor="profileImage"
                 className="absolute bottom-0 right-0 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-gradient-to-br from-primary via-indigo-500 to-sky-400 text-white shadow-[0_12px_24px_rgba(79,70,229,0.35)]"

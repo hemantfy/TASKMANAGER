@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { SIDE_MENU_DATA, SIDE_MENU_USER_DATA } from "../../utils/data";
 import { UserContext } from "../../context/userContext";
+import { FaUser } from "react-icons/fa6";
 
 const SideMenu = ({ activeMenu }) => {
   const { user, clearUser } = useContext(UserContext);
@@ -59,11 +60,12 @@ const SideMenu = ({ activeMenu }) => {
       <div className="flex flex-col items-center justify-center rounded-2xl border border-white/50 bg-white/60 px-4 py-5 text-center shadow-inner">
         <div className="relative">
         <span className="absolute inset-0 -z-10 animate-pulse rounded-full bg-gradient-to-tr from-primary/30 to-cyan-200/30 blur-xl" />
-          <img
+        {user?.profileImageUrl 
+        ? <img
             src={user?.profileImageUrl || ""}
             alt="Profile Image"
             className="h-20 w-20 rounded-full border-4 border-white object-cover shadow-lg shadow-primary/20"
-          />
+          /> : <FaUser className="text-4xl text-primary"/>}
         </div>
 
         {user?.role === "admin" && (
@@ -100,7 +102,7 @@ const SideMenu = ({ activeMenu }) => {
           return (
             <button
               key={`menu_${index}`}
-              className={`group flex w-full items-center gap-4 rounded-2xl border px-4 py-3 text-sm font-medium transition ${
+              className={`group flex w-full items-center gap-4 cursor-pointer rounded-2xl border px-4 py-3 text-sm font-medium transition ${
                 isActive
                   ? "border-transparent bg-gradient-to-r from-primary/90 via-indigo-500 to-sky-400 text-white shadow-[0_18px_40px_rgba(59,130,246,0.35)]"
                   : "border-white/60 bg-white/60 text-slate-600 shadow-[0_12px_24px_rgba(15,23,42,0.08)] hover:border-primary/40 hover:bg-blue-50/70 hover:text-primary"
