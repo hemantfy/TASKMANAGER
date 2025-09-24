@@ -19,6 +19,7 @@ const Login = () => {
   const [changePasswordError, setChangePasswordError] = useState(null);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [pendingRoleRedirect, setPendingRoleRedirect] = useState(null);
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
 
   const { updateUser, clearUser } = useContext(UserContext);
   const navigate = useNavigate();
@@ -189,6 +190,13 @@ const Login = () => {
               />
               Remember me on this device
             </label>
+            <button
+              type="button"
+              onClick={() => setShowForgotPasswordModal(true)}
+              className="text-sm font-semibold text-indigo-600 transition hover:text-indigo-500"
+            >
+              Forgot password?
+            </button>
           </div>
 
           {error && (
@@ -206,6 +214,23 @@ const Login = () => {
             Need access? Please reach out to your workspace admin to get an account.
           </div>
         </div>
+        {showForgotPasswordModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-4">
+            <div className="w-full max-w-sm rounded-3xl bg-white p-6 text-center shadow-xl">
+              <h3 className="text-lg font-semibold text-slate-900">Need a password reset?</h3>
+              <p className="mt-2 text-sm text-slate-600">
+                Please contact your administrator to update or reset your password.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowForgotPasswordModal(false)}
+                className="mt-6 rounded-2xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(79,70,229,0.35)] transition hover:bg-indigo-500"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        )}
         {showChangePasswordModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-4">
             <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl">
