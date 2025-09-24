@@ -3,10 +3,8 @@
     "buildCommand": "cd frontend/Task-Manager && npm run build",
     "outputDirectory": "frontend/Task-Manager/dist",
     "framework": "vite",
-    "rewrites": [
-      {
-        "source": "/(.*)",
-        "destination": "/index.html"
-      }
+    "routes": [
+      { "handle": "filesystem" },
+      { "src": "/.*", "dest": "/index.html" }
     ]
   }
