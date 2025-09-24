@@ -189,12 +189,6 @@ const Login = () => {
               />
               Remember me on this device
             </label>
-            <button
-              type="button"
-              className="text-left text-sm font-medium text-blue-600 transition hover:text-blue-500"
-            >
-              Forgot password?
-            </button>
           </div>
 
           {error && (
