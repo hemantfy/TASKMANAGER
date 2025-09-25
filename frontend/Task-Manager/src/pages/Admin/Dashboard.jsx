@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from "react";
+import React, { useContext, useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUserAuth } from "../../hooks/useUserAuth";
 import { UserContext } from "../../context/userContext";
@@ -8,10 +8,47 @@ import { API_PATHS } from "../../utils/apiPaths";
 import moment from "moment";
 import { addThousandsSeparator } from "../../utils/helper";
 import InfoCard from "../../components/Cards/infoCard";
-import { LuArrowRight, LuBadgeCheck, LuClipboardList, LuClock3, LuRefreshCcw } from "react-icons/lu";
+import {
+  LuArrowRight,
+  LuBadgeCheck,
+  LuClipboardList,
+  LuClock3,
+  LuRefreshCcw
+} from "react-icons/lu";
 import TaskListTable from "../../components/TaskListTable";
 import CustomPieChart from "../../components/Charts/CustomPieChart";
 import CustomBarChart from "../../components/Charts/CustomBarChart";
+
+const LiveGreeting = React.memo(({ userName }) => {
+  const [currentMoment, setCurrentMoment] = useState(moment());
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      setCurrentMoment(moment());
+    }, 1000);
+
+    return () => clearInterval(intervalId);
+  }, []);
+
+  const hour = currentMoment.hour();
+  const greetingMessage =
+    hour < 12
+      ? "Good Morning"
+      : hour < 17
+        ? "Good Afternoon"
+        : "Good Evening";
+
+  return (
+    <>
+      <h2 className="mt-3 text-3xl font-semibold leading-tight sm:text-4xl">
+        {greetingMessage}, {userName}
+      </h2>
+      <p className="mt-3 text-sm text-white/70">
+        {currentMoment.format("dddd Do MMMM YYYY • HH:mm:ss")}
+      </p>
+    </>
+  );
+});
 
 const COLORS = ["#8D51FF", "#00B8DB", "#7BCE00"];
 
@@ -22,7 +59,6 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   const [dashboardData, setDashboardData] = useState(null);
-  const [currentMoment, setCurrentMoment] = useState(moment());
   const [pieChartData, setPieChartData] = useState([]);
   const [barChartData, setBarChartData] = useState([]);
 
@@ -72,48 +108,43 @@ const Dashboard = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      setCurrentMoment(moment());
-    }, 1000);
-
-    return () => clearInterval(intervalId);
-  }, []);
-
-  const hour = currentMoment.hour();
-  const greetingMessage =
-    hour < 12
-      ? "Good Morning"
-      : hour < 17
-        ? "Good Afternoon"
-        : "Good Evening";
-
-  const infoCards = [
-    {
-      label: "Total Tasks",
-      value: addThousandsSeparator(dashboardData?.charts?.taskDistribution?.All || 0),
-      color: "from-primary via-indigo-500 to-sky-400",
-      icon: LuClipboardList
-    },
-    {
-      label: "Pending Tasks",
-      value: addThousandsSeparator(dashboardData?.charts?.taskDistribution?.Pending || 0),
-      color: "from-amber-400 via-orange-500 to-red-400",
-      icon: LuClock3
-    },
-    {
-      label: "In Progress",
-      value: addThousandsSeparator(dashboardData?.charts?.taskDistribution?.InProgress || 0),
-      color: "from-sky-400 via-cyan-500 to-emerald-400",
-      icon: LuRefreshCcw
-    },
-    {
-      label: "Completed Tasks",
-      value: addThousandsSeparator(dashboardData?.charts?.taskDistribution?.Completed || 0),
-      color: "from-emerald-400 via-lime-400 to-green-500",
-      icon: LuBadgeCheck
-    }
-  ];
+  const infoCards = useMemo(
+    () => [
+      {
+        label: "Total Tasks",
+        value: addThousandsSeparator(
+          dashboardData?.charts?.taskDistribution?.All || 0
+        ),
+        color: "from-primary via-indigo-500 to-sky-400",
+        icon: LuClipboardList
+      },
+      {
+        label: "Pending Tasks",
+        value: addThousandsSeparator(
+          dashboardData?.charts?.taskDistribution?.Pending || 0
+        ),
+        color: "from-amber-400 via-orange-500 to-red-400",
+        icon: LuClock3
+      },
+      {
+        label: "In Progress",
+        value: addThousandsSeparator(
+          dashboardData?.charts?.taskDistribution?.InProgress || 0
+        ),
+        color: "from-sky-400 via-cyan-500 to-emerald-400",
+        icon: LuRefreshCcw
+      },
+      {
+        label: "Completed Tasks",
+        value: addThousandsSeparator(
+          dashboardData?.charts?.taskDistribution?.Completed || 0
+        ),
+        color: "from-emerald-400 via-lime-400 to-green-500",
+        icon: LuBadgeCheck
+      }
+    ],
+    [dashboardData?.charts?.taskDistribution]
+  );
 
   return (
     <DashboardLayout activeMenu="Dashboard">
@@ -123,12 +154,7 @@ const Dashboard = () => {
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.42em] text-white/70">Welcome Back</p>
-            <h2 className="mt-3 text-3xl font-semibold leading-tight sm:text-4xl">
-            {greetingMessage}, {user?.name || "User"}
-            </h2>
-            <p className="mt-3 text-sm text-white/70">
-              {currentMoment.format("dddd Do MMMM YYYY • HH:mm:ss")}
-            </p>
+            <LiveGreeting userName={user?.name || "User"} />
           </div>
 
           <div className="rounded-3xl border border-white/40 bg-white/15 px-6 py-4 text-sm backdrop-blur">
@@ -138,7 +164,7 @@ const Dashboard = () => {
             </p>
           </div>
         </div>
-        </section>
+      </section>
 
 <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
   {infoCards.map((card) => (
