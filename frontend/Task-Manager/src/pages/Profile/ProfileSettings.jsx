@@ -5,6 +5,7 @@ import DashboardLayout from "../../components/layouts/DashboardLayout";
 import { UserContext } from "../../context/userContext";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
+import { getToken } from "../../utils/tokenStorage";
 import { FaUser } from "react-icons/fa6";
 
 const ProfileSettings = () => {
@@ -54,7 +55,7 @@ const ProfileSettings = () => {
         birthdate: birthdate || null,
       });
 
-      const existingToken = localStorage.getItem("token");
+      const existingToken = getToken();
 
       const { token: newToken, message, ...updatedUserData } = response.data || {};
 
@@ -112,7 +113,7 @@ const ProfileSettings = () => {
       );
 
       const updatedImageUrl = response.data?.profileImageUrl || "";
-      const existingToken = localStorage.getItem("token");
+      const existingToken = getToken();
 
       updateUser({
         ...(user || {}),

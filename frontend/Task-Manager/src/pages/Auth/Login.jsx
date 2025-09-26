@@ -5,11 +5,12 @@ import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { UserContext } from "../../context/userContext";
 import Input from "../../components/inputs/input";
+import { getStoredTokenPreference, getToken } from "../../utils/tokenStorage";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(() => getStoredTokenPreference() === "local");
   const [error, setError] = useState(null);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [changePasswordForm, setChangePasswordForm] = useState({
@@ -65,8 +66,7 @@ const Login = () => {
       const { token, role, mustChangePassword } = response.data;
 
       if (token) {
-        localStorage.setItem("token", token);
-        updateUser(response.data);
+        updateUser(response.data, { rememberMe });
       
      if (mustChangePassword) {
           setPendingRoleRedirect(role);
@@ -117,7 +117,7 @@ const Login = () => {
       });
 
       const profileResponse = await axiosInstance.get(API_PATHS.AUTH.GET_PROFILE);
-      const token = localStorage.getItem("token");
+      const token = getToken();
       updateUser({ ...profileResponse.data, token });
 
       setShowChangePasswordModal(false);

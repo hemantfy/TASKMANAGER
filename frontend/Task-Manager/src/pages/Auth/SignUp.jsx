@@ -63,8 +63,7 @@ const SignUp = () => {
       const { token, role } = response.data;
       
       if (token) {
-        localStorage.setItem("token", token);
-        updateUser(response.data);
+        updateUser(response.data, { rememberMe: true });
       }   
       
       // Redirect based on role

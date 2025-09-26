@@ -28,7 +28,13 @@ const Input = ({ value, onChange, label, placeholder, type = "text", id, classNa
         />
 
         {type === "password" && (
-          <button type="button" onClick={toggleShowPassword} className="text-blue-500 transition hover:text-blue-600">
+          <button
+          type="button"
+          onClick={toggleShowPassword}
+          className="text-blue-500 transition hover:text-blue-600"
+          aria-label={showPassword ? "Hide password" : "Show password"}
+          title={showPassword ? "Hide password" : "Show password"}
+        >
             {showPassword ? <FaRegEye size={20} /> : <FaRegEyeSlash size={20} className="text-slate-400" />}
           </button>
         )}

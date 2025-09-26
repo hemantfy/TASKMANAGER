@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect } from "react";
 import axiosInstance from "../utils/axiosInstance";
 import { API_PATHS } from "../utils/apiPaths";
+import { clearToken, getToken, setToken } from "../utils/tokenStorage";
 
 export const UserContext = createContext();
 
@@ -11,7 +12,7 @@ const UserProvider = ({ children }) => {
   useEffect(() => {
     if (user) return;
 
-    const accessToken = localStorage.getItem("token");
+    const accessToken = getToken();
     if (!accessToken) {
       setLoading(false);
       return;
@@ -31,17 +32,17 @@ const UserProvider = ({ children }) => {
     fetchUser();
   }, []);
 
-  const updateUser = (userData) => {
+  const updateUser = (userData, options = {}) => {
     setUser(userData);
     if (userData?.token) {
-      localStorage.setItem("token", userData.token); // Save token
+      setToken(userData.token, options.rememberMe);
     }
     setLoading(false);
   };
   
   const clearUser = () => {
     setUser(null);
-    localStorage.removeItem("token");
+    clearToken();
   };
   
   return (
