@@ -18,17 +18,17 @@ const AuthLayout = ({ children }) => {
               Raval & Trivedi Associates Task Manager 
               </span>
               <h2 className="mt-8 text-3xl font-semibold leading-tight xl:text-4xl">
-                Organize your work with clarity and inspire your team to deliver.
+              “Success is the sum of small efforts repeated day in and day out.”
               </h2>
               <p className="mt-5 max-w-md text-sm text-blue-50/80 xl:text-base">
-                Plan your roadmap, watch progress in real time, and celebrate every milestone. Beautiful dashboards and smart automation keep everyone aligned.
+              Start each session with purpose and let every task move you closer to the vision you are building together.
               </p>
 
               <div className="mt-10 grid gap-5">
                 <div className="rounded-2xl border border-white/20 bg-white/10 p-6 shadow-lg shadow-black/10 backdrop-blur">
                   <div className="flex items-center justify-between text-xs uppercase tracking-[0.35em] text-blue-100/80">
-                    <span>Weekly Focus</span>
-                    <span>On Track</span>
+                    <span>Daily Momentum</span>
+                    <span>Keep Going</span>
                   </div>
                   <div className="mt-5 flex items-end gap-3">
                     <p className="text-4xl font-semibold">92%</p>
@@ -41,9 +41,9 @@ const AuthLayout = ({ children }) => {
 
                 <div className="flex items-center gap-4 rounded-2xl border border-white/20 bg-white/10 p-5 shadow-lg shadow-blue-900/10 backdrop-blur">
                   <div className="space-y-1">
-                    <p className="text-sm font-semibold">Automated status reports</p>
+                    <p className="text-sm font-semibold">Progress is Progress</p>
                     <p className="text-xs text-blue-50/80">
-                      Turn project updates into visual stories that keep your stakeholders inspired.
+                    “Great things are done by a series of small things brought together.” Stay committed to the next meaningful move.
                     </p>
                   </div>
                 </div>
