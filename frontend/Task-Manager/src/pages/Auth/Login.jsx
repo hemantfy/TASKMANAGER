@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { UserContext } from "../../context/userContext";
+import Input from "../../components/inputs/input";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -152,33 +153,25 @@ const Login = () => {
         </div>
 
         <form onSubmit={handleLogin} className="mt-6 space-y-6">
-          <div className="space-y-2">
-            <label htmlFor="email" className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
-              Email Address
-            </label>
-            <input
-              id="email"
-              value={email}
-              onChange={({ target }) => setEmail(target.value)}
-              placeholder="you@company.com"
-              type="email"
-              className="auth-input"
-            />
-          </div>
+        <Input
+            id="email"
+            value={email}
+            onChange={({ target }) => setEmail(target.value)}
+            label="Email Address"
+            placeholder="you@company.com"
+            type="email"
+            autoComplete="email"
+          />
 
-          <div className="space-y-2">
-            <label htmlFor="password" className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
-              Password
-            </label>
-            <input
-              id="password"
-              value={password}
-              onChange={({ target }) => setPassword(target.value)}
-              placeholder="Enter your password"
-              type="password"
-              className="auth-input"
-            />
-          </div>
+<Input
+            id="password"
+            value={password}
+            onChange={({ target }) => setPassword(target.value)}
+            label="Password"
+            placeholder="Enter your password"
+            type="password"
+            autoComplete="current-password"
+          />
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <label className="flex items-center gap-3 text-sm text-slate-600">
