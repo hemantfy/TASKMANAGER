@@ -22,6 +22,8 @@ const Login = () => {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [pendingRoleRedirect, setPendingRoleRedirect] = useState(null);
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
   const { updateUser, clearUser } = useContext(UserContext);
   const navigate = useNavigate();
@@ -237,30 +239,48 @@ const Login = () => {
                   <label className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500" htmlFor="currentPassword">
                     Current Password
                   </label>
-                  <input
-                    id="currentPassword"
-                    name="currentPassword"
-                    type="password"
-                    value={changePasswordForm.currentPassword}
-                    onChange={handleChangePasswordInput}
-                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                    autoComplete="current-password"
-                  />
+                  <div className="relative">
+                    <input
+                      id="currentPassword"
+                      name="currentPassword"
+                      type={showCurrentPassword ? "text" : "password"}
+                      value={changePasswordForm.currentPassword}
+                      onChange={handleChangePasswordInput}
+                      className="w-full rounded-2xl border border-slate-200 px-4 py-3 pr-14 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                      autoComplete="current-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword((prev) => !prev)}
+                      className="absolute inset-y-0 right-4 flex items-center text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600 transition hover:text-indigo-500"
+                    >
+                      {showCurrentPassword ? "Hide" : "Show"}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500" htmlFor="newPassword">
                     New Password
                   </label>
-                  <input
-                    id="newPassword"
-                    name="newPassword"
-                    type="password"
-                    value={changePasswordForm.newPassword}
-                    onChange={handleChangePasswordInput}
-                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                    autoComplete="new-password"
-                  />
+                  <div className="relative">
+                    <input
+                      id="newPassword"
+                      name="newPassword"
+                      type={showNewPassword ? "text" : "password"}
+                      value={changePasswordForm.newPassword}
+                      onChange={handleChangePasswordInput}
+                      className="w-full rounded-2xl border border-slate-200 px-4 py-3 pr-14 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                      autoComplete="new-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword((prev) => !prev)}
+                      className="absolute inset-y-0 right-4 flex items-center text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600 transition hover:text-indigo-500"
+                    >
+                      {showNewPassword ? "Hide" : "Show"}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
