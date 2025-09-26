@@ -15,6 +15,8 @@ const SignUp = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [adminInviteToken, setAdminInviteToken] = useState("");
+  const [gender, setGender] = useState("");
+  const [officeLocation, setOfficeLocation] = useState("");
 
   const [error, setError] = useState(null);
 
@@ -39,6 +41,16 @@ const SignUp = () => {
       return;
     }
     
+    if (!gender) {
+      setError("Please select your gender.");
+      return;
+    }
+
+    if (!officeLocation) {
+      setError("Please select your office location.");
+      return;
+    }
+
     // Validate password
     if (!password.trim()) {
       setError("Please enter a password.");
@@ -58,6 +70,8 @@ const SignUp = () => {
         password,
         profileImageUrl,
         adminInviteToken,
+        gender,
+        officeLocation,
       });
       
       const { token, role } = response.data;
@@ -118,6 +132,49 @@ const SignUp = () => {
               placeholder="Minimum 8 characters"
               type="password"
             />
+                        <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500" htmlFor="gender">
+                Gender
+              </label>
+              <div className="input-box">
+                <select
+                  id="gender"
+                  value={gender}
+                  onChange={({ target }) => setGender(target.value)}
+                  className="w-full bg-transparent text-sm text-slate-900 outline-none"
+                >
+                  <option value="" disabled>
+                    Select gender
+                  </option>
+                  <option value="Female">Female</option>
+                  <option value="Male">Male</option>
+                  <option value="Non-binary">Non-binary</option>
+                  <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label
+                className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500"
+                htmlFor="officeLocation"
+              >
+                Office Location
+              </label>
+              <div className="input-box">
+                <select
+                  id="officeLocation"
+                  value={officeLocation}
+                  onChange={({ target }) => setOfficeLocation(target.value)}
+                  className="w-full bg-transparent text-sm text-slate-900 outline-none"
+                >
+                  <option value="" disabled>
+                    Select office location
+                  </option>
+                  <option value="Ahmedabad">Ahmedabad</option>
+                  <option value="Gift City">Gift City</option>
+                </select>
+              </div>
+            </div>
             <Input
               value={adminInviteToken}
               onChange={({ target }) => setAdminInviteToken(target.value)}

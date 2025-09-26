@@ -15,6 +15,8 @@ const ManageUsers = () => {
     email: "",
     password: "",
     confirmPassword: "",
+    gender: "",
+    officeLocation: "",
     isAdmin: false,
   });
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
@@ -54,9 +56,11 @@ const ManageUsers = () => {
       email: formData.email.trim(),
       password: formData.password,
       role: formData.isAdmin ? "admin" : "member",
+      gender: formData.gender,
+      officeLocation: formData.officeLocation,
     };
 
-    if (!payload.name || !payload.email || !payload.password) {
+    if (!payload.name || !payload.email || !payload.password || !payload.gender || !payload.officeLocation) {
       toast.error("Please complete all required fields.");
       return;
     }
@@ -71,7 +75,15 @@ const ManageUsers = () => {
       await axiosInstance.post(API_PATHS.USERS.CREATE_USER, payload);
       toast.success("Team member added successfully.");
       setShowCreateForm(false);
-      setFormData({ name: "", email: "", password: "", confirmPassword: "", isAdmin: false });
+      setFormData({
+        name: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+        gender: "",
+        officeLocation: "",
+        isAdmin: false,
+      });
       await getAllUsers();
     } catch (error) {
       console.error("Error creating user:", error);
@@ -265,6 +277,52 @@ const ManageUsers = () => {
                 type="password"
                 autoComplete="new-password"
               />
+            </div>
+
+            <div className="md:col-span-1">
+              <label
+                className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500"
+                htmlFor="gender"
+              >
+                Gender
+              </label>
+              <select
+                id="gender"
+                name="gender"
+                value={formData.gender}
+                onChange={handleInputChange}
+                className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+              >
+                <option value="" disabled>
+                  Select gender
+                </option>
+                <option value="Female">Female</option>
+                <option value="Male">Male</option>
+                <option value="Non-binary">Non-binary</option>
+                <option value="Prefer not to say">Prefer not to say</option>
+              </select>
+            </div>
+
+            <div className="md:col-span-1">
+              <label
+                className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500"
+                htmlFor="officeLocation"
+              >
+                Office Location
+              </label>
+              <select
+                id="officeLocation"
+                name="officeLocation"
+                value={formData.officeLocation}
+                onChange={handleInputChange}
+                className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+              >
+                <option value="" disabled>
+                  Select office location
+                </option>
+                <option value="Ahmedabad">Ahmedabad</option>
+                <option value="Gift City">Gift City</option>
+              </select>
             </div>
 
             <div className="md:col-span-1">

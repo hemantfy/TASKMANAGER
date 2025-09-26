@@ -12,13 +12,28 @@ const generateToken = (userId) => {
 // @access  Public
 const registerUser = async (req, res) => {
   try {
-    const { name, email, password, profileImageUrl, adminInviteToken, birthdate } =
+    const {
+      name,
+      email,
+      password,
+      profileImageUrl,
+      adminInviteToken,
+      birthdate,
+      gender,
+      officeLocation,
+    } =
       req.body;
 
     // Check if User already exist
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({ message: "User already exists" });
+    }
+
+    if (!gender || !officeLocation) {
+      return res
+        .status(400)
+        .json({ message: "Gender and office location are required" });
     }
 
     // Determine user role: Admin if correct token is provided, otherwise Member
@@ -41,6 +56,8 @@ const registerUser = async (req, res) => {
       profileImageUrl,
       role,
       birthdate: parsedBirthdate && !isNaN(parsedBirthdate) ? parsedBirthdate : null,
+      gender,
+      officeLocation,
       mustChangePassword: false,
     });
 
@@ -52,6 +69,8 @@ const registerUser = async (req, res) => {
       role: user.role,
       profileImageUrl: user.profileImageUrl,
       birthdate: user.birthdate,
+      gender: user.gender,
+      officeLocation: user.officeLocation,
       mustChangePassword: user.mustChangePassword,
       token: generateToken(user._id),
     });
@@ -86,6 +105,8 @@ const loginUser = async (req, res) => {
       role: user.role,
       profileImageUrl: user.profileImageUrl,
       birthdate: user.birthdate,
+      gender: user.gender,
+      officeLocation: user.officeLocation,
       mustChangePassword: user.mustChangePassword,
       token: generateToken(user._id),
     });
@@ -123,6 +144,14 @@ const updateUserProfile = async (req, res) => {
     user.name = req.body.name || user.name;
     user.email = req.body.email || user.email;
 
+    if (Object.prototype.hasOwnProperty.call(req.body, "gender")) {
+      user.gender = req.body.gender;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(req.body, "officeLocation")) {
+      user.officeLocation = req.body.officeLocation;
+    }
+
     if (Object.prototype.hasOwnProperty.call(req.body, "birthdate")) {
       const providedBirthdate = req.body.birthdate;
 
@@ -151,6 +180,8 @@ const updateUserProfile = async (req, res) => {
       role: updatedUser.role,
       profileImageUrl: updatedUser.profileImageUrl,
       birthdate: updatedUser.birthdate,
+      gender: updatedUser.gender,
+      officeLocation: updatedUser.officeLocation,
       mustChangePassword: updatedUser.mustChangePassword,
       token: generateToken(updatedUser._id),
     });

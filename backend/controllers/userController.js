@@ -65,10 +65,12 @@ const getUserById = async (req, res) => {
 // @access  Private (Admin)
 const createUser = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body || {};
+    const { name, email, password, role, gender, officeLocation } = req.body || {};
 
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: "Name, email and password are required" });
+    if (!name || !email || !password || !gender || !officeLocation) {
+      return res
+        .status(400)
+        .json({ message: "Name, email, password, gender and office location are required" });
     }
 
     const existingUser = await User.findOne({ email });
@@ -86,6 +88,8 @@ const createUser = async (req, res) => {
       email,
       password: hashedPassword,
       role: normalizedRole,
+      gender,
+      officeLocation,
       mustChangePassword: true,
     });
 
@@ -94,6 +98,8 @@ const createUser = async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      gender: user.gender,
+      officeLocation: user.officeLocation,
       mustChangePassword: user.mustChangePassword,
     });
   } catch (error) {

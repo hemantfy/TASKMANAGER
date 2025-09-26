@@ -7,6 +7,16 @@ const UserSchema = new mongoose.Schema(
     password: { type: String, required: true },
     profileImageUrl: { type: String, default: null },
     birthdate: { type: Date, default: null },
+    gender: {
+      type: String,
+      enum: ["Female", "Male", "Non-binary", "Prefer not to say"],
+      required: true,
+    },
+    officeLocation: {
+      type: String,
+      enum: ["Ahmedabad", "Gift City"],
+      required: true,
+    },
     role: { type: String, enum: ["admin", "member"], default: "member" }, // Role-based access
     mustChangePassword: { type: Boolean, default: false },
   },
