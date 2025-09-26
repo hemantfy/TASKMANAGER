@@ -286,21 +286,23 @@ const ManageUsers = () => {
               >
                 Gender
               </label>
-              <select
-                id="gender"
-                name="gender"
-                value={formData.gender}
-                onChange={handleInputChange}
-                className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-              >
-                <option value="" disabled>
-                  Select gender
-                </option>
-                <option value="Female">Female</option>
-                <option value="Male">Male</option>
-                <option value="Non-binary">Non-binary</option>
-                <option value="Prefer not to say">Prefer not to say</option>
-              </select>
+              <div className="custom-select mt-2">
+                <select
+                  id="gender"
+                  name="gender"
+                  value={formData.gender}
+                  onChange={handleInputChange}
+                  className="custom-select__field"
+                >
+                  <option value="" disabled>
+                    Select gender
+                  </option>
+                  <option value="Female">Female</option>
+                  <option value="Male">Male</option>
+                  <option value="Non-binary">Non-binary</option>
+                  <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+              </div>
             </div>
 
             <div className="md:col-span-1">
@@ -310,19 +312,21 @@ const ManageUsers = () => {
               >
                 Office Location
               </label>
-              <select
-                id="officeLocation"
-                name="officeLocation"
-                value={formData.officeLocation}
-                onChange={handleInputChange}
-                className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-              >
-                <option value="" disabled>
-                  Select office location
-                </option>
-                <option value="Ahmedabad">Ahmedabad</option>
-                <option value="Gift City">Gift City</option>
-              </select>
+              <div className="custom-select mt-2">
+                <select
+                  id="officeLocation"
+                  name="officeLocation"
+                  value={formData.officeLocation}
+                  onChange={handleInputChange}
+                  className="custom-select__field"
+                >
+                  <option value="" disabled>
+                    Select office location
+                  </option>
+                  <option value="Ahmedabad">Ahmedabad</option>
+                  <option value="Gift City">Gift City</option>
+                </select>
+              </div>
             </div>
 
             <div className="md:col-span-1">

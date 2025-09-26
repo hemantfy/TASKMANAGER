@@ -132,16 +132,16 @@ const SignUp = () => {
               placeholder="Minimum 8 characters"
               type="password"
             />
-                        <div className="space-y-2">
+            <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500" htmlFor="gender">
                 Gender
               </label>
-              <div className="input-box">
+              <div className="custom-select">
                 <select
                   id="gender"
                   value={gender}
                   onChange={({ target }) => setGender(target.value)}
-                  className="w-full bg-transparent text-sm text-slate-900 outline-none"
+                  className="custom-select__field"
                 >
                   <option value="" disabled>
                     Select gender
@@ -160,12 +160,12 @@ const SignUp = () => {
               >
                 Office Location
               </label>
-              <div className="input-box">
+              <div className="custom-select">
                 <select
                   id="officeLocation"
                   value={officeLocation}
                   onChange={({ target }) => setOfficeLocation(target.value)}
-                  className="w-full bg-transparent text-sm text-slate-900 outline-none"
+                  className="custom-select__field"
                 >
                   <option value="" disabled>
                     Select office location
