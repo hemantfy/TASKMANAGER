@@ -3,7 +3,7 @@ import DashboardLayout from "../../components/layouts/DashboardLayout";
 import { useLocation, useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
-import { LuFileSpreadsheet, LuSparkles } from "react-icons/lu";
+import { LuFileSpreadsheet, LuSearch, LuSparkles } from "react-icons/lu";
 import TaskStatusTabs from "../../components/TaskStatusTabs";
 import TaskCard from "../../components/Cards/TaskCard";
 import toast from "react-hot-toast";
@@ -11,6 +11,7 @@ import toast from "react-hot-toast";
 const ManageTasks = () => {
   const [allTasks, setAllTasks] = useState([]);
   const [tabs, setTabs] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const location = useLocation();
   const initialFilterStatus = location.state?.filterStatus || "All";
 
@@ -114,6 +115,16 @@ const ManageTasks = () => {
     }
   }, [location.state?.filterStatus]);
 
+  const filteredTasks = allTasks.filter((task) => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return true;
+    }
+
+    return task.title?.toLowerCase().includes(normalizedQuery);
+  });
+
   return (
     <DashboardLayout activeMenu="Manage Tasks">
       <section className="relative overflow-hidden rounded-[32px] border border-white/60 bg-gradient-to-br from-primary via-indigo-500 to-sky-500 px-6 py-8 text-white shadow-[0_20px_45px_rgba(59,130,246,0.25)]">
@@ -134,44 +145,64 @@ const ManageTasks = () => {
         </div>
         </section>
 
-        {tabs?.[0]?.count > 0 && (
-          <div className="flex flex-col items-center justify-between gap-4 rounded-[28px] border border-white/60 bg-white/70 p-4 shadow-[0_20px_45px_rgba(15,23,42,0.08)] lg:flex-row">
-            <div className="flex items-center gap-3 text-sm font-medium text-slate-600">
-              <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/80 via-indigo-500 to-sky-500 text-white shadow-[0_12px_28px_rgba(59,130,246,0.35)]">
-                <LuSparkles className="text-base" />
-              </span>
-              Filter tasks by status to focus on what matters most.
+        {(tabs.length > 0 || allTasks.length > 0) && (
+          <div className="flex flex-col gap-4 rounded-[28px] border border-white/60 bg-white/70 p-4 shadow-[0_20px_45px_rgba(15,23,42,0.08)] lg:flex-row lg:items-center lg:justify-between">
+            <div className="w-full">
+              <TaskStatusTabs
+                tabs={tabs}
+                activeTab={filterStatus}
+                setActiveTab={setFilterStatus}
+              />
             </div>
 
-            <TaskStatusTabs tabs={tabs} activeTab={filterStatus} setActiveTab={setFilterStatus} />
-        </div>
-     )}
+            <div className="relative w-full max-w-xs">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search by task name..."
+                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+              />
+              <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
+                <LuSearch className="text-base" />
+              </span>
+            </div>
+          </div>
+        )}
 
-     <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-       {allTasks?.map((item) => (
-         <TaskCard
-           key={item._id}
-           title={item.title}
-           description={item.description}
-           priority={item.priority}
-           status={item.status}
-           progress={item.progress}
-           createdAt={item.createdAt}
-           dueDate={item.dueDate}
-           assignedTo={Array.isArray(item.assignedTo)
-             ? item.assignedTo
-             : item.assignedTo
-             ? [item.assignedTo]
-             : []}
-           attachmentCount={item.attachments?.length || 0}
-           completedTodoCount={item.completedTodoCount || 0}
-           todoChecklist={item.todoChecklist || []}
-           onClick={() => {
-             handleClick(item);
-           }}
-         />
-       ))}
-     </section>
+        {filteredTasks.length > 0 ? (
+          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {filteredTasks.map((item) => (
+              <TaskCard
+                key={item._id}
+                title={item.title}
+                description={item.description}
+                priority={item.priority}
+                status={item.status}
+                progress={item.progress}
+                createdAt={item.createdAt}
+                dueDate={item.dueDate}
+                assignedTo={
+                  Array.isArray(item.assignedTo)
+                    ? item.assignedTo
+                    : item.assignedTo
+                    ? [item.assignedTo]
+                    : []
+                }
+                attachmentCount={item.attachments?.length || 0}
+                completedTodoCount={item.completedTodoCount || 0}
+                todoChecklist={item.todoChecklist || []}
+                onClick={() => {
+                  handleClick(item);
+                }}
+              />
+            ))}
+          </section>
+      ) : (
+        <div className="rounded-3xl border border-dashed border-slate-200 bg-white/60 p-10 text-center text-sm font-medium text-slate-500">
+          No tasks match your current filters.
+        </div>
+        )}
    </DashboardLayout>
   );
 };
