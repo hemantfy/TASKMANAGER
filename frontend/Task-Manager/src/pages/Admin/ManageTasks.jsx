@@ -3,7 +3,7 @@ import DashboardLayout from "../../components/layouts/DashboardLayout";
 import { useLocation, useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
-import { LuFileSpreadsheet, LuSearch, LuSparkles } from "react-icons/lu";
+import { LuFileSpreadsheet, LuSearch } from "react-icons/lu";
 import TaskStatusTabs from "../../components/TaskStatusTabs";
 import TaskCard from "../../components/Cards/TaskCard";
 import toast from "react-hot-toast";
@@ -16,6 +16,7 @@ const ManageTasks = () => {
   const initialFilterStatus = location.state?.filterStatus || "All";
 
   const [filterStatus, setFilterStatus] = useState(initialFilterStatus);
+  const [selectedDate, setSelectedDate] = useState("");
 
   const navigate = useNavigate();
 
@@ -117,12 +118,18 @@ const ManageTasks = () => {
 
   const filteredTasks = allTasks.filter((task) => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
+    const normalizedSelectedDate = selectedDate.trim();
 
-    if (!normalizedQuery) {
-      return true;
-    }
+    const matchesSearch =
+      !normalizedQuery || task.title?.toLowerCase().includes(normalizedQuery);
 
-    return task.title?.toLowerCase().includes(normalizedQuery);
+    const matchesDate =
+      !normalizedSelectedDate ||
+      (task.dueDate &&
+        new Date(task.dueDate).toISOString().split("T")[0] ===
+          normalizedSelectedDate);
+
+    return matchesSearch && matchesDate;
   });
 
   return (
@@ -155,17 +162,31 @@ const ManageTasks = () => {
               />
             </div>
 
-            <div className="relative w-full max-w-xs">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Search by task name..."
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-              />
-              <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
-                <LuSearch className="text-base" />
-              </span>
+            <div className="flex w-full flex-col gap-3 sm:max-w-sm sm:flex-row sm:items-center sm:justify-end">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Search by task name..."
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                />
+                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
+                  <LuSearch className="text-base" />
+                </span>
+              </div>
+
+              <div className="flex-1">
+                <label className="flex flex-col text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
+                  Due Date
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(event) => setSelectedDate(event.target.value)}
+                    className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm capitalize text-slate-600 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  />
+                </label>
+              </div>
             </div>
           </div>
         )}
