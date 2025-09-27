@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import DashboardLayout from "../../components/layouts/DashboardLayout";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { LuFileSpreadsheet, LuSparkles } from "react-icons/lu";
@@ -11,7 +11,10 @@ import toast from "react-hot-toast";
 const ManageTasks = () => {
   const [allTasks, setAllTasks] = useState([]);
   const [tabs, setTabs] = useState([]);
-  const [filterStatus, setFilterStatus] = useState("All");
+  const location = useLocation();
+  const initialFilterStatus = location.state?.filterStatus || "All";
+
+  const [filterStatus, setFilterStatus] = useState(initialFilterStatus);
 
   const navigate = useNavigate();
 
@@ -71,6 +74,15 @@ const ManageTasks = () => {
     return () => {};
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterStatus]);
+
+  useEffect(() => {
+    if (
+      location.state?.filterStatus &&
+      location.state.filterStatus !== filterStatus
+    ) {
+      setFilterStatus(location.state.filterStatus);
+    }
+  }, [location.state?.filterStatus]);
 
   return (
     <DashboardLayout activeMenu="Manage Tasks">

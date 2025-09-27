@@ -116,7 +116,8 @@ const Dashboard = () => {
           dashboardData?.charts?.taskDistribution?.All || 0
         ),
         color: "from-primary via-indigo-500 to-sky-400",
-        icon: LuClipboardList
+        icon: LuClipboardList,
+        filterStatus: "All"
       },
       {
         label: "Pending Tasks",
@@ -124,7 +125,8 @@ const Dashboard = () => {
           dashboardData?.charts?.taskDistribution?.Pending || 0
         ),
         color: "from-amber-400 via-orange-500 to-red-400",
-        icon: LuClock3
+        icon: LuClock3,
+        filterStatus: "Pending"
       },
       {
         label: "In Progress",
@@ -132,7 +134,8 @@ const Dashboard = () => {
           dashboardData?.charts?.taskDistribution?.InProgress || 0
         ),
         color: "from-sky-400 via-cyan-500 to-emerald-400",
-        icon: LuRefreshCcw
+        icon: LuRefreshCcw,
+        filterStatus: "In Progress"
       },
       {
         label: "Completed Tasks",
@@ -140,11 +143,16 @@ const Dashboard = () => {
           dashboardData?.charts?.taskDistribution?.Completed || 0
         ),
         color: "from-emerald-400 via-lime-400 to-green-500",
-        icon: LuBadgeCheck
+        icon: LuBadgeCheck,
+        filterStatus: "Completed"
       }
     ],
     [dashboardData?.charts?.taskDistribution]
   );
+
+  const handleCardClick = (filterStatus) => {
+    navigate("/admin/tasks", { state: { filterStatus } });
+  };
 
   return (
     <DashboardLayout activeMenu="Dashboard">
@@ -166,17 +174,18 @@ const Dashboard = () => {
         </div>
       </section>
 
-<section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-  {infoCards.map((card) => (
-    <InfoCard
-      key={card.label}
-      label={card.label}
-      value={card.value}
-      color={card.color}
-      icon={card.icon}
-    />
-  ))}
-</section>
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {infoCards.map((card) => (
+          <InfoCard
+            key={card.label}
+            label={card.label}
+            value={card.value}
+            color={card.color}
+            icon={card.icon}
+            onClick={() => handleCardClick(card.filterStatus)}
+          />
+        ))}
+      </section>
 
 <section className="grid gap-6 lg:grid-cols-2">
   <div className="card">
