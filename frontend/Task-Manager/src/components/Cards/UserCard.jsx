@@ -25,6 +25,9 @@ const UserCard = ({ userInfo, onDelete, onResetPassword }) => {
           <div>
             <p className="text-base font-semibold text-slate-900">{userInfo?.name}</p>
             <p className="text-xs text-slate-500">{userInfo?.email}</p>
+            {userInfo?.officeLocation && (
+              <p className="text-xs text-slate-500">{userInfo.officeLocation}</p>
+            )}
           </div>
         </div>
 

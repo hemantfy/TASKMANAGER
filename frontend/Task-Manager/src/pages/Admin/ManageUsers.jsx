@@ -26,6 +26,8 @@ const ManageUsers = () => {
     confirmPassword: "",
   });
   const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedOffice, setSelectedOffice] = useState("All");
 
   const getAllUsers = async () => {
     try {
@@ -195,6 +197,19 @@ const ManageUsers = () => {
 
     return () => {};
   }, []);
+
+  const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+  const filteredUsers = allUsers.filter((user) => {
+    const matchesName = (user?.name || "")
+      .toLowerCase()
+      .includes(normalizedSearchTerm);
+    const matchesOffice =
+      selectedOffice === "All" || !selectedOffice
+        ? true
+        : user?.officeLocation?.toLowerCase() === selectedOffice.toLowerCase();
+
+    return matchesName && matchesOffice;
+  });
 
   return (
     <DashboardLayout activeMenu="Team Members">
@@ -375,11 +390,48 @@ const ManageUsers = () => {
         <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 via-indigo-500 to-sky-500 text-white shadow-[0_12px_28px_rgba(126,58,242,0.35)]">
           <LuUsers className="text-base" />
         </span>
-        {allUsers.length} talented humans keeping the mission in motion.
+        {filteredUsers.length} talented humans keeping the mission in motion.
+      </section>
+
+      <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="w-full md:max-w-sm">
+            <label className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500" htmlFor="memberSearch">
+              Search Members
+            </label>
+            <input
+              id="memberSearch"
+              type="search"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Search by name"
+              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+            />
+          </div>
+
+          <div className="w-full md:max-w-xs">
+            <label className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500" htmlFor="officeFilter">
+              Filter by Office
+            </label>
+            <div className="custom-select mt-2">
+              <select
+                id="officeFilter"
+                name="officeFilter"
+                value={selectedOffice}
+                onChange={(event) => setSelectedOffice(event.target.value)}
+                className="custom-select__field"
+              >
+                <option value="All">All locations</option>
+                <option value="Ahmedabad">Ahmedabad</option>
+                <option value="Gift City">Gift City</option>
+              </select>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {allUsers?.map((user) => (
+      {filteredUsers?.map((user) => (
           <UserCard
           key={user._id}
           userInfo={user}
@@ -387,6 +439,13 @@ const ManageUsers = () => {
           onResetPassword={() => openResetPasswordModal(user)}
         />
         ))}
+                {filteredUsers.length === 0 && (
+          <div className="md:col-span-2 xl:col-span-3">
+            <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
+              No team members match your current search and filter settings.
+            </div>
+          </div>
+        )}
       </section>
       
       {showResetPasswordModal && selectedUser && (
