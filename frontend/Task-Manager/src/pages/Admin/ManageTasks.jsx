@@ -26,7 +26,37 @@ const ManageTasks = () => {
         }
       });
 
-      setAllTasks(response.data?.tasks?.length > 0 ? response.data.tasks : []);
+      const tasks = Array.isArray(response.data?.tasks)
+        ? response.data.tasks
+        : [];
+
+      const priorityRank = {
+        High: 0,
+        Medium: 1,
+        Low: 2
+      };
+
+      const sortedTasks = [...tasks].sort((taskA, taskB) => {
+        const taskAPriority =
+          priorityRank[taskA.priority] ?? Number.MAX_SAFE_INTEGER;
+        const taskBPriority =
+          priorityRank[taskB.priority] ?? Number.MAX_SAFE_INTEGER;
+
+        if (taskAPriority !== taskBPriority) {
+          return taskAPriority - taskBPriority;
+        }
+
+        const taskADueDate = taskA.dueDate
+          ? new Date(taskA.dueDate).getTime()
+          : Number.MAX_SAFE_INTEGER;
+        const taskBDueDate = taskB.dueDate
+          ? new Date(taskB.dueDate).getTime()
+          : Number.MAX_SAFE_INTEGER;
+
+        return taskADueDate - taskBDueDate;
+      });
+
+      setAllTasks(sortedTasks);
 
       const statusSummary = response.data?.statusSummary || {};
 
