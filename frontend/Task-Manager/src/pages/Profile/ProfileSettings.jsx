@@ -23,6 +23,9 @@ const ProfileSettings = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
+  const gender = user?.gender || "Not specified";
+  const officeLocation = user?.officeLocation || "Not specified";
+
   const currentProfileImage = useMemo(() => {
     return previewUrl || user?.profileImageUrl || "";
   }, [previewUrl, user?.profileImageUrl]);
@@ -224,6 +227,18 @@ const ProfileSettings = () => {
                 className="w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-2 text-sm text-slate-700 shadow-inner focus:border-primary focus:outline-none"
                 max={new Date().toISOString().slice(0, 10)}
               />
+            </div>
+            <div className="flex flex-col gap-2">
+              <p className="text-sm font-medium text-slate-600">Gender</p>
+              <div className="w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-2 text-sm text-slate-700 shadow-inner">
+                {gender}
+              </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              <p className="text-sm font-medium text-slate-600">Office Name</p>
+              <div className="w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-2 text-sm text-slate-700 shadow-inner">
+                {officeLocation}
+              </div>
             </div>
           </div>
 
