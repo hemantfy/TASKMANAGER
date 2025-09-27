@@ -34,9 +34,18 @@ const SelectUsers = ({ selectedUsers, setSelectedUsers }) => {
     setIsModalOpen(false);
   };
 
-  const selectedUserAvatars = allUsers
-    .filter((user) => selectedUsers.includes(user._id))
-    .map((user) => user.profileImageUrl);
+  const selectedUserDetails = selectedUsers
+    .map((userId) => allUsers.find((user) => user._id === userId))
+    .filter(Boolean);
+
+  const selectedUserAvatars = selectedUserDetails.map((user) => ({
+    profileImageUrl: user.profileImageUrl,
+    name: user.name
+  }));
+
+  const selectedUserNames = selectedUserDetails
+    .map((user) => user.name)
+    .filter(Boolean);
   
   useEffect(() => {
     getAllUsers();
@@ -53,7 +62,14 @@ const SelectUsers = ({ selectedUsers, setSelectedUsers }) => {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
         {selectedUserAvatars.length > 0 && (
+          <>
           <AvatarGroup avatars={selectedUserAvatars} />
+          {selectedUserNames.length > 0 && (
+            <p className="text-sm font-medium text-slate-600">
+              {selectedUserNames.join(", ")}
+            </p>
+          )}
+        </>
         )}
 
         <button

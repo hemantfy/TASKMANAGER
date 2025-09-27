@@ -21,19 +21,24 @@ const TaskCard = ({
   const assigneeAvatars = Array.isArray(assignedTo)
   ? assignedTo.map((user) => {
     if (typeof user === "string") {
-      return { profileImageUrl: user };
+      return { profileImageUrl: user, name: "" };
     }
 
     if (user && typeof user === "object") {
       return {
-        profileImageUrl: user.profileImageUrl || user.src || user.avatar || "",
+        profileImageUrl:
+          user.profileImageUrl || user.src || user.avatar || "",
         name: user.name || user.fullName || ""
       };
     }
 
-    return { profileImageUrl: "" };
+    return { profileImageUrl: "", name: "" };
   })
 : [];
+
+const assigneeNames = assigneeAvatars
+.map((user) => user.name)
+.filter((name) => Boolean(name?.trim()));
 
 const totalAttachments =
 typeof attachmentCount === "number" && !Number.isNaN(attachmentCount)
@@ -115,14 +120,21 @@ typeof attachmentCount === "number" && !Number.isNaN(attachmentCount)
         </div>
       </div>
 
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-            <AvatarGroup avatars={assigneeAvatars} />
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-col gap-2">
+          <AvatarGroup avatars={assigneeAvatars} />
+          {assigneeNames.length > 0 && (
+            <p className="text-xs font-medium text-slate-600">
+              {assigneeNames.join(", ")}
+            </p>
+          )}
+        </div>
 
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/80 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
+        <div className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/80 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
           <LuPaperclip className="text-base text-slate-500" />
           {totalAttachments}
         </div>
-        </div> 
+        </div>
     </div>
     );
 };
