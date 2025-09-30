@@ -45,16 +45,77 @@ const getUsers = async (req, res) => {
   }
 };
 
-// @desc    Get user by ID
+// @desc    Get user by ID with assigned tasks 
 // @route   GET /api/users/:id
 // @access  Private
 const getUserById = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select("-password");
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
+
+    const user = await User.findById(id).select("-password");
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    res.json(user);
+
+    const isRequestingSelf = req.user?._id?.toString() === user._id.toString();
+    const isAdminUser = req.user?.role === "admin";
+
+    if (!isAdminUser && !isRequestingSelf) {
+      return res
+        .status(403)
+        .json({ message: "You are not authorized to view this user" });
+    }
+
+    let tasks = await Task.find({ assignedTo: user._id })
+      .populate("assignedTo", "name email profileImageUrl")
+      .sort({ dueDate: 1, createdAt: -1 });
+
+    tasks = tasks.map((task) => {
+      const taskObject = task.toObject();
+      const completedTodoCount = Array.isArray(taskObject.todoChecklist)
+        ? taskObject.todoChecklist.filter((item) => item.completed).length
+        : 0;
+
+      return {
+        ...taskObject,
+        completedTodoCount,
+      };
+    });
+
+    const taskSummary = tasks.reduce(
+      (summary, task) => {
+        if (task.status === "Pending") {
+          summary.pending += 1;
+        } else if (task.status === "In Progress") {
+          summary.inProgress += 1;
+        } else if (task.status === "Completed") {
+          summary.completed += 1;
+        }
+
+        return summary;
+      },
+      { pending: 0, inProgress: 0, completed: 0 }
+    );
+
+    const userData = {
+      ...user.toObject(),
+      pendingTasks: taskSummary.pending,
+      inProgressTasks: taskSummary.inProgress,
+      completedTasks: taskSummary.completed,
+    };
+
+    res.json({
+      user: userData,
+      tasks,
+      taskSummary: {
+        total: tasks.length,
+        ...taskSummary,
+      },
+    });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }

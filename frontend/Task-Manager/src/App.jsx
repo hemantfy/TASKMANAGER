@@ -6,6 +6,7 @@ import Login from "./pages/Auth/Login";
 import ManageTasks from "./pages/Admin/ManageTasks";
 import CreateTask from "./pages/Admin/CreateTask";
 import ManageUsers from "./pages/Admin/ManageUsers";
+import UserDetails from "./pages/Admin/UserDetails";
 import ProfileSettings from "./pages/Profile/ProfileSettings";
 import SignUp from "./pages/Auth/SignUp";
 
@@ -34,6 +35,7 @@ const App = () => {
             <Route path="/admin/tasks" element={<ManageTasks />} />
             <Route path="/admin/create-task" element={<CreateTask />} />
             <Route path="/admin/users" element={<ManageUsers />} />
+            <Route path="/admin/users/:userId" element={<UserDetails />} />
             <Route path="/admin/profile-settings" element={<ProfileSettings />} />
           </Route>
 

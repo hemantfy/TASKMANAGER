@@ -1,17 +1,48 @@
 import React from "react";
 import { FaUser } from "react-icons/fa6";
 import { LuTrash2 } from "react-icons/lu";
+import { useNavigate } from "react-router-dom";
 
 const UserCard = ({ userInfo, onDelete, onResetPassword }) => {
+  const navigate = useNavigate();
+
   const stats = [
     { label: "Pending", count: userInfo?.pendingTasks || 0, status: "Pending" },
     { label: "Prog.", count: userInfo?.inProgressTasks || 0, status: "In Progress" },
     { label: "Completed", count: userInfo?.completedTasks || 0, status: "Completed" }
   ];
 
+  const handleNavigateToDetails = () => {
+    if (userInfo?._id) {
+      navigate(`/admin/users/${userInfo._id}`);
+    }
+  };
+
+  const handleKeyDown = (event) => {
+    if (!userInfo?._id) return;
+
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      handleNavigateToDetails();
+    }
+  };
+
+  const handleActionClick = (event, callback) => {
+    event.stopPropagation();
+    if (typeof callback === "function") {
+      callback();
+    }
+  };
+
   return (
     <div className="user-card">
-      <div className="relative overflow-hidden rounded-[26px] border border-white/50 bg-white/70 p-4 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
+       <div
+        className="relative overflow-hidden rounded-[26px] border border-white/50 bg-white/70 p-4 shadow-[0_18px_40px_rgba(15,23,42,0.08)] transition hover:-translate-y-1 hover:shadow-[0_24px_50px_rgba(79,70,229,0.22)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white cursor-pointer"
+        role="button"
+        tabIndex={0}
+        onClick={handleNavigateToDetails}
+        onKeyDown={handleKeyDown}
+      >
         <span className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,_rgba(79,70,229,0.18),_transparent_60%)]" />
         <span className="absolute inset-0 -z-20 bg-[radial-gradient(circle_at_bottom_right,_rgba(56,189,248,0.18),_transparent_60%)]" />
 
@@ -52,7 +83,7 @@ const UserCard = ({ userInfo, onDelete, onResetPassword }) => {
             {typeof onResetPassword === "function" && (
               <button
                 type="button"
-                onClick={onResetPassword}
+                onClick={(event) => handleActionClick(event, onResetPassword)}
                 className="flex items-center gap-2 rounded-2xl border border-indigo-200 bg-indigo-50/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-indigo-600 transition hover:border-indigo-300 hover:bg-indigo-100 hover:text-indigo-700 mx-auto"
               >
                 Change Password
@@ -61,7 +92,7 @@ const UserCard = ({ userInfo, onDelete, onResetPassword }) => {
             {typeof onDelete === "function" && (
               <button
                 type="button"
-                onClick={onDelete}
+                onClick={(event) => handleActionClick(event, onDelete)}
                 className="flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-rose-500 transition hover:border-rose-300 hover:bg-rose-100 hover:text-rose-600 mx-auto"
               >
                 <LuTrash2 className="text-base" /> Delete User

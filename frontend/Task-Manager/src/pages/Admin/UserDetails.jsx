@@ -1,0 +1,287 @@
+import React, { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import moment from "moment";
+import { LuArrowLeft, LuExternalLink, LuLoader } from "react-icons/lu";
+import { FaUser } from "react-icons/fa6";
+
+import DashboardLayout from "../../components/layouts/DashboardLayout";
+import axiosInstance from "../../utils/axiosInstance";
+import { API_PATHS } from "../../utils/apiPaths";
+
+const statusBadgeStyles = {
+  Pending: "bg-amber-100 text-amber-600 border-amber-200",
+  "In Progress": "bg-sky-100 text-sky-600 border-sky-200",
+  Completed: "bg-emerald-100 text-emerald-600 border-emerald-200",
+};
+
+const formatDate = (date) => (date ? moment(date).format("Do MMM YYYY") : "—");
+
+const UserDetails = () => {
+  const { userId } = useParams();
+  const navigate = useNavigate();
+
+  const [userData, setUserData] = useState(null);
+  const [tasks, setTasks] = useState([]);
+  const [taskSummary, setTaskSummary] = useState({
+    total: 0,
+    pending: 0,
+    inProgress: 0,
+    completed: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchUserDetails = async () => {
+      if (!userId) return;
+
+      try {
+        setIsLoading(true);
+        const response = await axiosInstance.get(
+          API_PATHS.USERS.GET_USER_BY_ID(userId)
+        );
+
+        const { user, tasks: userTasks, taskSummary: summary } = response.data || {};
+
+        setUserData(user || null);
+        setTasks(Array.isArray(userTasks) ? userTasks : []);
+        setTaskSummary({
+          total: summary?.total ?? (Array.isArray(userTasks) ? userTasks.length : 0),
+          pending: summary?.pending ?? 0,
+          inProgress: summary?.inProgress ?? 0,
+          completed: summary?.completed ?? 0,
+        });
+        setError("");
+      } catch (requestError) {
+        console.error("Failed to fetch user details", requestError);
+        const message =
+          requestError.response?.data?.message ||
+          "We were unable to load this team member. Please try again later.";
+        setError(message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserDetails();
+  }, [userId]);
+
+  const handleBackToTeam = () => {
+    navigate("/admin/users");
+  };
+
+  const handleOpenTaskDetails = (taskId) => {
+    if (!taskId) return;
+    navigate(`/user/task-details/${taskId}`);
+  };
+
+  const summaryItems = [
+    {
+      label: "Total Tasks",
+      value: taskSummary.total,
+      gradient: "from-slate-600 via-slate-500 to-slate-400",
+    },
+    {
+      label: "Pending",
+      value: taskSummary.pending,
+      gradient: "from-amber-500 via-orange-400 to-yellow-400",
+    },
+    {
+      label: "In Progress",
+      value: taskSummary.inProgress,
+      gradient: "from-sky-500 via-cyan-500 to-blue-500",
+    },
+    {
+      label: "Completed",
+      value: taskSummary.completed,
+      gradient: "from-emerald-500 via-green-500 to-lime-400",
+    },
+  ];
+
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        <div className="flex justify-center py-24">
+          <LuLoader className="h-8 w-8 animate-spin text-indigo-600" />
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="rounded-3xl border border-rose-200 bg-rose-50/70 p-8 text-center">
+          <h3 className="text-lg font-semibold text-rose-600">{error}</h3>
+          <button
+            type="button"
+            className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-rose-500 px-5 py-2 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(244,63,94,0.35)] transition hover:bg-rose-600"
+            onClick={handleBackToTeam}
+          >
+            <LuArrowLeft className="text-base" /> Back to Team Members
+          </button>
+        </div>
+      );
+    }
+
+    if (!userData) {
+      return null;
+    }
+
+    return (
+      <div className="space-y-8">
+        <section className="relative overflow-hidden rounded-[32px] border border-white/60 bg-gradient-to-br from-primary via-indigo-500 to-purple-500 px-6 py-8 text-white shadow-[0_20px_45px_rgba(126,58,242,0.28)]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.18),_transparent_65%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,_rgba(251,191,36,0.16),_transparent_60%)]" />
+          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-4">
+              {userData?.profileImageUrl ? (
+                <img
+                  src={userData.profileImageUrl}
+                  alt={userData.name}
+                  className="h-16 w-16 rounded-2xl border-4 border-white object-cover shadow-[0_14px_32px_rgba(79,70,229,0.3)]"
+                />
+              ) : (
+                <span className="flex h-16 w-16 items-center justify-center rounded-2xl border-4 border-white bg-white/20 text-white shadow-[0_14px_32px_rgba(79,70,229,0.3)]">
+                  <FaUser className="h-7 w-7" />
+                </span>
+              )}
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.42em] text-white/70">Team Member</p>
+                <h2 className="mt-2 text-3xl font-semibold leading-tight sm:text-4xl">
+                  {userData?.name}
+                </h2>
+                <p className="mt-2 text-sm text-white/80">{userData?.email}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4 text-sm text-white/80 sm:grid-cols-3">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-white/70">Office</p>
+                <p className="mt-1 text-sm font-medium text-white">{userData?.officeLocation || "—"}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-white/70">Gender</p>
+                <p className="mt-1 text-sm font-medium text-white">{userData?.gender || "—"}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-white/70">Joined</p>
+                <p className="mt-1 text-sm font-medium text-white">{formatDate(userData?.createdAt)}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {summaryItems.map((item) => (
+            <div
+              key={item.label}
+              className={`relative overflow-hidden rounded-3xl border border-white/60 bg-white/80 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.08)]`}
+            >
+              <span className={`absolute inset-0 -z-10 bg-gradient-to-br ${item.gradient} opacity-10`} />
+              <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500">
+                {item.label}
+              </p>
+              <p className="mt-3 text-3xl font-semibold text-slate-900">{item.value}</p>
+              <p className="mt-1 text-xs font-medium uppercase tracking-[0.24em] text-slate-400">
+                {item.value === 1 ? "Task" : "Tasks"}
+              </p>
+            </div>
+          ))}
+        </section>
+
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900">Assigned Tasks</h3>
+              <p className="mt-1 text-sm text-slate-500">
+                Every task where {userData?.name?.split(" ")[0] || "this member"} is part of the crew.
+              </p>
+            </div>
+            <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.28em] text-slate-600">
+              {tasks.length} {tasks.length === 1 ? "Task" : "Tasks"}
+            </span>
+          </div>
+
+          {tasks.length === 0 ? (
+            <div className="mt-8 rounded-3xl border border-dashed border-slate-200 bg-slate-50/60 p-10 text-center text-sm text-slate-500">
+              No tasks have been assigned to this member yet.
+            </div>
+          ) : (
+            <div className="mt-6 overflow-x-auto">
+              <table className="min-w-full divide-y divide-slate-200 text-left text-sm text-slate-600">
+                <thead>
+                  <tr className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">
+                    <th scope="col" className="px-4 py-3">Task</th>
+                    <th scope="col" className="px-4 py-3">Status</th>
+                    <th scope="col" className="px-4 py-3">Priority</th>
+                    <th scope="col" className="px-4 py-3">Due Date</th>
+                    <th scope="col" className="px-4 py-3">Checklist</th>
+                    <th scope="col" className="px-4 py-3 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {tasks.map((task) => (
+                    <tr key={task._id} className="transition hover:bg-slate-50/60">
+                      <td className="max-w-[220px] px-4 py-4">
+                        <p className="text-sm font-semibold text-slate-900 line-clamp-2">{task.title}</p>
+                        <p className="mt-1 text-xs text-slate-500 line-clamp-2">{task.description}</p>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span
+                          className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${
+                            statusBadgeStyles[task.status] || "bg-slate-100 text-slate-600 border-slate-200"
+                          }`}
+                        >
+                          {task.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-slate-600">
+                          {task.priority}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 text-sm font-medium text-slate-700">{formatDate(task.dueDate)}</td>
+                      <td className="px-4 py-4 text-sm font-medium text-slate-700">
+                        {task.completedTodoCount || 0} / {task.todoChecklist?.length || 0}
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenTaskDetails(task._id)}
+                          className="inline-flex items-center gap-2 rounded-2xl border border-indigo-200 bg-indigo-50/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-indigo-600 transition hover:border-indigo-300 hover:bg-indigo-100 hover:text-indigo-700"
+                        >
+                          View <LuExternalLink className="text-sm" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      </div>
+    );
+  };
+
+  return (
+    <DashboardLayout activeMenu="Team Members">
+      <div className="flex items-center gap-3 text-sm font-medium text-slate-600">
+        <button
+          type="button"
+          onClick={handleBackToTeam}
+          className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
+        >
+          <LuArrowLeft className="text-base" /> Back to Team Members
+        </button>
+        {userData?.name && (
+          <span className="text-xs font-semibold uppercase tracking-[0.42em] text-slate-400">
+            {userData.name}
+          </span>
+        )}
+      </div>
+
+      <div className="mt-6">{renderContent()}</div>
+    </DashboardLayout>
+  );
+};
+
+export default UserDetails;
