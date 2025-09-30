@@ -41,12 +41,33 @@ const UserDetails = () => {
           API_PATHS.USERS.GET_USER_BY_ID(userId)
         );
 
-        const { user, tasks: userTasks, taskSummary: summary } = response.data || {};
+        const responseData = response?.data ?? {};
+        const normalizedUser =
+          responseData.user ||
+          responseData.userData ||
+          (responseData._id ? responseData : null);
 
-        setUserData(user || null);
-        setTasks(Array.isArray(userTasks) ? userTasks : []);
+          if (!normalizedUser) {
+            throw new Error(
+              responseData?.message ||
+                "We were unable to find this team member."
+            );
+          }
+  
+          const userTasks = Array.isArray(responseData.tasks)
+            ? responseData.tasks
+            : Array.isArray(responseData.assignedTasks)
+              ? responseData.assignedTasks
+              : [];
+          const summary = responseData.taskSummary || responseData.summary || {};
+  
+          setUserData(normalizedUser);
+          setTasks(userTasks);
         setTaskSummary({
-          total: summary?.total ?? (Array.isArray(userTasks) ? userTasks.length : 0),
+            total:
+            typeof summary.total === "number"
+              ? summary.total
+              : userTasks.length,
           pending: summary?.pending ?? 0,
           inProgress: summary?.inProgress ?? 0,
           completed: summary?.completed ?? 0,
@@ -56,8 +77,11 @@ const UserDetails = () => {
         console.error("Failed to fetch user details", requestError);
         const message =
           requestError.response?.data?.message ||
+          requestError.message ||
           "We were unable to load this team member. Please try again later.";
         setError(message);
+        setUserData(null);
+        setTasks([]);
       } finally {
         setIsLoading(false);
       }
