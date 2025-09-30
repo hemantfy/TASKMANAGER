@@ -96,7 +96,7 @@ const UserDetails = () => {
 
   const handleOpenTaskDetails = (taskId) => {
     if (!taskId) return;
-    navigate(`/user/task-details/${taskId}`);
+    navigate("/admin/create-task", { state: { taskId } });
   };
 
   const summaryItems = [
