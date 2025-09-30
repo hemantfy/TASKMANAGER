@@ -3,7 +3,7 @@ import DashboardLayout from "../../components/layouts/DashboardLayout";
 import { useLocation, useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
-import { LuFileSpreadsheet, LuSearch } from "react-icons/lu";
+import { LuFileSpreadsheet, LuRotateCcw, LuSearch } from "react-icons/lu";
 import TaskStatusTabs from "../../components/TaskStatusTabs";
 import TaskCard from "../../components/Cards/TaskCard";
 import toast from "react-hot-toast";
@@ -19,6 +19,15 @@ const ManageTasks = () => {
   const [selectedDate, setSelectedDate] = useState("");
 
   const navigate = useNavigate();
+
+  const hasActiveFilters =
+  filterStatus !== "All" || searchQuery.trim() || selectedDate.trim();
+
+const handleResetFilters = () => {
+  setFilterStatus("All");
+  setSearchQuery("");
+  setSelectedDate("");
+};
 
   const getAllTasks = async () => {
     try {
@@ -153,37 +162,40 @@ const ManageTasks = () => {
         </section>
 
         {(tabs.length > 0 || allTasks.length > 0) && (
-          <div className="flex flex-col gap-4 rounded-[28px] border border-white/60 bg-white/70 p-4 shadow-[0_20px_45px_rgba(15,23,42,0.08)] lg:flex-row lg:items-center lg:justify-between">
-            <div className="w-full">
-              <TaskStatusTabs
-                tabs={tabs}
-                activeTab={filterStatus}
-                setActiveTab={setFilterStatus}
-              />
-            </div>
+          <div className="flex flex-col gap-4 rounded-[28px] border border-white/60 bg-white/70 p-4 shadow-[0_20px_45px_rgba(15,23,42,0.08)]">
+          <TaskStatusTabs
+            tabs={tabs}
+            activeTab={filterStatus}
+            setActiveTab={setFilterStatus}
+          />
 
-            <div className="flex w-full flex-col gap-3 sm:max-w-sm sm:flex-row sm:items-center sm:justify-end">
-              <div className="relative flex-1">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="Search by task name..."
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-                />
-                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
-                  <LuSearch className="text-base" />
-                </span>
+          <div className="rounded-3xl border border-white/70 bg-white/90 p-4 shadow-[0_15px_30px_rgba(15,23,42,0.06)]">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               </div>
 
-              <div className="flex-1">
-                <label className="flex flex-col text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <label className="group flex flex-col text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+                  Search Task
+                  <div className="relative mt-2">
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(event) => setSearchQuery(event.target.value)}
+                      placeholder="Search by task name..."
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 outline-none transition group-focus-within:border-primary group-focus-within:ring-2 group-focus-within:ring-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    />
+                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
+                      <LuSearch className="text-base" />
+                    </span>
+                  </div>
+                </label>
+                <label className="flex flex-col text-xs uppercase tracking-[0.24em] text-slate-400">
                   Due Date
                   <input
                     type="date"
                     value={selectedDate}
                     onChange={(event) => setSelectedDate(event.target.value)}
-                    className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm capitalize text-slate-600 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm capitalize text-slate-600 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
                   />
                 </label>
               </div>
