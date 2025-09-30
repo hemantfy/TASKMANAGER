@@ -3,9 +3,10 @@ import { UserContext } from "../../context/userContext";
 import Navbar from "./Navbar";
 import SideMenu from "./SideMenu";
 import BirthdayModal from "../modals/BirthdayModal";
+import LoadingOverlay from "../LoadingOverlay";
 
 const DashboardLayout = ({ children, activeMenu }) => {
-  const { user } = useContext(UserContext);
+  const { user, loading } = useContext(UserContext);
   const [showBirthdayModal, setShowBirthdayModal] = useState(false);
 
   const shouldShowBirthday = useMemo(() => {
@@ -48,6 +49,24 @@ const DashboardLayout = ({ children, activeMenu }) => {
     setShowBirthdayModal(true);
   }, [shouldShowBirthday, user?._id]);
 
+  if (loading) {
+    return (
+      <LoadingOverlay
+        fullScreen
+        message="Preparing your workspace..."
+      />
+    );
+  }
+
+  if (!user) {
+    return (
+      <LoadingOverlay
+        fullScreen
+        message="Redirecting to sign in..."
+      />
+    );
+  }
+
   return (
     <div className="relative min-h-screen">
     <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
@@ -58,19 +77,17 @@ const DashboardLayout = ({ children, activeMenu }) => {
 
       <Navbar activeMenu={activeMenu} />
 
-      {user && (
-        <div className="mx-auto flex w-full max-w-[1400px] gap-6 px-4 pb-14 pt-6 lg:px-8">
-          <div className="hidden shrink-0 lg:block lg:w-[260px] xl:w-[280px]">
-            <SideMenu activeMenu={activeMenu} />
-          </div>
-
-          <main className="relative w-full flex-1 rounded-[28px] border border-white/40 bg-white/70 p-4 shadow-[0_26px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:p-6">
-            <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
-              {children}
-            </div>
-          </main>
+      <div className="mx-auto flex w-full max-w-[1400px] gap-6 px-4 pb-14 pt-6 lg:px-8">
+        <div className="hidden shrink-0 lg:block lg:w-[260px] xl:w-[280px]">
+          <SideMenu activeMenu={activeMenu} />
         </div>
-      )}
+
+        <main className="relative w-full flex-1 rounded-[28px] border border-white/40 bg-white/70 p-4 shadow-[0_26px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:p-6">
+          <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
+            {children}
+          </div>
+        </main>
+      </div>
       
       {showBirthdayModal && (
         <BirthdayModal

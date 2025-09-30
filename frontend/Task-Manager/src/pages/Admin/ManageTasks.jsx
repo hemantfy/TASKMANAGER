@@ -7,6 +7,7 @@ import { LuFileSpreadsheet, LuRotateCcw, LuSearch } from "react-icons/lu";
 import TaskStatusTabs from "../../components/TaskStatusTabs";
 import TaskCard from "../../components/Cards/TaskCard";
 import toast from "react-hot-toast";
+import LoadingOverlay from "../../components/LoadingOverlay";
 
 const ManageTasks = () => {
   const [allTasks, setAllTasks] = useState([]);
@@ -17,11 +18,12 @@ const ManageTasks = () => {
 
   const [filterStatus, setFilterStatus] = useState(initialFilterStatus);
   const [selectedDate, setSelectedDate] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
   const navigate = useNavigate();
 
   const hasActiveFilters =
-  filterStatus !== "All" || searchQuery.trim() || selectedDate.trim();
+    filterStatus !== "All" || searchQuery.trim() || selectedDate.trim();
 
 const handleResetFilters = () => {
   setFilterStatus("All");
@@ -31,6 +33,10 @@ const handleResetFilters = () => {
 
   const getAllTasks = async () => {
     try {
+      setIsLoading(true);
+      setAllTasks([]);
+      setTabs([]);
+
       const response = await axiosInstance.get(API_PATHS.TASKS.GET_ALL_TASKS, {
         params: {
           status: filterStatus === "All" ? "" : filterStatus
@@ -81,6 +87,8 @@ const handleResetFilters = () => {
       setTabs(statusArray);
     } catch (error) {
       console.error("Error Fetching users:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -88,7 +96,7 @@ const handleResetFilters = () => {
     navigate(`/admin/create-task`, { state: { taskId: taskData._id } });
   };
 
-  // download taks report
+  // download tasks report
   const handleDownloadReport = async () => {
     try {
       const response = await axiosInstance.get(API_PATHS.REPORTS.EXPORT_TASKS, {
@@ -111,7 +119,7 @@ const handleResetFilters = () => {
   };
 
   useEffect(() => {
-    getAllTasks(filterStatus);
+    getAllTasks();
     return () => {};
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterStatus]);
@@ -161,80 +169,93 @@ const handleResetFilters = () => {
         </div>
         </section>
 
-        {(tabs.length > 0 || allTasks.length > 0) && (
-          <div className="flex flex-col gap-4 rounded-[28px] border border-white/60 bg-white/70 p-4 shadow-[0_20px_45px_rgba(15,23,42,0.08)]">
-          <TaskStatusTabs
-            tabs={tabs}
-            activeTab={filterStatus}
-            setActiveTab={setFilterStatus}
-          />
+        {isLoading ? (
+          <LoadingOverlay message="Loading tasks..." className="py-24" />
+        ) : (
+          <>
+            {(tabs.length > 0 || allTasks.length > 0) && (
+              <div className="flex flex-col gap-4 rounded-[28px] border border-white/60 bg-white/70 p-4 shadow-[0_20px_45px_rgba(15,23,42,0.08)]">
+                <TaskStatusTabs
+                  tabs={tabs}
+                  activeTab={filterStatus}
+                  setActiveTab={setFilterStatus}
+                />
 
-          <div className="rounded-3xl border border-white/70 bg-white/90 p-4 shadow-[0_15px_30px_rgba(15,23,42,0.06)]">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              </div>
-
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <label className="group flex flex-col text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
-                  Search Task
-                  <div className="relative mt-2">
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(event) => setSearchQuery(event.target.value)}
-                      placeholder="Search by task name..."
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 outline-none transition group-focus-within:border-primary group-focus-within:ring-2 group-focus-within:ring-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
-                    />
-                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
-                      <LuSearch className="text-base" />
-                    </span>
+<div className="rounded-3xl border border-white/70 bg-white/90 p-4 shadow-[0_15px_30px_rgba(15,23,42,0.06)]">
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <label className="group flex flex-col text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+                      Search Task
+                      <div className="relative mt-2">
+                        <input
+                          type="text"
+                          value={searchQuery}
+                          onChange={(event) => setSearchQuery(event.target.value)}
+                          placeholder="Search by task name..."
+                          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 outline-none transition group-focus-within:border-primary group-focus-within:ring-2 group-focus-within:ring-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                        />
+                        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
+                          <LuSearch className="text-base" />
+                        </span>
+                      </div>
+                    </label>
+                    <label className="flex flex-col text-xs uppercase tracking-[0.24em] text-slate-400">
+                      Due Date
+                      <input
+                        type="date"
+                        value={selectedDate}
+                        onChange={(event) => setSelectedDate(event.target.value)}
+                        className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm capitalize text-slate-600 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                      />
+                    </label>
                   </div>
-                </label>
-                <label className="flex flex-col text-xs uppercase tracking-[0.24em] text-slate-400">
-                  Due Date
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(event) => setSelectedDate(event.target.value)}
-                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm capitalize text-slate-600 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  />
-                </label>
+                  </div>
+
+                  {hasActiveFilters && (
+                    <button
+                      type="button"
+                      className="inline-flex items-center justify-center gap-2 self-end rounded-full border border-white/60 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600 transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-gradient-to-r hover:from-primary/90 hover:to-sky-500 hover:text-white"
+                      onClick={handleResetFilters}
+                    >
+                      <LuRotateCcw className="text-base" /> Reset Filters
+                    </button>
+                  )}
               </div>
-            </div>
-          </div>
         )}
 
-        {filteredTasks.length > 0 ? (
-          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {filteredTasks.map((item) => (
-              <TaskCard
-                key={item._id}
-                title={item.title}
-                description={item.description}
-                priority={item.priority}
-                status={item.status}
-                progress={item.progress}
-                createdAt={item.createdAt}
-                dueDate={item.dueDate}
-                assignedTo={
-                  Array.isArray(item.assignedTo)
+<section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {filteredTasks?.map((item) => (
+                <TaskCard
+                  key={item._id}
+                  title={item.title}
+                  description={item.description}
+                  priority={item.priority}
+                  status={item.status}
+                  progress={item.progress}
+                  createdAt={item.createdAt}
+                  dueDate={item.dueDate}
+                  assignedTo={Array.isArray(item.assignedTo)
                     ? item.assignedTo
                     : item.assignedTo
                     ? [item.assignedTo]
-                    : []
-                }
-                attachmentCount={item.attachments?.length || 0}
-                completedTodoCount={item.completedTodoCount || 0}
-                todoChecklist={item.todoChecklist || []}
-                onClick={() => {
-                  handleClick(item);
-                }}
-              />
-            ))}
-          </section>
-      ) : (
-        <div className="rounded-3xl border border-dashed border-slate-200 bg-white/60 p-10 text-center text-sm font-medium text-slate-500">
-          No tasks match your current filters.
-        </div>
+                    : []}
+                  attachmentCount={item.attachments?.length || 0}
+                  completedTodoCount={item.completedTodoCount || 0}
+                  todoChecklist={item.todoChecklist || []}
+                  onClick={() => {
+                    handleClick(item._id);
+                  }}
+                />
+              ))}
+
+              {!filteredTasks.length && (
+                <div className="md:col-span-2 xl:col-span-3">
+                  <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
+                    No tasks match the selected filters.
+                  </div>
+                </div>
+              )}
+            </section>
+          </>
         )}
    </DashboardLayout>
   );

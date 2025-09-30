@@ -18,6 +18,7 @@ import {
 import TaskListTable from "../../components/TaskListTable";
 import CustomPieChart from "../../components/Charts/CustomPieChart";
 import CustomBarChart from "../../components/Charts/CustomBarChart";
+import LoadingOverlay from "../../components/LoadingOverlay";
 
 const LiveGreeting = React.memo(({ userName }) => {
   const [currentMoment, setCurrentMoment] = useState(moment());
@@ -61,6 +62,7 @@ const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [pieChartData, setPieChartData] = useState([]);
   const [barChartData, setBarChartData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const prepareChartData = (data) => {
     const taskDistribution = data?.taskDistribution || null;
@@ -85,6 +87,10 @@ const Dashboard = () => {
 
   const getDashboardData = async () => {
     try {
+      setIsLoading(true);
+      setDashboardData(null);
+      setPieChartData([]);
+      setBarChartData([]);
       const response = await axiosInstance.get(
         API_PATHS.TASKS.GET_DASHBOARD_DATA
       );
@@ -94,6 +100,8 @@ const Dashboard = () => {
       }
     } catch (error) {
       console.error("Error fetching users:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -106,7 +114,7 @@ const Dashboard = () => {
 
     return () => {};
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+}, [user?._id]);
 
   const infoCards = useMemo(
     () => [
@@ -156,79 +164,85 @@ const Dashboard = () => {
 
   return (
     <DashboardLayout activeMenu="Dashboard">
-      <section className="relative overflow-hidden rounded-[32px] border border-white/60 bg-gradient-to-br from-primary via-indigo-500 to-sky-500 px-6 py-10 text-white shadow-[0_20px_45px_rgba(59,130,246,0.25)]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.2),_transparent_65%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,_rgba(255,255,255,0.18),_transparent_60%)]" />
-        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.42em] text-white/70">Welcome Back</p>
-            <LiveGreeting userName={user?.name || "User"} />
-          </div>
+     {isLoading ? (
+        <LoadingOverlay message="Loading workspace overview..." className="py-24" />
+      ) : (
+        <>
+          <section className="relative overflow-hidden rounded-[32px] border border-white/60 bg-gradient-to-br from-primary via-indigo-500 to-sky-500 px-6 py-10 text-white shadow-[0_20px_45px_rgba(59,130,246,0.25)]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.2),_transparent_65%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,_rgba(255,255,255,0.18),_transparent_60%)]" />
+            <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.42em] text-white/70">Welcome Back</p>
+                <LiveGreeting userName={user?.name || "User"} />
+              </div>
 
-          <div className="rounded-3xl border border-white/40 bg-white/15 px-6 py-4 text-sm backdrop-blur">
-            <p className="text-xs uppercase tracking-[0.28em] text-white/70">Today&apos;s Focus</p>
-            <p className="mt-2 text-base font-medium">
-              Align priorities, unblock your team and watch progress accelerate.
-            </p>
-          </div>
-        </div>
-      </section>
+              <div className="rounded-3xl border border-white/40 bg-white/15 px-6 py-4 text-sm backdrop-blur">
+                <p className="text-xs uppercase tracking-[0.28em] text-white/70">Today&apos;s Focus</p>
+                <p className="mt-2 text-base font-medium">
+                  Align priorities, unblock your team and watch progress accelerate.
+                </p>
+              </div>
+            </div>
+          </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {infoCards.map((card) => (
-          <InfoCard
-            key={card.label}
-            label={card.label}
-            value={card.value}
-            color={card.color}
-            icon={card.icon}
-            onClick={() => handleCardClick(card.filterStatus)}
-          />
-        ))}
-      </section>
+          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {infoCards.map((card) => (
+              <InfoCard
+                key={card.label}
+                label={card.label}
+                value={card.value}
+                color={card.color}
+                icon={card.icon}
+                onClick={() => handleCardClick(card.filterStatus)}
+              />
+            ))}
+          </section>
 
-<section className="grid gap-6 lg:grid-cols-2">
-  <div className="card">
-    <div className="flex items-center justify-between">
-      <h5 className="text-base font-semibold text-slate-900">Task Distribution</h5>
-      <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-blue-500">
-        Overview
-      </span>
-    </div>
+          <section className="grid gap-6 lg:grid-cols-2">
+            <div className="card">
+              <div className="flex items-center justify-between">
+                <h5 className="text-base font-semibold text-slate-900">Task Distribution</h5>
+                <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-blue-500">
+                  Overview
+                </span>
+              </div>
 
-    <CustomPieChart data={pieChartData} colors={COLORS} />
-        </div>
+              <CustomPieChart data={pieChartData} colors={COLORS} />
+            </div>
 
-        <div className="card">
-          <div className="flex items-center justify-between">
-            <h5 className="text-base font-semibold text-slate-900">Task Priority Levels</h5>
-            <span className="rounded-full bg-slate-900/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
-              Priority Mix
-            </span>
-          </div>
+            <div className="card">
+              <div className="flex items-center justify-between">
+                <h5 className="text-base font-semibold text-slate-900">Task Priority Levels</h5>
+                <span className="rounded-full bg-slate-900/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
+                  Priority Mix
+                </span>
+              </div>
 
-          <CustomBarChart data={barChartData} />
-        </div>
-      </section>
+              <CustomBarChart data={barChartData} />
+            </div>
+          </section>
 
-      <section className="card">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h5 className="text-lg font-semibold text-slate-900">Recent Tasks</h5>
-            <p className="text-sm text-slate-500">
-              Monitor the latest updates across the workspace at a glance.
-            </p>
-          </div>
+          <section className="card">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h5 className="text-lg font-semibold text-slate-900">Recent Tasks</h5>
+                <p className="text-sm text-slate-500">
+                  Monitor the latest updates across the workspace at a glance.
+                </p>
+              </div>
 
-          <button className="card-btn" onClick={onSeeMore}>
-            See All <LuArrowRight className="text-base" />
-          </button>
-        </div>
+              <button className="card-btn" onClick={onSeeMore}>
+                See All <LuArrowRight className="text-base" />
+              </button>
+            </div>
 
-        <TaskListTable tableData={dashboardData?.recentTasks || []} />
-      </section>
+            <TaskListTable tableData={dashboardData?.recentTasks || []} />
+          </section>
+        </>
+      )}
     </DashboardLayout>
   );
 };
 
-export default Dashboard
+export default Dashboard;
