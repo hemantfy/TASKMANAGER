@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const { normalizeRole } = require("../utils/roleUtils");
 
 // Middleware to protect routes
 const protect = async (req, res, next) => {
@@ -10,6 +11,10 @@ const protect = async (req, res, next) => {
       token = token.split(" ")[1]; // Extract token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       req.user = await User.findById(decoded.id).select("-password");
+      
+      if (req.user && typeof req.user.role === "string") {
+        req.user.role = normalizeRole(req.user.role);
+      }
       next();
     } else {
       res.status(401).json({ message: "Not authorized, no token" });
@@ -23,7 +28,9 @@ const protect = async (req, res, next) => {
 const PRIVILEGED_ROLES = ["admin", "owner"];
 
 const adminOnly = (req, res, next) => {
-   if (req.user && PRIVILEGED_ROLES.includes(req.user.role)) {
+  const normalizedRole = normalizeRole(req.user?.role);
+
+  if (req.user && PRIVILEGED_ROLES.includes(normalizedRole)) {
     next();
   } else {
    res.status(403).json({ message: "Access denied, admin or owner only" });

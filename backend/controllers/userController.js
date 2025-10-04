@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const Task = require("../models/Task");
 const User = require("../models/User");
+const { formatUserRole, normalizeRole } = require("../utils/roleUtils");
 
 const PRIVILEGED_ROLES = ["admin", "owner"];
 
@@ -12,7 +13,7 @@ const PRIVILEGED_ROLES = ["admin", "owner"];
 // @access  Private (Admin)
 const getUsers = async (req, res) => {
   try {
-    const requesterRole = req.user?.role;
+    const requesterRole = normalizeRole(req.user?.role);
     const isOwner = requesterRole === "owner";
     const userFilter = isOwner ? {} : { role: "member" };
 
@@ -21,23 +22,25 @@ const getUsers = async (req, res) => {
     // Add task counts to each user
     const usersWithTaskCounts = await Promise.all(
       users.map(async (user) => {
+        const formattedUser = formatUserRole(user);
+
         const pendingTasks = await Task.countDocuments({
-          assignedTo: user._id,
+          assignedTo: formattedUser._id,
           status: "Pending",
         });
 
         const inProgressTasks = await Task.countDocuments({
-          assignedTo: user._id,
+          assignedTo: formattedUser._id,
           status: "In Progress",
         });
 
         const completedTasks = await Task.countDocuments({
-          assignedTo: user._id,
+          assignedTo: formattedUser._id,
           status: "Completed",
         });
 
         return {
-          ...user._doc, // Include all existing user data
+          ...formattedUser,
           pendingTasks,
           inProgressTasks,
           completedTasks,
@@ -67,8 +70,9 @@ const getUserById = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    const formattedRequesterRole = normalizeRole(req.user?.role);
     const isRequestingSelf = req.user?._id?.toString() === user._id.toString();
-    const isPrivilegedUser = PRIVILEGED_ROLES.includes(req.user?.role);
+    const isPrivilegedUser = PRIVILEGED_ROLES.includes(formattedRequesterRole);
 
     if (!isPrivilegedUser && !isRequestingSelf) {
       return res
@@ -107,8 +111,9 @@ const getUserById = async (req, res) => {
       { pending: 0, inProgress: 0, completed: 0 }
     );
 
+    const formattedUser = formatUserRole(user);
     const userData = {
-      ...user.toObject(),
+      ...formattedUser,
       pendingTasks: taskSummary.pending,
       inProgressTasks: taskSummary.inProgress,
       completedTasks: taskSummary.completed,
@@ -145,7 +150,7 @@ const createUser = async (req, res) => {
       return res.status(400).json({ message: "A user with this email already exists" });
     }
 
-    const requesterRole = req.user?.role;
+    const requesterRole = normalizeRole(req.user?.role);
     const allowedRoles = ["member"];
 
     if (requesterRole === "admin") {
@@ -156,7 +161,10 @@ const createUser = async (req, res) => {
       allowedRoles.push("admin", "owner");
     }
 
-    const normalizedRole = allowedRoles.includes(role) ? role : "member";
+    const normalizedRequestedRole = normalizeRole(role);
+    const normalizedRole = allowedRoles.includes(normalizedRequestedRole)
+      ? normalizedRequestedRole
+      : "member";
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
@@ -171,14 +179,16 @@ const createUser = async (req, res) => {
       mustChangePassword: true,
     });
 
+   const createdUser = formatUserRole(user);
+
     res.status(201).json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      gender: user.gender,
-      officeLocation: user.officeLocation,
-      mustChangePassword: user.mustChangePassword,
+      _id: createdUser._id,
+      name: createdUser.name,
+      email: createdUser.email,
+      role: createdUser.role,
+      gender: createdUser.gender,
+      officeLocation: createdUser.officeLocation,
+      mustChangePassword: createdUser.mustChangePassword,
     });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -290,18 +300,19 @@ const updateProfileImage = async (req, res) => {
     const profileImageUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
     user.profileImageUrl = profileImageUrl;
     const updatedUser = await user.save();
+    const formattedUpdatedUser = formatUserRole(updatedUser);
 
     res.json({
       message: "Profile photo updated successfully",
       profileImageUrl,
       user: {
-        _id: updatedUser._id,
-        name: updatedUser.name,
-        email: updatedUser.email,
-        role: updatedUser.role,
-        profileImageUrl: updatedUser.profileImageUrl,
-        birthdate: updatedUser.birthdate,
-        mustChangePassword: updatedUser.mustChangePassword,
+        _id: formattedUpdatedUser._id,
+        name: formattedUpdatedUser.name,
+        email: formattedUpdatedUser.email,
+        role: formattedUpdatedUser.role,
+        profileImageUrl: formattedUpdatedUser.profileImageUrl,
+        birthdate: formattedUpdatedUser.birthdate,
+        mustChangePassword: formattedUpdatedUser.mustChangePassword,
       },
     });
   } catch (error) {

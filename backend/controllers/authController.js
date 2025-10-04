@@ -1,10 +1,37 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { formatUserRole, normalizeRole } = require("../utils/roleUtils");
 
 // Generate JWT Token
 const generateToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: "7d" });
+};
+
+const buildUserPayload = (user, { includeToken = false } = {}) => {
+  const formattedUser = formatUserRole(user);
+
+  if (!formattedUser) {
+    return formattedUser;
+  }
+
+  const payload = {
+    _id: formattedUser._id,
+    name: formattedUser.name,
+    email: formattedUser.email,
+    role: formattedUser.role,
+    profileImageUrl: formattedUser.profileImageUrl,
+    birthdate: formattedUser.birthdate,
+    gender: formattedUser.gender,
+    officeLocation: formattedUser.officeLocation,
+    mustChangePassword: formattedUser.mustChangePassword,
+  };
+
+  if (includeToken) {
+    payload.token = generateToken(formattedUser._id);
+  }
+
+  return payload;
 };
 
 // @desc    Register a new user
@@ -38,8 +65,7 @@ const registerUser = async (req, res) => {
 
     const trimmedAdminInviteToken =
       typeof adminInviteToken === "string" ? adminInviteToken.trim() : "";
-    const normalizedPrivilegedRole =
-      typeof privilegedRole === "string" ? privilegedRole.trim().toLowerCase() : "";
+    const normalizedPrivilegedRole = normalizeRole(privilegedRole) || "";
 
     // Determine user role based on provided token/selection
     let role = "member";
@@ -79,18 +105,7 @@ const registerUser = async (req, res) => {
     });
 
     // Return user data with JWT
-    res.status(201).json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      profileImageUrl: user.profileImageUrl,
-      birthdate: user.birthdate,
-      gender: user.gender,
-      officeLocation: user.officeLocation,
-      mustChangePassword: user.mustChangePassword,
-      token: generateToken(user._id),
-    });
+    res.status(201).json(buildUserPayload(user, { includeToken: true }));
   } catch (error) {
     res.status(500).json({ message: "Server Error", error: error.message });
   }
@@ -115,18 +130,7 @@ const loginUser = async (req, res) => {
     }
 
     // Return user data with JWT
-    res.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      profileImageUrl: user.profileImageUrl,
-      birthdate: user.birthdate,
-      gender: user.gender,
-      officeLocation: user.officeLocation,
-      mustChangePassword: user.mustChangePassword,
-      token: generateToken(user._id),
-    });
+    res.json(buildUserPayload(user, { includeToken: true }));
   } catch (error) {
     res.status(500).json({ message: "Server Error", error: error.message });
   }
@@ -141,7 +145,7 @@ const getUserProfile = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    res.json(user);
+    res.json(buildUserPayload(user));
   } catch (error) {
     res.status(500).json({ message: "Server Error", error: error.message });
   }
@@ -191,16 +195,7 @@ const updateUserProfile = async (req, res) => {
 
     res.json({
       message: "Profile updated successfully",
-      _id: updatedUser._id,
-      name: updatedUser.name,
-      email: updatedUser.email,
-      role: updatedUser.role,
-      profileImageUrl: updatedUser.profileImageUrl,
-      birthdate: updatedUser.birthdate,
-      gender: updatedUser.gender,
-      officeLocation: updatedUser.officeLocation,
-      mustChangePassword: updatedUser.mustChangePassword,
-      token: generateToken(updatedUser._id),
+      ...buildUserPayload(updatedUser, { includeToken: true }),
     });
   } catch (error) {
     res.status(500).json({ message: "Server Error", error: error.message });

@@ -21,6 +21,8 @@ const UserSchema = new mongoose.Schema(
       type: String,
       enum: ["owner", "admin", "member"],
       default: "member",
+      lowercase: true,
+      trim: true,
     }, // Role-based access
     mustChangePassword: { type: Boolean, default: false },
   },

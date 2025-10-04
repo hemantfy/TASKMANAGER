@@ -5,6 +5,20 @@ import { clearToken, getToken, setToken } from "../utils/tokenStorage";
 
 export const UserContext = createContext();
 
+const normalizeRole = (role) =>
+  typeof role === "string" ? role.trim().toLowerCase() : role;
+
+const withNormalizedRole = (userData) => {
+  if (!userData || typeof userData !== "object") {
+    return userData;
+  }
+
+  return {
+    ...userData,
+    role: normalizeRole(userData.role),
+  };
+};
+
 const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true); // New state to track loading
@@ -21,7 +35,7 @@ const UserProvider = ({ children }) => {
     const fetchUser = async () => {
       try {
         const response = await axiosInstance.get(API_PATHS.AUTH.GET_PROFILE);
-        setUser(response.data);
+        setUser(withNormalizedRole(response.data));
       } catch (error) {
         console.error("User not authenticated", error);
       } finally {
@@ -33,9 +47,11 @@ const UserProvider = ({ children }) => {
   }, []);
 
   const updateUser = (userData, options = {}) => {
-    setUser(userData);
-    if (userData?.token) {
-      setToken(userData.token, options.rememberMe);
+    const normalizedUser = withNormalizedRole(userData);
+
+    setUser(normalizedUser);
+    if (normalizedUser?.token) {
+      setToken(normalizedUser.token, options.rememberMe);
     }
     setLoading(false);
   };
