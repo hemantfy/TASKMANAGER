@@ -81,7 +81,7 @@ const SignUp = () => {
       }   
       
       // Redirect based on role
-      if (role === "admin") {
+      if (["admin", "owner"].includes(role)) {
         navigate("/admin/dashboard");
       } else {
         navigate("/user/dashboard");

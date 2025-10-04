@@ -5,12 +5,18 @@ const bcrypt = require("bcryptjs");
 const Task = require("../models/Task");
 const User = require("../models/User");
 
+const PRIVILEGED_ROLES = ["admin", "owner"];
+
 // @desc    Get all users (Admin only)
 // @route   GET /api/users/
 // @access  Private (Admin)
 const getUsers = async (req, res) => {
   try {
-    const users = await User.find({ role: "member" }).select("-password");
+    const requesterRole = req.user?.role;
+    const isOwner = requesterRole === "owner";
+    const userFilter = isOwner ? {} : { role: "member" };
+
+    const users = await User.find(userFilter).select("-password");
 
     // Add task counts to each user
     const usersWithTaskCounts = await Promise.all(
@@ -62,9 +68,9 @@ const getUserById = async (req, res) => {
     }
 
     const isRequestingSelf = req.user?._id?.toString() === user._id.toString();
-    const isAdminUser = req.user?.role === "admin";
+    const isPrivilegedUser = PRIVILEGED_ROLES.includes(req.user?.role);
 
-    if (!isAdminUser && !isRequestingSelf) {
+    if (!isPrivilegedUser && !isRequestingSelf) {
       return res
         .status(403)
         .json({ message: "You are not authorized to view this user" });
@@ -139,7 +145,18 @@ const createUser = async (req, res) => {
       return res.status(400).json({ message: "A user with this email already exists" });
     }
 
-    const normalizedRole = role === "admin" ? "admin" : "member";
+    const requesterRole = req.user?.role;
+    const allowedRoles = ["member"];
+
+    if (requesterRole === "admin") {
+      allowedRoles.push("admin");
+    }
+
+    if (requesterRole === "owner") {
+      allowedRoles.push("admin", "owner");
+    }
+
+    const normalizedRole = allowedRoles.includes(role) ? role : "member";
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);

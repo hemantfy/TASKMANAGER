@@ -1,5 +1,9 @@
 const Task = require("../models/Task");
 
+const PRIVILEGED_ROLES = ["admin", "owner"];
+
+const isPrivileged = (role) => PRIVILEGED_ROLES.includes(role);
+
 // @desc    Get all tasks (Admin: all, User: only assigned tasks)
 // @route   GET /api/tasks/
 // @access  Private
@@ -14,7 +18,7 @@ if (status) {
 
 let tasks;
 
-if (req.user.role === "admin") {
+if (isPrivileged(req.user.role)) {
   tasks = await Task.find(filter).populate(
     "assignedTo",
     "name email profileImageUrl"
@@ -39,25 +43,25 @@ if (req.user.role === "admin") {
 
   // Status summary counts
 const allTasks = await Task.countDocuments(
-    req.user.role === "admin" ? {} : { assignedTo: req.user._id }
+    isPrivileged(req.user.role) ? {} : { assignedTo: req.user._id }
   );
   
   const pendingTasks = await Task.countDocuments({
     ...filter,
     status: "Pending",
-    ...(req.user.role !== "admin" && { assignedTo: req.user._id }),
+    ...(!isPrivileged(req.user.role) && { assignedTo: req.user._id }),
   });
   
   const inProgressTasks = await Task.countDocuments({
     ...filter,
     status: "In Progress",
-    ...(req.user.role !== "admin" && { assignedTo: req.user._id }),
+    ...(!isPrivileged(req.user.role) && { assignedTo: req.user._id }),
   });
   
   const completedTasks = await Task.countDocuments({
     ...filter,
     status: "Completed",
-    ...(req.user.role !== "admin" && { assignedTo: req.user._id }),
+    ...(!isPrivileged(req.user.role) && { assignedTo: req.user._id }),
   });
  
   res.json({
@@ -203,7 +207,7 @@ const isAssigned = assignedUsers.some((user) => {
   return userId === req.user._id.toString();
 });
 
-if (!isAssigned && req.user.role !== "admin") {
+if (!isAssigned && !isPrivileged(req.user.role)) {
   return res.status(403).json({ message: "Not authorized" });
 }
 
@@ -251,7 +255,7 @@ const isAssigned = assignedUsers.some((user) => {
   return userId === req.user._id.toString();
 });
 
-if (!isAssigned && req.user.role !== "admin") {
+if (!isAssigned && !isPrivileged(req.user.role)) {
   return res
     .status(403)
     .json({ message: "Not authorized to update checklist" });
@@ -302,7 +306,7 @@ const getNotifications = async (req, res) => {
     const notifications = [];
 const now = new Date();
 
-if (req.user.role === "admin") {
+if (isPrivileged(req.user.role)) {
 const completedTasks = await Task.find({
   status: "Completed",
   completedAt: { $ne: null },
@@ -431,6 +435,12 @@ res.json({
 // @access  Private
 const getDashboardData = async (req, res) => {
     try {
+            if (!isPrivileged(req.user.role)) {
+        return res
+          .status(403)
+          .json({ message: "Access denied, admin only" });
+      }
+      
       // Fetch statistics
 const totalTasks = await Task.countDocuments();
 const pendingTasks = await Task.countDocuments({ status: "Pending" });

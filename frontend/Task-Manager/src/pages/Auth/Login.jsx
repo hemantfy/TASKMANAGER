@@ -75,7 +75,7 @@ const Login = () => {
           setShowChangePasswordModal(true);
         } else {
           // Redirect based on role
-          if (role === "admin") {
+          if (["admin", "owner"].includes(role)) {  
             navigate("/admin/dashboard");
           } else {
             navigate("/user/dashboard");
@@ -127,7 +127,7 @@ const Login = () => {
 
       const role = pendingRoleRedirect || profileResponse?.data?.role;
       setPendingRoleRedirect(null);
-      if (role === "admin") {
+      if (["admin", "owner"].includes(role)) {
         navigate("/admin/dashboard");
       } else {
         navigate("/user/dashboard");

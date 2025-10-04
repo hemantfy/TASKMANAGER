@@ -166,7 +166,7 @@ const NotificationBell = () => {
           <div className="flex items-center justify-between border-b border-slate-200/70 px-4 py-3">
             <h3 className="text-sm font-semibold text-slate-900">Notifications</h3>
             <div className="flex items-center gap-2">
-              {user?.role === "admin" && (
+              {["admin", "owner"].includes(user?.role) && (
                 <button
                   type="button"
                   onClick={() => {
@@ -239,7 +239,7 @@ const NotificationBell = () => {
           </div>
         </div>
       )}
-            {user?.role === "admin" && (
+            {["admin", "owner"].includes(user?.role) && (
         <PublishNoticeModal
           open={noticeModalOpen}
           onClose={() => setNoticeModalOpen(false)}

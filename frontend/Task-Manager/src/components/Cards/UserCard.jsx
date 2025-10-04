@@ -12,6 +12,14 @@ const UserCard = ({ userInfo, onDelete, onResetPassword }) => {
     { label: "Completed", count: userInfo?.completedTasks || 0, status: "Completed" }
   ];
 
+    const roleLabelMap = {
+    owner: "Owner",
+    admin: "Admin",
+    member: "Member",
+  };
+  const normalizedRole = typeof userInfo?.role === "string" ? userInfo.role.toLowerCase() : "";
+  const roleLabel = roleLabelMap[normalizedRole];
+
   const handleNavigateToDetails = () => {
     if (userInfo?._id) {
       navigate(`/admin/users/${userInfo._id}`);
@@ -56,6 +64,11 @@ const UserCard = ({ userInfo, onDelete, onResetPassword }) => {
           <div>
             <p className="text-base font-semibold text-slate-900">{userInfo?.name}</p>
             <p className="text-xs text-slate-500">{userInfo?.email}</p>
+            {roleLabel && normalizedRole !== "member" && (
+              <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.26em] text-indigo-600">
+                {roleLabel}
+              </span>
+            )}
             {userInfo?.officeLocation && (
               <p className="text-xs text-slate-500">{userInfo.officeLocation}</p>
             )}

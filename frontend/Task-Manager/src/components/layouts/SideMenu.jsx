@@ -44,9 +44,8 @@ const SideMenu = ({ activeMenu }) => {
 
   useEffect(() => {
     if (user) {
-      setSideMenuData(
-        user?.role === "admin" ? SIDE_MENU_DATA : SIDE_MENU_USER_DATA
-      );
+      const isPrivilegedUser = ["admin", "owner"].includes(user?.role);
+      setSideMenuData(isPrivilegedUser ? SIDE_MENU_DATA : SIDE_MENU_USER_DATA);
     }
 
     return () => {};
@@ -68,9 +67,9 @@ const SideMenu = ({ activeMenu }) => {
           /> : <FaUser className="text-4xl text-primary"/>}
         </div>
 
-        {user?.role === "admin" && (
+        {["admin", "owner"].includes(user?.role) && (
           <div className="mt-3 rounded-full bg-gradient-to-r from-primary via-indigo-500 to-sky-400 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.26em] text-white shadow-md">
-            Admin
+            {user?.role === "owner" ? "Owner" : "Admin"}
           </div>
         )}
 

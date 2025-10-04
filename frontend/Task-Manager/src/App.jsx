@@ -30,7 +30,7 @@ const App = () => {
 
 
           {/* Admin Routes */}
-          <Route element={<PrivateRoute allowedRoles={["admin"]} />}>
+          <Route element={<PrivateRoute allowedRoles={["admin", "owner"]} />}>
             <Route path="/admin/dashboard" element={<Dashboard />} />
             <Route path="/admin/tasks" element={<ManageTasks />} />
             <Route path="/admin/create-task" element={<CreateTask />} />
@@ -40,7 +40,7 @@ const App = () => {
           </Route>
 
           {/* User Routes */}
-          <Route element={<PrivateRoute allowedRoles={["user", "admin"]} />}>
+          <Route element={<PrivateRoute allowedRoles={["user", "admin", "owner"]} />}>
             <Route path="/user/dashboard" element={<UserDashboard />} />
             <Route path="/user/tasks" element={<MyTasks />} />
             <Route path="/user/task-details/:id" element={<ViewTaskDetails />} />
@@ -75,7 +75,7 @@ const Root = () => {
     return <Navigate to="/login" />;
   }
 
-  return user.role === "admin" ? (
+  return ["admin", "owner"].includes(user.role) ? (
     <Navigate to="/admin/dashboard" />
   ) : (
     <Navigate to="/user/dashboard" />

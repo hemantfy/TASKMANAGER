@@ -17,7 +17,11 @@ const UserSchema = new mongoose.Schema(
       enum: ["Ahmedabad", "Gift City"],
       required: true,
     },
-    role: { type: String, enum: ["admin", "member"], default: "member" }, // Role-based access
+    role: {
+      type: String,
+      enum: ["owner", "admin", "member"],
+      default: "member",
+    }, // Role-based access
     mustChangePassword: { type: Boolean, default: false },
   },
   { timestamps: true }

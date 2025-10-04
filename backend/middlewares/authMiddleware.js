@@ -20,13 +20,14 @@ const protect = async (req, res, next) => {
 };
 
 // Middleware for Admin-only access
+const PRIVILEGED_ROLES = ["admin", "owner"];
+
 const adminOnly = (req, res, next) => {
-    if (req.user && req.user.role === "admin") {
-      next();
-    } else {
-      res.status(403).json({ message: "Access denied, admin only" });
-    }
+   if (req.user && PRIVILEGED_ROLES.includes(req.user.role)) {
+    next();
+  } else {
+    res.status(403).json({ message: "Access denied, admin only" });
+  }
 };
   
-module.exports = { protect, adminOnly };
-  
+module.exports = { protect, adminOnly, PRIVILEGED_ROLES };
