@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useMemo, useState } from 'react';
 import AuthLayout from '../../components/layouts/AuthLayout';
 import { Link, useNavigate } from 'react-router-dom';
 import ProfilePhotoSelector from '../../components/inputs/ProfilePhotoSelector';
@@ -6,6 +6,7 @@ import Input from '../../components/inputs/input';
 import { validateEmail } from '../../utils/helper';
 import axiosInstance from '../../utils/axiosInstance';
 import { API_PATHS } from '../../utils/apiPaths';
+import { getRoleLabel, hasPrivilegedAccess, normalizeRole } from '../../utils/roleUtils';
 import uploadImage from '../../utils/uploadImage';
 import { UserContext } from '../../context/userContext';
 
@@ -19,6 +20,26 @@ const SignUp = () => {
   const [isRoleSelectionOpen, setIsRoleSelectionOpen] = useState(false);
   const [gender, setGender] = useState("");
   const [officeLocation, setOfficeLocation] = useState("");
+
+    const normalizedPrivilegedRole = useMemo(
+    () => normalizeRole(privilegedRole),
+    [privilegedRole]
+  );
+  const privilegedRoleLabel = useMemo(() => {
+    const labelFromRole = getRoleLabel(privilegedRole);
+    if (labelFromRole) {
+      return labelFromRole;
+    }
+
+    if (!normalizedPrivilegedRole) {
+      return "";
+    }
+
+    return (
+      normalizedPrivilegedRole.charAt(0).toUpperCase() +
+      normalizedPrivilegedRole.slice(1)
+    );
+  }, [normalizedPrivilegedRole, privilegedRole]);
 
   const [error, setError] = useState(null);
 
@@ -119,7 +140,7 @@ const SignUp = () => {
       }   
       
       // Redirect based on role
-      if (["admin", "owner"].includes(role)) {
+      if (hasPrivilegedAccess(role)) {
         navigate("/admin/dashboard");
       } else {
         navigate("/user/dashboard");
@@ -227,7 +248,7 @@ const SignUp = () => {
                     <span>
                       Signing up as{' '}
                       <span className="font-semibold capitalize text-emerald-900">
-                        {privilegedRole}
+                        {privilegedRoleLabel}
                       </span>
                       .
                     </span>

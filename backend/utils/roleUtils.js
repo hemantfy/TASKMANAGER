@@ -1,28 +1,47 @@
-const normalizeRole = (role) => {
-  if (typeof role !== "string") {
-    return role;
+export const normalizeRole = (role) => {
+  if (typeof role === "string") {
+    return role.trim().toLowerCase();
   }
 
-  return role.trim().toLowerCase();
+  return role ?? "";
 };
 
-const formatUserRole = (user = {}) => {
-  if (!user) {
-    return user;
+const matchesRole = (role, expectedRole) => {
+  const normalizedRole = normalizeRole(role);
+  const normalizedExpected = normalizeRole(expectedRole);
+
+  if (!normalizedRole || !normalizedExpected) {
+    return false;
   }
 
-  const normalizedRole = normalizeRole(user.role);
-
-  if (typeof user.toObject === "function") {
-    const userObject = user.toObject();
-    userObject.role = normalizedRole;
-    return userObject;
+  if (normalizedRole === normalizedExpected) {
+    return true;
   }
 
-  return { ...user, role: normalizedRole };
+  return (
+    normalizedRole.startsWith(`${normalizedExpected}-`) ||
+    normalizedRole.startsWith(`${normalizedExpected}_`) ||
+    normalizedRole.startsWith(`${normalizedExpected} `)
+  );
 };
 
-module.exports = {
-  normalizeRole,
-  formatUserRole,
+export const getRoleLabel = (role) => {
+  if (matchesRole(role, "owner")) {
+    return "Owner";
+  }
+
+  if (matchesRole(role, "admin")) {
+    return "Admin";
+  }
+
+  if (matchesRole(role, "member")) {
+    return "Member";
+  }
+
+  return "";
 };
+
+export const hasPrivilegedAccess = (role) =>
+  matchesRole(role, "admin") || matchesRole(role, "owner");
+
+export const isOwnerRole = (role) => matchesRole(role, "owner");

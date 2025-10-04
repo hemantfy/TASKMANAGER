@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { FaUser } from "react-icons/fa6";
 import { LuTrash2 } from "react-icons/lu";
 import { useNavigate } from "react-router-dom";
+import { getRoleLabel, hasPrivilegedAccess, normalizeRole } from "../../utils/roleUtils";
 
 const UserCard = ({ userInfo, onDelete, onResetPassword }) => {
   const navigate = useNavigate();
@@ -12,13 +13,15 @@ const UserCard = ({ userInfo, onDelete, onResetPassword }) => {
     { label: "Completed", count: userInfo?.completedTasks || 0, status: "Completed" }
   ];
 
-    const roleLabelMap = {
-    owner: "Owner",
-    admin: "Admin",
-    member: "Member",
-  };
-  const normalizedRole = typeof userInfo?.role === "string" ? userInfo.role.toLowerCase() : "";
-  const roleLabel = roleLabelMap[normalizedRole];
+  const normalizedRole = useMemo(
+    () => normalizeRole(userInfo?.role),
+    [userInfo?.role]
+  );
+  const roleLabel = useMemo(
+    () => getRoleLabel(normalizedRole),
+    [normalizedRole]
+  );
+  const showRoleBadge = hasPrivilegedAccess(normalizedRole) && roleLabel;
 
   const handleNavigateToDetails = () => {
     if (userInfo?._id) {
@@ -64,7 +67,7 @@ const UserCard = ({ userInfo, onDelete, onResetPassword }) => {
           <div>
             <p className="text-base font-semibold text-slate-900">{userInfo?.name}</p>
             <p className="text-xs text-slate-500">{userInfo?.email}</p>
-            {roleLabel && normalizedRole !== "member" && (
+            {showRoleBadge && (
               <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.26em] text-indigo-600">
                 {roleLabel}
               </span>

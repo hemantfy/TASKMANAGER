@@ -1,8 +1,13 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { SIDE_MENU_DATA, SIDE_MENU_USER_DATA } from "../../utils/data";
 import { UserContext } from "../../context/userContext";
 import { FaUser } from "react-icons/fa6";
+import {
+  getRoleLabel,
+  hasPrivilegedAccess,
+  normalizeRole,
+} from "../../utils/roleUtils";
 
 const SideMenu = ({ activeMenu }) => {
   const { user, clearUser } = useContext(UserContext);
@@ -42,14 +47,17 @@ const SideMenu = ({ activeMenu }) => {
     navigate("/login");
   };
 
+  const normalizedRole = useMemo(() => normalizeRole(user?.role), [user?.role]);
+  const isPrivilegedUser = hasPrivilegedAccess(normalizedRole);
+  const roleBadgeLabel = getRoleLabel(normalizedRole);
+
   useEffect(() => {
     if (user) {
-      const isPrivilegedUser = ["admin", "owner"].includes(user?.role);
       setSideMenuData(isPrivilegedUser ? SIDE_MENU_DATA : SIDE_MENU_USER_DATA);
     }
 
     return () => {};
-  }, [user]);
+  }, [isPrivilegedUser, user]);
 
   return (
     <aside className="relative w-full overflow-hidden rounded-[26px] border border-white/50 bg-white/75 p-6 shadow-[0_24px_48px_rgba(15,23,42,0.08)] backdrop-blur-xl lg:sticky lg:top-28">
@@ -67,9 +75,9 @@ const SideMenu = ({ activeMenu }) => {
           /> : <FaUser className="text-4xl text-primary"/>}
         </div>
 
-        {["admin", "owner"].includes(user?.role) && (
+        {isPrivilegedUser && roleBadgeLabel && (
           <div className="mt-3 rounded-full bg-gradient-to-r from-primary via-indigo-500 to-sky-400 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.26em] text-white shadow-md">
-            {user?.role === "owner" ? "Owner" : "Admin"}
+            {roleBadgeLabel}
           </div>
         )}
 

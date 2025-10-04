@@ -15,6 +15,7 @@ import MyTasks from "./pages/User/MyTasks";
 import ViewTaskDetails from "./pages/User/ViewTaskDetails";
 import UserProvider, { UserContext } from "./context/userContext";
 import { Toaster } from "react-hot-toast";
+import { hasPrivilegedAccess } from "./utils/roleUtils";
 
 
 const App = () => {
@@ -75,7 +76,7 @@ const Root = () => {
     return <Navigate to="/login" />;
   }
 
-  return ["admin", "owner"].includes(user.role) ? (
+  return hasPrivilegedAccess(user.role) ? (
     <Navigate to="/admin/dashboard" />
   ) : (
     <Navigate to="/user/dashboard" />

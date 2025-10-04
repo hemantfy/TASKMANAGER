@@ -2,11 +2,9 @@ import React, { createContext, useState, useEffect } from "react";
 import axiosInstance from "../utils/axiosInstance";
 import { API_PATHS } from "../utils/apiPaths";
 import { clearToken, getToken, setToken } from "../utils/tokenStorage";
+import { normalizeRole } from "../utils/roleUtils";
 
 export const UserContext = createContext();
-
-const normalizeRole = (role) =>
-  typeof role === "string" ? role.trim().toLowerCase() : role;
 
 const withNormalizedRole = (userData) => {
   if (!userData || typeof userData !== "object") {

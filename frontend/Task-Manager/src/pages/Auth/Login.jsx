@@ -6,6 +6,7 @@ import { API_PATHS } from "../../utils/apiPaths";
 import { UserContext } from "../../context/userContext";
 import Input from "../../components/inputs/input";
 import { getStoredTokenPreference, getToken } from "../../utils/tokenStorage";
+import { hasPrivilegedAccess } from "../../utils/roleUtils";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -75,7 +76,7 @@ const Login = () => {
           setShowChangePasswordModal(true);
         } else {
           // Redirect based on role
-          if (["admin", "owner"].includes(role)) {  
+          if (hasPrivilegedAccess(role)) { 
             navigate("/admin/dashboard");
           } else {
             navigate("/user/dashboard");
@@ -127,7 +128,7 @@ const Login = () => {
 
       const role = pendingRoleRedirect || profileResponse?.data?.role;
       setPendingRoleRedirect(null);
-      if (["admin", "owner"].includes(role)) {
+      if (hasPrivilegedAccess(role)) {
         navigate("/admin/dashboard");
       } else {
         navigate("/user/dashboard");

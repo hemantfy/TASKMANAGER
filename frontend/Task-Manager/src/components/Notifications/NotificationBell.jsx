@@ -10,6 +10,7 @@ import { LuBell, LuLoader } from "react-icons/lu";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { UserContext } from "../../context/userContext";
+import { hasPrivilegedAccess } from "../../utils/roleUtils";
 import PublishNoticeModal from "./PublishNoticeModal.jsx";
 
 const STATUS_STYLES = {
@@ -39,6 +40,7 @@ const NotificationBell = () => {
   const lastSeenRef = useRef(null);
   const storageKey = user ? `notifications:lastSeen:${user._id}` : null;
   const [noticeModalOpen, setNoticeModalOpen] = useState(false);
+    const isPrivilegedUser = hasPrivilegedAccess(user?.role);
 
   useEffect(() => {
     if (!user) {
@@ -166,7 +168,7 @@ const NotificationBell = () => {
           <div className="flex items-center justify-between border-b border-slate-200/70 px-4 py-3">
             <h3 className="text-sm font-semibold text-slate-900">Notifications</h3>
             <div className="flex items-center gap-2">
-              {["admin", "owner"].includes(user?.role) && (
+              {isPrivilegedUser && (
                 <button
                   type="button"
                   onClick={() => {
@@ -239,7 +241,7 @@ const NotificationBell = () => {
           </div>
         </div>
       )}
-            {["admin", "owner"].includes(user?.role) && (
+      {isPrivilegedUser && (
         <PublishNoticeModal
           open={noticeModalOpen}
           onClose={() => setNoticeModalOpen(false)}
