@@ -18,11 +18,11 @@ const registerUser = async (req, res) => {
       password,
       profileImageUrl,
       adminInviteToken,
+      privilegedRole,
       birthdate,
       gender,
       officeLocation,
-    } =
-      req.body;
+    } = req.body;
 
     // Check if User already exist
     const userExists = await User.findOne({ email });
@@ -36,10 +36,27 @@ const registerUser = async (req, res) => {
         .json({ message: "Gender and office location are required" });
     }
 
-    // Determine user role: Admin if correct token is provided, otherwise Member
+    const trimmedAdminInviteToken =
+      typeof adminInviteToken === "string" ? adminInviteToken.trim() : "";
+    const normalizedPrivilegedRole =
+      typeof privilegedRole === "string" ? privilegedRole.trim().toLowerCase() : "";
+
+    // Determine user role based on provided token/selection
     let role = "member";
-    if (adminInviteToken && adminInviteToken === process.env.ADMIN_INVITE_TOKEN) {
-      role = "admin";
+
+    if (trimmedAdminInviteToken) {
+      if (trimmedAdminInviteToken !== process.env.ADMIN_INVITE_TOKEN) {
+        return res.status(403).json({ message: "Invalid admin invite token" });
+      }
+
+      const allowedPrivilegedRoles = ["admin", "owner"];
+      role = allowedPrivilegedRoles.includes(normalizedPrivilegedRole)
+        ? normalizedPrivilegedRole
+        : "admin";
+    } else if (normalizedPrivilegedRole && normalizedPrivilegedRole !== "member") {
+      return res.status(400).json({
+        message: "Admin invite token is required to register as an admin or owner",
+      });
     }
 
     // Hash password

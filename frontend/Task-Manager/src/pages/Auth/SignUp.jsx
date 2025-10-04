@@ -15,6 +15,8 @@ const SignUp = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [adminInviteToken, setAdminInviteToken] = useState("");
+  const [privilegedRole, setPrivilegedRole] = useState("");
+  const [isRoleSelectionOpen, setIsRoleSelectionOpen] = useState(false);
   const [gender, setGender] = useState("");
   const [officeLocation, setOfficeLocation] = useState("");
 
@@ -22,6 +24,25 @@ const SignUp = () => {
 
   const {updateUser} = useContext(UserContext);
   const navigate = useNavigate();
+
+    const handleAdminInviteTokenChange = ({ target }) => {
+    const { value } = target;
+    setAdminInviteToken(value);
+
+    if (!value.trim()) {
+      setPrivilegedRole("");
+    }
+  };
+
+  const handleRoleSelection = (role) => {
+    setPrivilegedRole(role);
+    setError(null);
+    setIsRoleSelectionOpen(false);
+  };
+
+  const clearPrivilegedRole = () => {
+    setPrivilegedRole("");
+  };
 
   // Handle SignUp Form Submit
   const handleSignUp = async (e) => {
@@ -56,6 +77,14 @@ const SignUp = () => {
       setError("Please enter a password.");
       return;
     }
+        const trimmedAdminInviteToken = adminInviteToken.trim();
+
+    if (trimmedAdminInviteToken && !privilegedRole) {
+      setError("Please choose whether to sign up as an admin or an owner.");
+      setIsRoleSelectionOpen(true);
+      return;
+    }
+
     // SignUp API call here.
     try{
       // Upload image if present
@@ -64,15 +93,24 @@ const SignUp = () => {
         profileImageUrl = imgUploadRes.imageUrl || "";
       }
 
-      const response = await axiosInstance.post(API_PATHS.AUTH.REGISTER, {
+      const payload = {
         name: fullName,
         email,
         password,
         profileImageUrl,
-        adminInviteToken,
         gender,
         officeLocation,
-      });
+      };
+
+      if (trimmedAdminInviteToken) {
+        payload.adminInviteToken = trimmedAdminInviteToken;
+
+        if (privilegedRole) {
+          payload.privilegedRole = privilegedRole;
+        }
+      }
+
+      const response = await axiosInstance.post(API_PATHS.AUTH.REGISTER, payload);
       
       const { token, role } = response.data;
       
@@ -177,11 +215,56 @@ const SignUp = () => {
             </div>
             <Input
               value={adminInviteToken}
-              onChange={({ target }) => setAdminInviteToken(target.value)}
+              onChange={handleAdminInviteTokenChange}
               label="Admin Invite Token"
               placeholder="6 digit token (optional)"
               type="text"
             />
+                        {adminInviteToken.trim() && (
+              <div className="md:col-span-2 space-y-3">
+                {privilegedRole ? (
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-700">
+                    <span>
+                      Signing up as{' '}
+                      <span className="font-semibold capitalize text-emerald-900">
+                        {privilegedRole}
+                      </span>
+                      .
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsRoleSelectionOpen(true)}
+                        className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-700 transition hover:text-emerald-600"
+                      >
+                        Change
+                      </button>
+                      <button
+                        type="button"
+                        onClick={clearPrivilegedRole}
+                        className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-700 transition hover:text-emerald-600"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3 rounded-2xl border border-blue-200 bg-blue-50/80 px-4 py-3 text-sm text-blue-700">
+                    <p>
+                      You have entered an admin access token. Choose whether you would like
+                      to continue as an admin or as an owner.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setIsRoleSelectionOpen(true)}
+                      className="inline-flex items-center justify-center rounded-full bg-blue-600 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-white transition hover:bg-blue-500"
+                    >
+                      Select role
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {error && (
@@ -216,6 +299,56 @@ const SignUp = () => {
           
         
       </div>
+      
+      {isRoleSelectionOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4 py-6">
+          <div className="w-full max-w-md space-y-6 rounded-3xl bg-white p-6 shadow-xl">
+            <div className="space-y-2 text-center">
+              <h2 className="text-2xl font-semibold text-slate-900">Choose your access level</h2>
+              <p className="text-sm text-slate-500">
+                Select how you want to join this workspace with the admin access token you provided.
+              </p>
+            </div>
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => handleRoleSelection('admin')}
+                className={`w-full rounded-2xl border px-4 py-4 text-left transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                  privilegedRole === 'admin'
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-200 hover:bg-blue-50'
+                }`}
+              >
+                <span className="block text-base font-semibold">Sign up as Admin</span>
+                <span className="mt-1 block text-sm text-slate-500">
+                  Manage teams, assign tasks, and oversee day-to-day operations.
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRoleSelection('owner')}
+                className={`w-full rounded-2xl border px-4 py-4 text-left transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                  privilegedRole === 'owner'
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-200 hover:bg-blue-50'
+                }`}
+              >
+                <span className="block text-base font-semibold">Sign up as Owner</span>
+                <span className="mt-1 block text-sm text-slate-500">
+                  Gain full visibility into the workspace, including admin-level insights.
+                </span>
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsRoleSelectionOpen(false)}
+              className="w-full rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold uppercase tracking-[0.3em] text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </AuthLayout>
   );
 };
