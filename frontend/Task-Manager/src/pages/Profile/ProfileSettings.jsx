@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
 import {
-  LuAlertTriangle,
+  LuTriangleAlert,
   LuCamera,
   LuLoader,
   LuShieldCheck,
@@ -552,7 +552,7 @@ const ProfileSettings = () => {
             ) : (
               <div className="mt-6 space-y-5">
                 <div className="flex items-center gap-3 rounded-2xl border border-rose-100 bg-rose-50 p-3 text-rose-600">
-                  <LuAlertTriangle className="text-lg" />
+                  <LuTriangleAlert className="text-lg" />
                   <p className="text-sm font-medium">
                     Deleting your owner account will remove access for this
                     user immediately.
