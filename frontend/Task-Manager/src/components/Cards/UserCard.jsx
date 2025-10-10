@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { FaUser } from "react-icons/fa6";
 import { LuTrash2 } from "react-icons/lu";
 import { useNavigate } from "react-router-dom";
-import { getRoleLabel, hasPrivilegedAccess, normalizeRole } from "../../utils/roleUtils";
+import { getRoleLabel, normalizeRole } from "../../utils/roleUtils";
 
 const UserCard = ({ userInfo, onDelete, onResetPassword }) => {
   const navigate = useNavigate();
@@ -21,7 +21,7 @@ const UserCard = ({ userInfo, onDelete, onResetPassword }) => {
     () => getRoleLabel(normalizedRole),
     [normalizedRole]
   );
-  const showRoleBadge = hasPrivilegedAccess(normalizedRole) && roleLabel;
+  const showRoleBadge = Boolean(roleLabel);
 
   const handleNavigateToDetails = () => {
     if (userInfo?._id) {
