@@ -149,6 +149,20 @@ const ManageUsers = () => {
       return;
     }
 
+  const currentUserIdString = currentUser?._id
+      ? String(currentUser._id)
+      : "";
+    if (
+      normalizedCurrentUserRole === "owner" &&
+      currentUserIdString &&
+      String(userId) === currentUserIdString
+    ) {
+      toast.error(
+        "Owners must delete their own account from Profile Settings."
+      );
+      return;
+    }
+
     const confirmDelete = window.confirm(
       `Are you sure you want to delete ${userName || "this user"}? This action cannot be undone.`
     );
@@ -172,10 +186,25 @@ const ManageUsers = () => {
   };
 
   const openResetPasswordModal = (user) => {
-        const normalizedRole = normalizeRole(user?.role);
+    const normalizedRole = normalizeRole(user?.role);
+    const userIdString = user?._id ? String(user._id) : "";
+    const currentUserIdString = currentUser?._id
+      ? String(currentUser._id)
+      : "";
+    const isCurrentUser =
+      userIdString &&
+      currentUserIdString &&
+      userIdString === currentUserIdString;
 
     if (normalizedRole === "owner" && normalizedCurrentUserRole !== "owner") {
       toast.error("Only owners can reset passwords for owner accounts.");
+      return;
+    }
+
+    if (normalizedCurrentUserRole === "owner" && isCurrentUser) {
+      toast.error(
+        "Owners can update their own password from Profile Settings."
+      );
       return;
     }
 
@@ -192,7 +221,7 @@ const ManageUsers = () => {
     event.preventDefault();
     if (!selectedUser || isResettingPassword) return;
 
-  const selectedUserRole = normalizeRole(selectedUser?.role);
+   const selectedUserRole = normalizeRole(selectedUser?.role);
     if (selectedUserRole === "owner" && normalizedCurrentUserRole !== "owner") {
       toast.error("Only owners can reset passwords for owner accounts.");
       return;
@@ -289,9 +318,15 @@ const ManageUsers = () => {
   }, [normalizedCurrentUserRole]);
 
   const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+    const canViewOwnerAccounts = normalizedCurrentUserRole === "owner";
+  const allowedRolesForDisplay = canViewOwnerAccounts
+    ? ["owner", "admin", "member"]
+    : ["admin", "member"];
+
   const filteredUsers = allUsers.filter((user) => {
     const normalizedRole = normalizeRole(user?.role);
-    if (normalizedRole !== "member") {
+
+    if (!allowedRolesForDisplay.includes(normalizedRole)) {
       return false;
     }
 
@@ -552,8 +587,19 @@ const ManageUsers = () => {
           {filteredUsers?.map((user) => {
             const normalizedRole = normalizeRole(user?.role);
             const canManageOwner = normalizedCurrentUserRole === "owner";
+            const userIdString = user?._id ? String(user._id) : "";
+            const currentUserIdString = currentUser?._id
+              ? String(currentUser._id)
+              : "";
+            const isCurrentUser =
+              userIdString &&
+              currentUserIdString &&
+              userIdString === currentUserIdString;
+            const preventSelfManagement =
+              canManageOwner && isCurrentUser;
             const allowManagement =
-              canManageOwner || normalizedRole !== "owner";
+              !preventSelfManagement &&
+              (canManageOwner || normalizedRole !== "owner");
 
             return (
               <UserCard

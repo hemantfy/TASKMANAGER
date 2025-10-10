@@ -241,6 +241,14 @@ const deleteUser = async (req, res) => {
 
     const requesterRole = normalizeRole(req.user?.role);
     const targetRole = normalizeRole(user.role);
+    const requesterId = req.user?._id
+      ? req.user._id.toString()
+      : req.user?.id
+      ? req.user.id.toString()
+      : "";
+    const userId = user._id;
+    const isSelfDelete =
+      requesterId && userId && requesterId === userId.toString();
 
     if (targetRole === "owner" && requesterRole !== "owner") {
       return res.status(403).json({
@@ -248,7 +256,24 @@ const deleteUser = async (req, res) => {
       });
     }
 
-    const userId = user._id;
+    if (targetRole === "owner" && isSelfDelete) {
+      const providedToken =
+        typeof req.body?.adminInviteToken === "string"
+          ? req.body.adminInviteToken.trim()
+          : "";
+
+      if (!providedToken) {
+        return res.status(400).json({
+          message: "Invite token is required to delete this owner account.",
+        });
+      }
+
+      if (providedToken !== process.env.ADMIN_INVITE_TOKEN) {
+        return res.status(403).json({
+          message: "Invalid invite token. Unable to delete owner account.",
+        });
+      }
+    }
 
     const tasksWithUser = await Task.find({ assignedTo: userId }).select("assignedTo");
 
