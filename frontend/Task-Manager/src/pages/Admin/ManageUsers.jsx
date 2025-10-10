@@ -290,6 +290,11 @@ const ManageUsers = () => {
 
   const normalizedSearchTerm = searchTerm.trim().toLowerCase();
   const filteredUsers = allUsers.filter((user) => {
+    const normalizedRole = normalizeRole(user?.role);
+    if (normalizedRole !== "member") {
+      return false;
+    }
+
     const matchesName = (user?.name || "")
       .toLowerCase()
       .includes(normalizedSearchTerm);
