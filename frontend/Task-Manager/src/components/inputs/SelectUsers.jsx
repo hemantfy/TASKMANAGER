@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { API_PATHS } from "../../utils/apiPaths";
 import axiosInstance from "../../utils/axiosInstance";
-import Modal from "../Modal"
+import Modal from "../Modal";
 import { LuUsers } from "react-icons/lu";
+import { FaUser } from "react-icons/fa6";
 import AvatarGroup from "../AvatarGroup";
+import { getRoleLabel, normalizeRole } from "../../utils/roleUtils";
 
 const SelectUsers = ({ selectedUsers, setSelectedUsers }) => {
   const [allUsers, setAllUsers] = useState([]);
@@ -14,7 +16,27 @@ const SelectUsers = ({ selectedUsers, setSelectedUsers }) => {
     try {
       const response = await axiosInstance.get(API_PATHS.USERS.GET_ALL_USERS);
       if (response.data?.length > 0) {
-        setAllUsers(response.data);
+        const sortedUsers = [...response.data].sort((userA, userB) => {
+          const rolePriority = {
+            owner: 0,
+            admin: 1,
+            member: 2,
+          };
+
+          const normalizedRoleA = normalizeRole(userA?.role);
+          const normalizedRoleB = normalizeRole(userB?.role);
+          const roleDifference =
+            (rolePriority[normalizedRoleA] ?? Number.MAX_SAFE_INTEGER) -
+            (rolePriority[normalizedRoleB] ?? Number.MAX_SAFE_INTEGER);
+
+          if (roleDifference !== 0) {
+            return roleDifference;
+          }
+
+          return (userA?.name || "").localeCompare(userB?.name || "");
+        });
+
+        setAllUsers(sortedUsers);
       }
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -34,9 +56,13 @@ const SelectUsers = ({ selectedUsers, setSelectedUsers }) => {
     setIsModalOpen(false);
   };
 
-  const selectedUserDetails = selectedUsers
-    .map((userId) => allUsers.find((user) => user._id === userId))
-    .filter(Boolean);
+  const selectedUserDetails = useMemo(
+    () =>
+      selectedUsers
+        .map((userId) => allUsers.find((user) => user._id === userId))
+        .filter(Boolean),
+    [allUsers, selectedUsers]
+  );
 
   const selectedUserAvatars = selectedUserDetails.map((user) => ({
     profileImageUrl: user.profileImageUrl,
@@ -101,29 +127,45 @@ const SelectUsers = ({ selectedUsers, setSelectedUsers }) => {
           </p>
 
           <div className="space-y-3 overflow-y-auto rounded-2xl border border-slate-200/80 bg-slate-50 p-3">
-            {allUsers.map((user) => (
-              <div
-                key={user._id}
-                className="flex items-center gap-4 rounded-xl bg-white px-4 py-3 shadow-[0_12px_24px_rgba(15,23,42,0.08)]"
-              >
-                <img
-                  src={user.profileImageUrl}
-                  alt={user.name}
-                  className="h-10 w-10 rounded-full object-cover"
-                />
-                <div className="flex-1">
-                  <p className="font-medium text-slate-800">{user.name}</p>
-                  <p className="text-xs text-slate-500">{user.email}</p>
-                </div>
+            {allUsers.map((user) => {
+              const normalizedRole = normalizeRole(user?.role);
+              const roleLabel = getRoleLabel(normalizedRole);
 
-                <input
-                  type="checkbox"
-                  checked={tempSelectedUsers.includes(user._id)}
-                  onChange={() => toggleUserSelection(user._id)}
-                  className="h-4 w-4 rounded-sm border-slate-300 text-primary focus:ring-primary"
-                />
-              </div>
-            ))}
+              return (
+                <div
+                  key={user._id}
+                  className="flex items-center gap-4 rounded-xl bg-white px-4 py-3 shadow-[0_12px_24px_rgba(15,23,42,0.08)]"
+                >
+                  {user.profileImageUrl ? (
+                    <img
+                      src={user.profileImageUrl}
+                      alt={user.name}
+                      className="h-10 w-10 rounded-full object-cover"
+                    />
+                  ) : (
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+                      <FaUser className="text-base" />
+                    </span>
+                  )}
+                  <div className="flex-1">
+                    <p className="font-medium text-slate-800">{user.name}</p>
+                    <p className="text-xs text-slate-500">{user.email}</p>
+                    {roleLabel && (
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-slate-400">
+                        {roleLabel}
+                      </p>
+                    )}
+                  </div>
+
+                  <input
+                    type="checkbox"
+                    checked={tempSelectedUsers.includes(user._id)}
+                    onChange={() => toggleUserSelection(user._id)}
+                    className="h-4 w-4 rounded-sm border-slate-300 text-primary focus:ring-primary"
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
 

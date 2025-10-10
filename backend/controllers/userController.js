@@ -4,9 +4,21 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const Task = require("../models/Task");
 const User = require("../models/User");
-const { formatUserRole, normalizeRole } = require("../utils/roleUtils");
+const {
+  PRIVILEGED_ROLES,
+  formatUserRole,
+  normalizeRole,
+} = require("../utils/roleUtils");
 
-const PRIVILEGED_ROLES = ["admin", "owner"];
+const buildTaskCountsForUser = async (userId) => {
+  const [pendingTasks, inProgressTasks, completedTasks] = await Promise.all([
+    Task.countDocuments({ assignedTo: userId, status: "Pending" }),
+    Task.countDocuments({ assignedTo: userId, status: "In Progress" }),
+    Task.countDocuments({ assignedTo: userId, status: "Completed" }),
+  ]);
+
+  return { pendingTasks, inProgressTasks, completedTasks };
+};
 
 // @desc    Get all users (Admin only)
 // @route   GET /api/users/
@@ -14,36 +26,26 @@ const PRIVILEGED_ROLES = ["admin", "owner"];
 const getUsers = async (req, res) => {
   try {
     const requesterRole = normalizeRole(req.user?.role);
-    const isOwner = requesterRole === "owner";
-    const userFilter = isOwner ? {} : { role: "member" };
+  
+    if (!PRIVILEGED_ROLES.includes(requesterRole)) {
+      return res
+        .status(403)
+        .json({ message: "You are not authorized to view the team directory" });
+    }
 
-    const users = await User.find(userFilter).select("-password");
+    const users = await User.find({})
+      .select("-password")
+      .sort({ name: 1, email: 1 });
 
     // Add task counts to each user
     const usersWithTaskCounts = await Promise.all(
       users.map(async (user) => {
         const formattedUser = formatUserRole(user);
-
-        const pendingTasks = await Task.countDocuments({
-          assignedTo: formattedUser._id,
-          status: "Pending",
-        });
-
-        const inProgressTasks = await Task.countDocuments({
-          assignedTo: formattedUser._id,
-          status: "In Progress",
-        });
-
-        const completedTasks = await Task.countDocuments({
-          assignedTo: formattedUser._id,
-          status: "Completed",
-        });
+        const taskCounts = await buildTaskCountsForUser(formattedUser._id);
 
         return {
           ...formattedUser,
-          pendingTasks,
-          inProgressTasks,
-          completedTasks,
+          ...taskCounts,
         };
       })
     );
@@ -237,6 +239,15 @@ const deleteUser = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    const requesterRole = normalizeRole(req.user?.role);
+    const targetRole = normalizeRole(user.role);
+
+    if (targetRole === "owner" && requesterRole !== "owner") {
+      return res.status(403).json({
+        message: "Only owners can modify or remove owner accounts",
+      });
+    }
+
     const userId = user._id;
 
     const tasksWithUser = await Task.find({ assignedTo: userId }).select("assignedTo");
@@ -368,6 +379,15 @@ const resetUserPassword = async (req, res) => {
     const user = await User.findById(req.params.id);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
+    }
+
+    const requesterRole = normalizeRole(req.user?.role);
+    const targetRole = normalizeRole(user.role);
+
+    if (targetRole === "owner" && requesterRole !== "owner") {
+      return res.status(403).json({
+        message: "Only owners can reset passwords for owner accounts",
+      });
     }
 
     const salt = await bcrypt.genSalt(10);

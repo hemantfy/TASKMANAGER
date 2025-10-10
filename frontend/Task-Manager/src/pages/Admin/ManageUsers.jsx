@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import DashboardLayout from "../../components/layouts/DashboardLayout";
 import { API_PATHS } from "../../utils/apiPaths";
 import axiosInstance from "../../utils/axiosInstance";
@@ -6,8 +6,11 @@ import { LuFileSpreadsheet, LuUsers } from "react-icons/lu";
 import UserCard from "../../components/Cards/UserCard";
 import toast from "react-hot-toast";
 import LoadingOverlay from "../../components/LoadingOverlay";
+import { UserContext } from "../../context/userContext";
+import { normalizeRole } from "../../utils/roleUtils";
 
 const ManageUsers = () => {
+  const { user: currentUser } = useContext(UserContext);
   const [allUsers, setAllUsers] = useState([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -18,7 +21,7 @@ const ManageUsers = () => {
     confirmPassword: "",
     gender: "",
     officeLocation: "",
-    isAdmin: false,
+    role: "member",
   });
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -37,7 +40,27 @@ const ManageUsers = () => {
       setAllUsers([]);
       const response = await axiosInstance.get(API_PATHS.USERS.GET_ALL_USERS);
       if (Array.isArray(response.data)) {
-        setAllUsers(response.data);
+        const sortedUsers = [...response.data].sort((userA, userB) => {
+          const rolePriority = {
+            owner: 0,
+            admin: 1,
+            member: 2,
+          };
+
+          const normalizedRoleA = normalizeRole(userA?.role);
+          const normalizedRoleB = normalizeRole(userB?.role);
+          const roleDifference =
+            (rolePriority[normalizedRoleA] ?? Number.MAX_SAFE_INTEGER) -
+            (rolePriority[normalizedRoleB] ?? Number.MAX_SAFE_INTEGER);
+
+          if (roleDifference !== 0) {
+            return roleDifference;
+          }
+
+          return (userA?.name || "").localeCompare(userB?.name || "");
+        });
+
+        setAllUsers(sortedUsers);
       } else {
         setAllUsers([]);
       }
@@ -59,11 +82,13 @@ const ManageUsers = () => {
     event.preventDefault();
     if (isSubmitting) return;
 
+    const requestedRole = normalizeRole(formData.role) || "member";
+
     const payload = {
       name: formData.name.trim(),
       email: formData.email.trim(),
       password: formData.password,
-      role: formData.isAdmin ? "admin" : "member",
+      role: requestedRole,
       gender: formData.gender,
       officeLocation: formData.officeLocation,
     };
@@ -90,7 +115,7 @@ const ManageUsers = () => {
         confirmPassword: "",
         gender: "",
         officeLocation: "",
-        isAdmin: false,
+        role: "member",
       });
       await getAllUsers();
     } catch (error) {
@@ -102,9 +127,22 @@ const ManageUsers = () => {
     }
   };
 
+  const normalizedCurrentUserRole = useMemo(
+    () => normalizeRole(currentUser?.role),
+    [currentUser?.role]
+  );
+
   const handleDeleteUser = async (user) => {
     const userId = typeof user === "object" ? user?._id : user;
     const userName = typeof user === "object" ? user?.name : "";
+    const userRole = normalizeRole(
+      typeof user === "object" ? user?.role : undefined
+    );
+
+    if (userRole === "owner" && normalizedCurrentUserRole !== "owner") {
+      toast.error("Only owners can remove owner accounts.");
+      return;
+    }
 
     if (!userId) {
       toast.error("Unable to delete user. Please try again.");
@@ -134,6 +172,13 @@ const ManageUsers = () => {
   };
 
   const openResetPasswordModal = (user) => {
+        const normalizedRole = normalizeRole(user?.role);
+
+    if (normalizedRole === "owner" && normalizedCurrentUserRole !== "owner") {
+      toast.error("Only owners can reset passwords for owner accounts.");
+      return;
+    }
+
     setSelectedUser(user);
     setResetPasswordData({ newPassword: "", confirmPassword: "" });
     setShowResetPasswordModal(true);
@@ -147,6 +192,12 @@ const ManageUsers = () => {
     event.preventDefault();
     if (!selectedUser || isResettingPassword) return;
 
+  const selectedUserRole = normalizeRole(selectedUser?.role);
+    if (selectedUserRole === "owner" && normalizedCurrentUserRole !== "owner") {
+      toast.error("Only owners can reset passwords for owner accounts.");
+      return;
+    }
+  
     if (!resetPasswordData.newPassword || !resetPasswordData.confirmPassword) {
       toast.error("Please enter and confirm the new password.");
       return;
@@ -203,6 +254,39 @@ const ManageUsers = () => {
 
     return () => {};
   }, []);
+
+    useEffect(() => {
+    if (!showCreateForm) {
+      return;
+    }
+
+    const allowedRoles =
+      normalizedCurrentUserRole === "owner"
+        ? ["member", "admin", "owner"]
+        : ["member", "admin"];
+
+    if (!allowedRoles.includes(formData.role)) {
+      setFormData((prev) => ({
+        ...prev,
+        role: allowedRoles[0],
+      }));
+    }
+  }, [formData.role, normalizedCurrentUserRole, showCreateForm]);
+
+  const availableRoleOptions = useMemo(() => {
+    if (normalizedCurrentUserRole === "owner") {
+      return [
+        { value: "member", label: "Member" },
+        { value: "admin", label: "Admin" },
+        { value: "owner", label: "Owner" },
+      ];
+    }
+
+    return [
+      { value: "member", label: "Member" },
+      { value: "admin", label: "Admin" },
+    ];
+  }, [normalizedCurrentUserRole]);
 
   const normalizedSearchTerm = searchTerm.trim().toLowerCase();
   const filteredUsers = allUsers.filter((user) => {
@@ -366,17 +450,33 @@ const ManageUsers = () => {
               />
             </div>
 
-            <div className="md:col-span-1 flex items-end">
-              <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3 text-sm text-slate-600 shadow-inner">
-                <input
-                  type="checkbox"
-                  name="isAdmin"
-                  checked={formData.isAdmin}
-                  onChange={handleInputChange}
-                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                />
-                Grant admin access to this member
+            <div className="md:col-span-1">
+              <label
+                className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500"
+                htmlFor="role"
+              >
+                Access Level
               </label>
+              <div className="custom-select mt-2">
+                <select
+                  id="role"
+                  name="role"
+                  value={formData.role}
+                  onChange={handleInputChange}
+                  className="custom-select__field"
+                >
+                  {availableRoleOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {normalizedCurrentUserRole !== "owner" && (
+                <p className="mt-2 text-xs text-slate-500">
+                  Only an owner can grant owner-level access.
+                </p>
+              )}
             </div>
 
             <div className="md:col-span-2 flex justify-end">
@@ -444,14 +544,27 @@ const ManageUsers = () => {
         <LoadingOverlay message="Loading team members..." className="py-24" />
       ) : (
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {filteredUsers?.map((user) => (
-            <UserCard
-              key={user._id}
-              userInfo={user}
-              onDelete={() => handleDeleteUser(user._id)}
-              onResetPassword={() => openResetPasswordModal(user)}
-            />
-          ))}
+          {filteredUsers?.map((user) => {
+            const normalizedRole = normalizeRole(user?.role);
+            const canManageOwner = normalizedCurrentUserRole === "owner";
+            const allowManagement =
+              canManageOwner || normalizedRole !== "owner";
+
+            return (
+              <UserCard
+                key={user._id}
+                userInfo={user}
+                onDelete={
+                  allowManagement ? () => handleDeleteUser(user) : undefined
+                }
+                onResetPassword={
+                  allowManagement
+                    ? () => openResetPasswordModal(user)
+                    : undefined
+                }
+              />
+            );
+          })}
           {filteredUsers.length === 0 && (
             <div className="md:col-span-2 xl:col-span-3">
               <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">

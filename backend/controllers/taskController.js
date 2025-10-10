@@ -1,8 +1,7 @@
 const Task = require("../models/Task");
+const { hasPrivilegedAccess } = require("../utils/roleUtils");
 
-const PRIVILEGED_ROLES = ["admin", "owner"];
-
-const isPrivileged = (role) => PRIVILEGED_ROLES.includes(role);
+const isPrivileged = (role) => hasPrivilegedAccess(role);
 
 // @desc    Get all tasks (Admin: all, User: only assigned tasks)
 // @route   GET /api/tasks/

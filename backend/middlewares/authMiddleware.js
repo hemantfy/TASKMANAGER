@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
-const { normalizeRole } = require("../utils/roleUtils");
+const { normalizeRole, PRIVILEGED_ROLES } = require("../utils/roleUtils");
 
 // Middleware to protect routes
 const protect = async (req, res, next) => {
@@ -23,9 +23,6 @@ const protect = async (req, res, next) => {
     res.status(401).json({ message: "Token failed", error: error.message });
   }
 };
-
-// Middleware for Admin-only access
-const PRIVILEGED_ROLES = ["admin", "owner"];
 
 const adminOnly = (req, res, next) => {
   const normalizedRole = normalizeRole(req.user?.role);
