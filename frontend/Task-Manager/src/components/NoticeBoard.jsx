@@ -1,6 +1,4 @@
 import React from "react";
-import moment from "moment";
-
 const NoticeBoard = ({ notices }) => {
   if (!Array.isArray(notices) || notices.length === 0) {
     return null;
@@ -15,27 +13,17 @@ const NoticeBoard = ({ notices }) => {
       <div className="notice-marquee-wrapper">
         <div className="notice-marquee px-4 py-3 text-sm font-medium text-indigo-700">
           <div className="flex items-center gap-8">
-            {notices.map((notice) => {
-              const endMoment = moment(notice.expiresAt);
-              const endLabel = endMoment.isValid()
-                ? endMoment.format("MMM D, YYYY • HH:mm")
-                : "No end time";
-
-              return (
-                <div
-                  key={notice._id}
-                  className="inline-flex items-center gap-3 rounded-full bg-white/60 px-4 py-2 text-indigo-700 shadow-sm"
-                >
-                  <span className="inline-flex h-2 w-2 rounded-full bg-indigo-500" />
-                  <span className="max-w-[420px] truncate sm:max-w-none">
-                    {notice.message}
-                  </span>
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-indigo-500">
-                    Ends {endLabel}
-                  </span>
-                </div>
-              );
-            })}
+             {notices.map((notice) => (
+              <div
+                key={notice._id}
+                className="inline-flex items-center gap-3 rounded-full bg-white/60 px-4 py-2 text-indigo-700 shadow-sm"
+              >
+                <span className="inline-flex h-2 w-2 rounded-full bg-indigo-500" />
+                <span className="max-w-[420px] truncate sm:max-w-none">
+                  {notice.message}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
