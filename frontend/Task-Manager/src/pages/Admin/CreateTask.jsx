@@ -217,7 +217,7 @@ const CreateTask = () => {
     <DashboardLayout activeMenu="Create TasK">
       <div className="mt-6 max-w-5xl mx-auto">
       <div className="rounded-3xl border border-slate-200/70 bg-white shadow-[0_26px_60px_rgba(15,23,42,0.08)]">
-          <div className="flex flex-col gap-4 border-b border-slate-100 px-6 py-5 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-4 border-b border-slate-100 px-4 py-5 md:flex-row md:items-center md:justify-between sm:px-6">
             <div>
               <h2 className="text-lg font-semibold text-slate-900">
                 {taskId ? "Update Task" : "Create Task"}
@@ -236,7 +236,7 @@ const CreateTask = () => {
               </button>
             )}
           </div>
-          <div className="px-6 py-6">
+          <div className="px-4 py-5 sm:px-6 sm:py-6">
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
               <div className="space-y-2">
                 <label className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">

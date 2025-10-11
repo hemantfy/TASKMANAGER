@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useMemo, useState } from "react";
 import { UserContext } from "../../context/userContext";
 import Navbar from "./Navbar";
 import SideMenu from "./SideMenu";
+import MobileNavigation from "./MobileNavigation";
 import BirthdayModal from "../modals/BirthdayModal";
 import LoadingOverlay from "../LoadingOverlay";
 
@@ -77,7 +78,7 @@ const DashboardLayout = ({ children, activeMenu }) => {
 
       <Navbar activeMenu={activeMenu} />
 
-      <div className="mx-auto flex w-full max-w-[1400px] gap-6 px-4 pb-14 pt-6 lg:px-8">
+      <div className="mx-auto flex w-full max-w-[1400px] gap-6 px-3 pb-24 pt-4 sm:px-4 sm:pt-6 sm:pb-16 lg:px-8">
         <div className="hidden shrink-0 lg:block lg:w-[260px] xl:w-[280px]">
           <SideMenu activeMenu={activeMenu} />
         </div>
@@ -95,6 +96,8 @@ const DashboardLayout = ({ children, activeMenu }) => {
           onClose={() => setShowBirthdayModal(false)}
         />
       )}
+      
+      <MobileNavigation />
     </div>
   );
 };

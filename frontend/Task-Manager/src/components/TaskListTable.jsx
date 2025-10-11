@@ -1,5 +1,6 @@
 import React from "react";
 import moment from "moment";
+import { LuCalendar, LuClock3, LuUser } from "react-icons/lu";
 
 const TaskListTable = ({ tableData }) => {
   const safeTableData = Array.isArray(tableData)
@@ -62,7 +63,7 @@ const TaskListTable = ({ tableData }) => {
 
   return (
     <div className="mt-4 overflow-hidden rounded-[28px] border border-white/60 bg-white/80 shadow-[0_20px_45px_rgba(15,23,42,0.08)]">
-      <div className="overflow-x-auto">
+      <div className="hidden overflow-x-auto md:block">
         <table className="min-w-full divide-y divide-white/60">
           <thead className="bg-white/70">
             <tr className="text-left text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500">
@@ -117,6 +118,64 @@ const TaskListTable = ({ tableData }) => {
           </tbody>
         </table>
       </div>
+
+      <div className="space-y-3 p-4 md:hidden">
+        {safeTableData.length ? (
+          safeTableData.map((task) => (
+            <article
+              key={task._id}
+              className="rounded-2xl border border-white/70 bg-white/95 p-4 shadow-[0_12px_28px_rgba(15,23,42,0.08)]"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <h3 className="text-sm font-semibold text-slate-900">
+                  {task.title}
+                </h3>
+                <span
+                  className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${getStatusBadgeColor(
+                    task.status
+                  )}`}
+                >
+                  {task.status}
+                </span>
+              </div>
+
+              <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/80 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-600">
+                {task.priority}
+              </div>
+
+              <dl className="mt-4 space-y-2 text-xs text-slate-500">
+                <div className="flex items-center gap-2">
+                  <LuCalendar className="text-slate-400" />
+                  <dt className="font-semibold uppercase tracking-[0.24em] text-slate-400">
+                    Due
+                  </dt>
+                  <dd className="text-slate-600">{formatDate(task.dueDate)}</dd>
+                </div>
+                <div className="flex items-center gap-2">
+                  <LuUser className="text-slate-400" />
+                  <dt className="font-semibold uppercase tracking-[0.24em] text-slate-400">
+                    Assignees
+                  </dt>
+                  <dd className="text-slate-600">
+                    {getAssigneeNames(task.assignedTo)}
+                  </dd>
+                </div>
+                <div className="flex items-center gap-2">
+                  <LuClock3 className="text-slate-400" />
+                  <dt className="font-semibold uppercase tracking-[0.24em] text-slate-400">
+                    Created
+                  </dt>
+                  <dd className="text-slate-600">{formatDate(task.createdAt)}</dd>
+                </div>
+              </dl>
+            </article>
+          ))
+        ) : (
+          <p className="rounded-2xl border border-dashed border-slate-200 bg-white/90 py-6 text-center text-sm text-slate-500">
+            No tasks available yet.
+          </p>
+        )}
+      </div>      
     </div>
   );
 };

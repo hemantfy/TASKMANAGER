@@ -1,0 +1,137 @@
+import React, { useContext, useMemo } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { LuLogOut } from "react-icons/lu";
+import { UserContext } from "../../context/userContext";
+import { SIDE_MENU_DATA, SIDE_MENU_USER_DATA } from "../../utils/data";
+import { hasPrivilegedAccess, normalizeRole } from "../../utils/roleUtils";
+
+const getGridColumnsClass = (count) => {
+  if (count <= 2) return "grid-cols-2";
+  if (count === 3) return "grid-cols-3";
+  if (count === 4) return "grid-cols-4";
+  return "grid-cols-5";
+};
+
+const normalizePath = (path) => {
+  if (typeof path !== "string") {
+    return "";
+  }
+
+  return path.trim().replace(/\/+$/, "") || "/";
+};
+
+const MobileNavigation = () => {
+  const { user, clearUser } = useContext(UserContext);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const normalizedRole = normalizeRole(user?.role);
+  const menuItems = useMemo(() => {
+    if (!user) {
+      return [];
+    }
+
+    const source = hasPrivilegedAccess(normalizedRole)
+      ? SIDE_MENU_DATA
+      : SIDE_MENU_USER_DATA;
+
+    return source
+      .filter((item) => item?.path && item.path !== "logout")
+      .slice(0, 4);
+  }, [normalizedRole, user]);
+
+  if (!user || menuItems.length === 0) {
+    return null;
+  }
+
+  const currentPath = normalizePath(location.pathname);
+  const gridColumnsClass = getGridColumnsClass(menuItems.length + 1);
+
+  const handleNavigation = (path) => {
+    if (path === "logout") {
+      localStorage.clear();
+      clearUser();
+      navigate("/login");
+      return;
+    }
+
+    const normalizedDestination = normalizePath(path);
+    if (normalizedDestination) {
+      navigate(normalizedDestination);
+    }
+  };
+
+  const isItemActive = (path) => {
+    const normalizedDestination = normalizePath(path);
+
+    if (!normalizedDestination || normalizedDestination === "logout") {
+      return false;
+    }
+
+    if (normalizedDestination === "/") {
+      return currentPath === normalizedDestination;
+    }
+
+    return (
+      currentPath === normalizedDestination ||
+      currentPath.startsWith(`${normalizedDestination}/`)
+    );
+  };
+
+  return (
+    <div className="pointer-events-none fixed inset-x-0 bottom-3 z-40 flex justify-center lg:hidden">
+      <nav
+        aria-label="Primary navigation"
+        className="pointer-events-auto mx-auto w-[min(100%,22rem)] rounded-[26px] border border-white/60 bg-white/90 px-3 py-2 shadow-[0_18px_40px_rgba(15,23,42,0.16)] backdrop-blur"
+      >
+        <ul className={`grid items-center gap-1 ${gridColumnsClass}`}>
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const active = isItemActive(item.path);
+
+            return (
+              <li key={item.path}>
+                <button
+                  type="button"
+                  onClick={() => handleNavigation(item.path)}
+                  className={`flex w-full flex-col items-center gap-1 rounded-2xl px-2 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] transition ${
+                    active
+                      ? "bg-gradient-to-r from-primary/90 via-indigo-500 to-sky-500 text-white shadow-[0_12px_24px_rgba(59,130,246,0.35)]"
+                      : "text-slate-500 hover:text-primary"
+                  }`}
+                  aria-current={active ? "page" : undefined}
+                >
+                  <span
+                    className={`flex h-9 w-9 items-center justify-center rounded-xl border text-base transition ${
+                      active
+                        ? "border-white/50 bg-white/20 text-white"
+                        : "border-slate-200 bg-white/80 text-primary/70"
+                    }`}
+                  >
+                    {Icon ? <Icon /> : item.label?.slice(0, 1) || "•"}
+                  </span>
+                  <span className="line-clamp-1">{item.label}</span>
+                </button>
+              </li>
+            );
+          })}
+
+          <li>
+            <button
+              type="button"
+              onClick={() => handleNavigation("logout")}
+              className="flex w-full flex-col items-center gap-1 rounded-2xl px-2 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-rose-500 transition hover:text-rose-600"
+            >
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-rose-200 bg-white/90 text-base text-rose-500">
+                <LuLogOut />
+              </span>
+              <span className="line-clamp-1">Logout</span>
+            </button>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  );
+};
+
+export default MobileNavigation;

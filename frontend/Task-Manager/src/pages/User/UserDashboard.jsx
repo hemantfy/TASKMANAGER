@@ -142,7 +142,7 @@ const UserDashboard = () => {
         <>
           <NoticeBoard notices={activeNotices} />
 
-          <section className="relative overflow-hidden rounded-[32px] border border-white/60 bg-gradient-to-br from-slate-900 via-indigo-700 to-sky-600 px-6 py-10 text-white shadow-[0_20px_45px_rgba(30,64,175,0.35)]">
+          <section className="relative overflow-hidden rounded-[32px] border border-white/60 bg-gradient-to-br from-slate-900 via-indigo-700 to-sky-600 px-4 py-8 text-white shadow-[0_20px_45px_rgba(30,64,175,0.35)] sm:px-6 sm:py-10">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.18),_transparent_65%)]" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,_rgba(56,189,248,0.22),_transparent_60%)]" />
             <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
@@ -156,7 +156,7 @@ const UserDashboard = () => {
                 </p>
               </div>
 
-              <div className="rounded-3xl border border-white/40 bg-white/15 px-6 py-4 text-sm backdrop-blur">
+              <div className="rounded-3xl border border-white/40 bg-white/15 px-4 py-4 text-sm backdrop-blur sm:px-6">
                 <p className="text-xs uppercase tracking-[0.28em] text-white/70">Momentum</p>
                 <p className="mt-2 text-base font-medium">
                   Tick off tasks, celebrate the wins and keep the flow going.
