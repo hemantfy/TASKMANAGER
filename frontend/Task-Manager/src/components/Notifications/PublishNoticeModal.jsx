@@ -291,62 +291,66 @@ const PublishNoticeModal = ({ open, onClose, onSuccess }) => {
               No scheduled notices yet. New announcements will appear here.
             </p>
           ) : (
-            <div className="flex flex-col gap-3">
-              {notices.map((notice) => {
-                const status = getNoticeStatus(notice);
-                return (
-                  <div
-                    key={notice._id}
-                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
-                  >
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span
-                            className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] ${status.className}`}
+            <div className="relative">
+              <div className="notice-scroll-area max-h-72 overflow-y-auto scroll-smooth pr-1">
+                <div className="flex flex-col gap-3 pr-1">
+                  {notices.map((notice) => {
+                    const status = getNoticeStatus(notice);
+                    return (
+                      <div
+                        key={notice._id}
+                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
+                      >
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span
+                                className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] ${status.className}`}
+                              >
+                                {status.label}
+                              </span>
+                              {notice.createdBy?.name && (
+                                <span className="text-[11px] uppercase tracking-[0.2em] text-slate-400">
+                                  {`By ${notice.createdBy.name}`}
+                                </span>
+                              )}
+                            </div>
+                            <p className="mt-2 text-sm text-slate-700">
+                              {notice.message}
+                            </p>
+                            <div className="mt-3 flex flex-wrap gap-4 text-[11px] uppercase tracking-[0.18em] text-slate-400">
+                              <span>
+                                Starts {moment(notice.startsAt).format("MMM D, YYYY • HH:mm")}
+                              </span>
+                              <span>
+                                Ends {moment(notice.expiresAt).format("MMM D, YYYY • HH:mm")}
+                              </span>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(notice._id)}
+                            className="inline-flex h-9 items-center justify-center rounded-full border border-rose-200 px-4 text-xs font-semibold uppercase tracking-[0.22em] text-rose-500 transition hover:border-rose-300 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-70"
+                            disabled={deletingNoticeId === notice._id || submitting}
                           >
-                            {status.label}
-                          </span>
-                          {notice.createdBy?.name && (
-                            <span className="text-[11px] uppercase tracking-[0.2em] text-slate-400">
-                              {`By ${notice.createdBy.name}`}
-                            </span>
-                          )}
-                        </div>
-                        <p className="mt-2 text-sm text-slate-700">
-                          {notice.message}
-                        </p>
-                        <div className="mt-3 flex flex-wrap gap-4 text-[11px] uppercase tracking-[0.18em] text-slate-400">
-                          <span>
-                            Starts {moment(notice.startsAt).format("MMM D, YYYY • HH:mm")}
-                          </span>
-                          <span>
-                            Ends {moment(notice.expiresAt).format("MMM D, YYYY • HH:mm")}
-                          </span>
+                            {deletingNoticeId === notice._id ? (
+                              <span className="inline-flex items-center gap-2">
+                                <LuLoader className="h-3.5 w-3.5 animate-spin" />
+                                Removing...
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-2">
+                                <LuTrash2 className="text-sm" />
+                                Remove
+                              </span>
+                            )}
+                          </button>
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(notice._id)}
-                        className="inline-flex h-9 items-center justify-center rounded-full border border-rose-200 px-4 text-xs font-semibold uppercase tracking-[0.22em] text-rose-500 transition hover:border-rose-300 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-70"
-                        disabled={deletingNoticeId === notice._id || submitting}
-                      >
-                        {deletingNoticeId === notice._id ? (
-                          <span className="inline-flex items-center gap-2">
-                            <LuLoader className="h-3.5 w-3.5 animate-spin" />
-                            Removing...
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-2">
-                            <LuTrash2 className="text-sm" />
-                            Remove
-                          </span>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           )}
         </div>
