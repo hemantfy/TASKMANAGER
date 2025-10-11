@@ -1,4 +1,10 @@
-import React, { useContext, useState, useEffect, useMemo } from "react";
+import React, {
+  useContext,
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import { useUserAuth } from "../../hooks/useUserAuth";
 import { UserContext } from "../../context/userContext";
@@ -19,6 +25,8 @@ import TaskListTable from "../../components/TaskListTable";
 import CustomPieChart from "../../components/Charts/CustomPieChart";
 import CustomBarChart from "../../components/Charts/CustomBarChart";
 import LoadingOverlay from "../../components/LoadingOverlay";
+import NoticeBoard from "../../components/NoticeBoard";
+import useActiveNotices from "../../hooks/useActiveNotices";
 
 const LiveGreeting = React.memo(({ userName }) => {
   const [currentMoment, setCurrentMoment] = useState(moment());
@@ -63,8 +71,10 @@ const Dashboard = () => {
   const [pieChartData, setPieChartData] = useState([]);
   const [barChartData, setBarChartData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { activeNotices, fetchActiveNotices, resetNotices } =
+    useActiveNotices(false);
 
-  const prepareChartData = (data) => {
+  const prepareChartData = useCallback((data) => {
     const taskDistribution = data?.taskDistribution || null;
     const taskPriorityLevels = data?.taskPriorityLevels || null;
 
@@ -83,14 +93,10 @@ const Dashboard = () => {
     ];
 
     setBarChartData(PriorityLevelData);
-  };
+  }, []);
 
-  const getDashboardData = async () => {
+  const getDashboardData = useCallback(async () => {
     try {
-      setIsLoading(true);
-      setDashboardData(null);
-      setPieChartData([]);
-      setBarChartData([]);
       const response = await axiosInstance.get(
         API_PATHS.TASKS.GET_DASHBOARD_DATA
       );
@@ -100,21 +106,32 @@ const Dashboard = () => {
       }
     } catch (error) {
       console.error("Error fetching users:", error);
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [prepareChartData]);
 
   const onSeeMore = () => {
     navigate("/admin/tasks");
   };
 
   useEffect(() => {
-    getDashboardData();
+    const fetchDashboard = async () => {
+      try {
+        setIsLoading(true);
+        setDashboardData(null);
+        setPieChartData([]);
+        setBarChartData([]);
+        resetNotices();
+
+        await Promise.all([getDashboardData(), fetchActiveNotices()]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboard();
 
     return () => {};
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [user?._id]);
+  }, [fetchActiveNotices, getDashboardData, resetNotices, user?._id]);
 
   const infoCards = useMemo(
     () => [
@@ -168,6 +185,8 @@ const Dashboard = () => {
         <LoadingOverlay message="Loading workspace overview..." className="py-24" />
       ) : (
         <>
+          <NoticeBoard notices={activeNotices} />
+
           <section className="relative overflow-hidden rounded-[32px] border border-white/60 bg-gradient-to-br from-primary via-indigo-500 to-sky-500 px-6 py-10 text-white shadow-[0_20px_45px_rgba(59,130,246,0.25)]">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.2),_transparent_65%)]" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,_rgba(255,255,255,0.18),_transparent_60%)]" />

@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from "react";
+import React, { useContext, useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUserAuth } from "../../hooks/useUserAuth";
 import { UserContext } from "../../context/userContext";
@@ -13,6 +13,8 @@ import TaskListTable from "../../components/TaskListTable";
 import CustomPieChart from "../../components/Charts/CustomPieChart";
 import CustomBarChart from "../../components/Charts/CustomBarChart";
 import LoadingOverlay from "../../components/LoadingOverlay";
+import NoticeBoard from "../../components/NoticeBoard";
+import useActiveNotices from "../../hooks/useActiveNotices";
 
 const COLORS = ["#8D51FF", "#00B8DB", "#7BCE00"];
 
@@ -26,10 +28,11 @@ const UserDashboard = () => {
   const [pieChartData, setPieChartData] = useState([]);
   const [barChartData, setBarChartData] = useState([]);
   const [currentMoment, setCurrentMoment] = useState(moment());
-  const [activeNotice, setActiveNotice] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { activeNotices, fetchActiveNotices, resetNotices } =
+    useActiveNotices(false);  
 
-  const prepareChartData = (data) => {
+  const prepareChartData = useCallback((data) => {
     const taskDistribution = data?.taskDistribution || null;
     const taskPriorityLevels = data?.taskPriorityLevels || null;
 
@@ -48,9 +51,9 @@ const UserDashboard = () => {
     ];
 
     setBarChartData(priorityLevelData);
-  };
+  }, []);
 
-  const getDashboardData = async () => {
+  const getDashboardData = useCallback(async () => {
     try {
       const response = await axiosInstance.get(
         API_PATHS.TASKS.GET_USER_DASHBOARD_DATA
@@ -62,18 +65,7 @@ const UserDashboard = () => {
     } catch (error) {
       console.error("Error fetching users:", error);
     }
-  };
-
-  const fetchActiveNotice = async () => {
-    try {
-      const response = await axiosInstance.get(
-        API_PATHS.NOTICES.GET_ACTIVE
-      );
-      setActiveNotice(response.data?.notice || null);
-    } catch (error) {
-      console.error("Error fetching notice:", error);
-    }
-  };
+  }, [prepareChartData]);
 
   const onSeeMore = () => {
     navigate("/user/tasks");
@@ -86,9 +78,9 @@ const UserDashboard = () => {
         setDashboardData(null);
         setPieChartData([]);
         setBarChartData([]);
-        setActiveNotice(null);
+        resetNotices();
 
-        await Promise.all([getDashboardData(), fetchActiveNotice()]);
+        await Promise.all([getDashboardData(), fetchActiveNotices()]);
       } finally {
         setIsLoading(false);
       }
@@ -97,7 +89,7 @@ const UserDashboard = () => {
     fetchDashboard();
 
     return () => {};
-  }, []);
+  }, [fetchActiveNotices, getDashboardData, resetNotices, user?._id]);
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -148,19 +140,7 @@ const UserDashboard = () => {
         <LoadingOverlay message="Loading your dashboard..." className="py-24" />
       ) : (
         <>
-          {activeNotice && (
-            <section className="overflow-hidden rounded-[24px] border border-indigo-100 bg-indigo-50/80 shadow-[0_18px_40px_rgba(79,70,229,0.12)]">
-              <div className="flex items-center gap-2 bg-indigo-100/80 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.38em] text-indigo-600">
-                <span className="inline-flex h-2 w-2 rounded-full bg-indigo-500" />
-                Notice Board
-              </div>
-              <div className="notice-marquee-wrapper">
-                <div className="notice-marquee px-4 py-3 text-sm font-medium text-indigo-700">
-                  {activeNotice.message}
-                </div>
-              </div>
-            </section>
-          )}
+          <NoticeBoard notices={activeNotices} />
 
           <section className="relative overflow-hidden rounded-[32px] border border-white/60 bg-gradient-to-br from-slate-900 via-indigo-700 to-sky-600 px-6 py-10 text-white shadow-[0_20px_45px_rgba(30,64,175,0.35)]">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.18),_transparent_65%)]" />

@@ -2,12 +2,16 @@ const express = require("express");
 const { protect, adminOnly } = require("../middlewares/authMiddleware");
 const {
   publishNotice,
-  getActiveNotice,
+  getActiveNotices,
+  getAllNotices,
+  deleteNotice,
 } = require("../controllers/noticeController");
 
 const router = express.Router();
 
 router.post("/", protect, adminOnly, publishNotice);
-router.get("/active", protect, getActiveNotice);
+router.get("/", protect, adminOnly, getAllNotices);
+router.get("/active", protect, getActiveNotices);
+router.delete("/:id", protect, adminOnly, deleteNotice);
 
 module.exports = router;

@@ -11,6 +11,14 @@ const NoticeSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    startsAt: {
+      type: Date,
+      default: () => new Date(),
+    },
+    expiresAt: {
+      type: Date,
+      required: true,
+    },    
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -19,6 +27,13 @@ const NoticeSchema = new mongoose.Schema(
     deactivatedAt: {
       type: Date,
     },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+    deletedAt: {
+      type: Date,
+    },    
   },
   {
     timestamps: true,

@@ -44,6 +44,8 @@ export const API_PATHS = {
   NOTICES: {
     PUBLISH: "/api/notices",
     GET_ACTIVE: "/api/notices/active",
+    GET_ALL: "/api/notices",
+    DELETE: (noticeId) => `/api/notices/${noticeId}`,
   },
   
   IMAGE: {
