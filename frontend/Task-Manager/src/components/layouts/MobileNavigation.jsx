@@ -94,15 +94,16 @@ const MobileNavigation = () => {
                 <button
                   type="button"
                   onClick={() => handleNavigation(item.path)}
-                  className={`flex w-full flex-col items-center gap-1 rounded-2xl px-2 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] transition ${
+                  className={`flex w-full items-center justify-center rounded-2xl px-2 py-2 transition ${
                     active
                       ? "bg-gradient-to-r from-primary/90 via-indigo-500 to-sky-500 text-white shadow-[0_12px_24px_rgba(59,130,246,0.35)]"
                       : "text-slate-500 hover:text-primary"
                   }`}
+                  aria-label={item.label}
                   aria-current={active ? "page" : undefined}
                 >
                   <span
-                    className={`flex h-9 w-9 items-center justify-center rounded-xl border text-base transition ${
+                    className={`flex h-10 w-10 items-center justify-center rounded-xl border text-lg transition ${
                       active
                         ? "border-white/50 bg-white/20 text-white"
                         : "border-slate-200 bg-white/80 text-primary/70"
@@ -110,7 +111,6 @@ const MobileNavigation = () => {
                   >
                     {Icon ? <Icon /> : item.label?.slice(0, 1) || "•"}
                   </span>
-                  <span className="line-clamp-1">{item.label}</span>
                 </button>
               </li>
             );
@@ -120,12 +120,12 @@ const MobileNavigation = () => {
             <button
               type="button"
               onClick={() => handleNavigation("logout")}
-              className="flex w-full flex-col items-center gap-1 rounded-2xl px-2 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-rose-500 transition hover:text-rose-600"
+              className="flex w-full items-center justify-center rounded-2xl px-2 py-2 text-rose-500 transition hover:text-rose-600"
+              aria-label="Logout"
             >
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-rose-200 bg-white/90 text-base text-rose-500">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-rose-200 bg-white/90 text-lg text-rose-500">
                 <LuLogOut />
               </span>
-              <span className="line-clamp-1">Logout</span>
             </button>
           </li>
         </ul>
