@@ -38,13 +38,17 @@ const MobileNavigation = () => {
   const handleNavigation = useCallback(
     (path) => {
       if (path === "logout") {
-        try {
-          localStorage.clear();
-        } catch {
-          // ignore storage errors
+        const confirmed = window.confirm("Are you sure you want to logout?");
+
+        if (confirmed) {
+          try {
+            localStorage.clear();
+          } catch {
+            // ignore storage errors
+          }
+          clearUser?.();
+          navigate("/login");
         }
-        clearUser?.();
-        navigate("/login");
         return;
       }
 

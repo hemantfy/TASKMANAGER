@@ -1,24 +1,12 @@
-import React, { useState } from "react";
-import { HiOutlineMenu, HiOutlineX } from "react-icons/hi";
+import React from "react";
 import NotificationBell from "../Notifications/NotificationBell";
-import SideMenu from "./SideMenu";
 import logo from "../../assets/images/logo.png";
 
-const Navbar = ({ activeMenu }) => {
-  const [openSideMenu, setOpenSideMenu] = useState(false);
-
+const Navbar = ({ activeMenu: _activeMenu }) => {
   return (
     <header className="sticky top-0 z-30 border-b border-white/30 bg-white/70 backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-[1400px] items-center gap-4 px-4 py-4 sm:gap-6 lg:px-8">
-      <div className="flex flex-1 items-center gap-4 sm:gap-6">
-          <button
-            type="button"
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200/80 bg-white/80 text-slate-600 shadow-[0_10px_25px_rgba(15,23,42,0.08)] transition hover:border-slate-300 hover:text-primary lg:hidden"
-            onClick={() => setOpenSideMenu((prev) => !prev)}
-          >
-            {openSideMenu ? <HiOutlineX className="text-xl" /> : <HiOutlineMenu className="text-xl" />}
-          </button>
-
+        <div className="flex flex-1 items-center gap-4 sm:gap-6">
           <div className="flex items-center gap-3">
            <img
               src={logo}
@@ -40,13 +28,7 @@ const Navbar = ({ activeMenu }) => {
         <div className="flex items-center gap-3">
           <NotificationBell />
         </div>
-        </div>
-
-        {openSideMenu && (
-        <div className="border-t border-white/40 bg-white/80 px-4 pb-6 pt-3 shadow-[0_20px_45px_rgba(15,23,42,0.1)] lg:hidden">
-          <SideMenu activeMenu={activeMenu} />
-        </div>
-      )}
+      </div>
     </header>
   );
 };
