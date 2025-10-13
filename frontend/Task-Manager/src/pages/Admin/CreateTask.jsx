@@ -216,20 +216,20 @@ const CreateTask = () => {
   return (
     <DashboardLayout activeMenu="Create TasK">
       <div className="mt-6 max-w-5xl mx-auto">
-      <div className="rounded-3xl border border-slate-200/70 bg-white shadow-[0_26px_60px_rgba(15,23,42,0.08)]">
+      <div className="rounded-3xl border border-slate-200/70 bg-white shadow-[0_26px_60px_rgba(15,23,42,0.08)] transition-colors duration-300 dark:border-slate-800/60 dark:bg-slate-900/60 dark:shadow-[0_32px_70px_rgba(2,6,23,0.6)]">
           <div className="flex flex-col gap-4 border-b border-slate-100 px-4 py-5 md:flex-row md:items-center md:justify-between sm:px-6">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">
+              <h2 className="text-lg font-semibold text-slate-900 transition-colors duration-300 dark:text-slate-100">
                 {taskId ? "Update Task" : "Create Task"}
               </h2>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-slate-500 transition-colors duration-300 dark:text-slate-400">
                 Keep everything organised by sharing the right details with your team.
               </p>
             </div>
 
             {taskId && (
               <button
-                className="inline-flex items-center gap-1.5 rounded-full border border-rose-100 bg-rose-50 px-3 py-1.5 text-sm font-medium text-rose-500 transition hover:border-rose-200 hover:bg-rose-100"
+                className="inline-flex items-center gap-1.5 rounded-full border border-rose-100 bg-rose-50 px-3 py-1.5 text-sm font-medium text-rose-500 transition hover:border-rose-200 hover:bg-rose-100 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-200 dark:hover:border-rose-400 dark:hover:bg-rose-500/20"
                 onClick={() => setOpenDeleteAlert(true)}
               >
                 <LuTrash2 className="text-base" /> Delete Task
@@ -239,7 +239,7 @@ const CreateTask = () => {
           <div className="px-4 py-5 sm:px-6 sm:py-6">
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                <label className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-300">
                   Task Title
                 </label>
                 <input
@@ -251,7 +251,7 @@ const CreateTask = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                <label className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-300">
                   Priority
                 </label>
                 <div className="form-input mt-0 h-12 bg-slate-50 p-0 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10">
@@ -265,7 +265,7 @@ const CreateTask = () => {
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <label className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                <label className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-300">
                   Description
                 </label>
                 <textarea
@@ -278,7 +278,7 @@ const CreateTask = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                  <label className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-300">
                   Due Date
                 </label>
 
@@ -289,16 +289,16 @@ const CreateTask = () => {
                     onChange={({ target }) => handleValueChange("dueDate", target.value)}
                     type="date"
                   />
-                  <LuCalendarDays className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <LuCalendarDays className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
                 </div>
               </div>
               
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                <label className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-300">
                   Assign To
                 </label>
 
-                <div className="rounded-2xl border border-slate-200/80 bg-slate-50 px-4 py-3">
+                <div className="rounded-2xl border border-slate-200/80 bg-slate-50 px-4 py-3 transition-colors duration-300 dark:border-slate-700/70 dark:bg-slate-900/60">
                   <SelectUsers
                     selectedUsers={taskData.assignedTo}
                     setSelectedUsers={(value) => {
@@ -310,12 +310,12 @@ const CreateTask = () => {
               </div>
 
                 <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
-                  <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4">
+                  <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4 transition-colors duration-300 dark:border-slate-700/70 dark:bg-slate-900/60">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-semibold text-slate-700">Todo Checklist</p>
-                      <span className="text-xs font-medium uppercase tracking-[0.12em] text-slate-400">Tasks</span>
+                      <p className="text-sm font-semibold text-slate-700 transition-colors duration-300 dark:text-slate-100">Todo Checklist</p>
+                      <span className="text-xs font-medium uppercase tracking-[0.12em] text-slate-400 transition-colors duration-300 dark:text-slate-500">Tasks</span>
                     </div>
-                    <p className="mt-1 text-xs text-slate-500">
+                    <p className="mt-1 text-xs text-slate-500 transition-colors duration-300 dark:text-slate-400">
                       Break the work into smaller action items for better progress tracking.
                     </p>
                 <TodoListInput
@@ -324,12 +324,12 @@ const CreateTask = () => {
                 />
               </div>
 
-              <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4">
+              <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4 transition-colors duration-300 dark:border-slate-700/70 dark:bg-slate-900/60">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-slate-700">Add Attachments</p>
-                  <span className="text-xs font-medium uppercase tracking-[0.12em] text-slate-400">Link</span>
+                  <p className="text-sm font-semibold text-slate-700 transition-colors duration-300 dark:text-slate-100">Add Attachments</p>
+                  <span className="text-xs font-medium uppercase tracking-[0.12em] text-slate-400 transition-colors duration-300 dark:text-slate-500">Link</span>
                 </div>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-slate-500 transition-colors duration-300 dark:text-slate-400">
                   Share helpful references, documents or design assets with the team.
                 </p>
                 <AddAttachmentsInput

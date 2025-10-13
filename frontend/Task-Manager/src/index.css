@@ -72,6 +72,135 @@ html.dark .download-btn {
   color: #e2e8f0;
 }
 
+html.dark .input-box {
+  border-color: rgba(148, 163, 184, 0.35);
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.75));
+  box-shadow: 0 18px 38px rgba(2, 6, 23, 0.55);
+  color: #f1f5f9;
+  backdrop-filter: blur(18px);
+}
+
+html.dark .input-box input,
+html.dark .input-box textarea {
+  color: #f8fafc;
+}
+
+html.dark .input-box input::placeholder,
+html.dark .input-box textarea::placeholder {
+  color: rgba(148, 163, 184, 0.6);
+}
+
+html.dark .input-box button {
+  color: #c7d2fe;
+}
+
+html.dark .input-box button:hover {
+  color: #e0e7ff;
+}
+
+html.dark .custom-select {
+  border-color: rgba(71, 85, 105, 0.6);
+  background-image: linear-gradient(135deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.75));
+  box-shadow: 0 26px 55px rgba(2, 6, 23, 0.55);
+}
+
+html.dark .custom-select::after {
+  filter: drop-shadow(0 6px 12px rgba(99, 102, 241, 0.35));
+  opacity: 0.9;
+}
+
+html.dark .custom-select__field {
+  color: #f1f5f9;
+}
+
+html.dark .custom-select__field option {
+  color: #0f172a;
+  background-color: #f8fafc;
+}
+
+html.dark .form-input,
+html.dark .auth-input {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.75));
+  border-color: rgba(71, 85, 105, 0.65);
+  color: #f1f5f9;
+  box-shadow: 0 20px 45px rgba(2, 6, 23, 0.5);
+}
+
+html.dark textarea.form-input,
+html.dark input.form-input,
+html.dark select.form-input {
+  color: #f1f5f9;
+}
+
+html.dark .form-input::placeholder,
+html.dark .auth-input::placeholder,
+html.dark textarea.form-input::placeholder,
+html.dark input.form-input::placeholder {
+  color: rgba(148, 163, 184, 0.6);
+}
+
+html.dark .form-input:focus,
+html.dark .form-input:focus-within,
+html.dark .auth-input:focus {
+  border-color: rgba(99, 102, 241, 0.6);
+  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.28);
+}
+
+html.dark .text-slate-900 {
+  color: #f8fafc !important;
+}
+
+html.dark .text-slate-800,
+html.dark .text-slate-700 {
+  color: #e2e8f0 !important;
+}
+
+html.dark .text-slate-600 {
+  color: #cbd5f5 !important;
+}
+
+html.dark .text-slate-500 {
+  color: #a5b4fc !important;
+}
+
+html.dark .text-slate-400 {
+  color: #94a3b8 !important;
+}
+
+html.dark .border-slate-200,
+html.dark .border-slate-200\/60,
+html.dark .border-slate-200\/70,
+html.dark .border-slate-200\/80,
+html.dark .border-slate-100,
+html.dark .border-white\/40,
+html.dark .border-white\/50,
+html.dark .border-white\/60,
+html.dark .border-white\/70,
+html.dark .border-white\/80 {
+  border-color: rgba(71, 85, 105, 0.6) !important;
+}
+
+html.dark .bg-white,
+html.dark .bg-white\/95,
+html.dark .bg-white\/90,
+html.dark .bg-white\/80,
+html.dark .bg-white\/75,
+html.dark .bg-white\/70,
+html.dark .bg-white\/60,
+html.dark .bg-white\/50,
+html.dark .bg-white\/40,
+html.dark .bg-white\/30,
+html.dark .bg-slate-50,
+html.dark .bg-slate-50\/60,
+html.dark .bg-slate-50\/70,
+html.dark .bg-slate-50\/80 {
+  background-color: rgba(15, 23, 42, 0.85) !important;
+}
+
+html.dark .shadow-inner {
+  box-shadow: inset 0 1px 0 rgba(148, 163, 184, 0.08);
+}
+
 .input-box {
   @apply flex w-full items-center gap-3 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-900 shadow-sm transition focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-200;
 }

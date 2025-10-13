@@ -174,16 +174,16 @@ const handleResetFilters = () => {
         ) : (
           <>
             {(tabs.length > 0 || allTasks.length > 0) && (
-              <div className="flex flex-col gap-4 rounded-[28px] border border-white/60 bg-white/70 p-4 shadow-[0_20px_45px_rgba(15,23,42,0.08)]">
+              <div className="flex flex-col gap-4 rounded-[28px] border border-white/60 bg-white/70 p-4 shadow-[0_20px_45px_rgba(15,23,42,0.08)] transition-colors duration-300 dark:border-slate-800/60 dark:bg-slate-900/60 dark:shadow-[0_26px_60px_rgba(2,6,23,0.55)]">
                 <TaskStatusTabs
                   tabs={tabs}
                   activeTab={filterStatus}
                   setActiveTab={setFilterStatus}
                 />
 
-<div className="rounded-3xl border border-white/70 bg-white/90 p-4 shadow-[0_15px_30px_rgba(15,23,42,0.06)]">
+<div className="rounded-3xl border border-white/70 bg-white/90 p-4 shadow-[0_15px_30px_rgba(15,23,42,0.06)] transition-colors duration-300 dark:border-slate-800/60 dark:bg-slate-900/60 dark:shadow-[0_22px_50px_rgba(2,6,23,0.55)]">
                   <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                    <label className="group flex flex-col text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+                    <label className="group flex flex-col text-xs font-semibold uppercase tracking-[0.24em] text-slate-400 transition-colors duration-300 dark:text-slate-500">
                       Search Task
                       <div className="relative mt-2">
                         <input
@@ -191,20 +191,20 @@ const handleResetFilters = () => {
                           value={searchQuery}
                           onChange={(event) => setSearchQuery(event.target.value)}
                           placeholder="Search by task name..."
-                          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 outline-none transition group-focus-within:border-primary group-focus-within:ring-2 group-focus-within:ring-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 transition-colors duration-300 dark:border-slate-700/70 dark:bg-slate-900/60 dark:text-slate-200 outline-none transition group-focus-within:border-primary group-focus-within:ring-2 group-focus-within:ring-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
                         />
-                        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
+                        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400 dark:text-slate-500">
                           <LuSearch className="text-base" />
                         </span>
                       </div>
                     </label>
-                    <label className="flex flex-col text-xs uppercase tracking-[0.24em] text-slate-400">
+                    <label className="flex flex-col text-xs uppercase tracking-[0.24em] text-slate-400 transition-colors duration-300 dark:text-slate-500">
                       Due Date
                       <input
                         type="date"
                         value={selectedDate}
                         onChange={(event) => setSelectedDate(event.target.value)}
-                        className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm capitalize text-slate-600 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                        className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm capitalize text-slate-600 transition-colors duration-300 dark:border-slate-700/70 dark:bg-slate-900/60 dark:text-slate-200 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
                       />
                     </label>
                   </div>
@@ -213,7 +213,7 @@ const handleResetFilters = () => {
                   {hasActiveFilters && (
                     <button
                       type="button"
-                      className="inline-flex items-center justify-center gap-2 self-end rounded-full border border-white/60 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600 transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-gradient-to-r hover:from-primary/90 hover:to-sky-500 hover:text-white"
+                      className="inline-flex items-center justify-center gap-2 self-end rounded-full border border-white/60 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600 transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-gradient-to-r hover:from-primary/90 hover:to-sky-500 hover:text-white dark:border-slate-700/60 dark:bg-slate-900/60 dark:text-slate-200"
                       onClick={handleResetFilters}
                     >
                       <LuRotateCcw className="text-base" /> Reset Filters
@@ -249,7 +249,7 @@ const handleResetFilters = () => {
 
               {!filteredTasks.length && (
                 <div className="md:col-span-2 xl:col-span-3">
-                  <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
+                  <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500 transition-colors duration-300 dark:border-slate-700/60 dark:bg-slate-900/60 dark:text-slate-300">
                     No tasks match the selected filters.
                   </div>
                 </div>

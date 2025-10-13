@@ -79,7 +79,7 @@ typeof attachmentCount === "number" && !Number.isNaN(attachmentCount)
   };
   return (
     <div
-      className="relative cursor-pointer overflow-hidden rounded-[30px] border border-white/60 bg-white/80 p-6 shadow-[0_22px_50px_rgba(15,23,42,0.12)] transition hover:-translate-y-1 hover:shadow-[0_32px_70px_rgba(59,130,246,0.2)]"
+      className="relative cursor-pointer overflow-hidden rounded-[30px] border border-white/60 bg-white/80 p-6 shadow-[0_22px_50px_rgba(15,23,42,0.12)] transition hover:-translate-y-1 hover:shadow-[0_32px_70px_rgba(59,130,246,0.2)] dark:border-slate-800/60 dark:bg-slate-900/70 dark:shadow-[0_26px_60px_rgba(2,6,23,0.6)]"
       onClick={onClick}
     >
       <span className={`absolute inset-0 -z-10 bg-gradient-to-br ${getStatusAccent()} opacity-[0.12]`} />
@@ -94,29 +94,29 @@ typeof attachmentCount === "number" && !Number.isNaN(attachmentCount)
       </div>
 
       <div className="mt-5 space-y-3">
-        <h3 className="text-lg font-semibold leading-tight text-slate-900 line-clamp-2">{title}</h3>
-        <p className="text-sm leading-relaxed text-slate-600 line-clamp-3">{description}</p>
+        <h3 className="text-lg font-semibold leading-tight text-slate-900 transition-colors duration-300 dark:text-slate-100 line-clamp-2">{title}</h3>
+        <p className="text-sm leading-relaxed text-slate-600 transition-colors duration-300 dark:text-slate-300 line-clamp-3">{description}</p>
       </div>
-      <div className="mt-5 rounded-2xl border border-white/60 bg-white/80 p-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.26em] text-slate-500">
+      <div className="mt-5 rounded-2xl border border-white/60 bg-white/80 p-4 transition-colors duration-300 dark:border-slate-800/60 dark:bg-slate-900/60">
+        <p className="text-xs font-semibold uppercase tracking-[0.26em] text-slate-500 transition-colors duration-300 dark:text-slate-400">
           Task Done
         </p>
-        <p className="mt-2 text-sm font-medium text-slate-700">
-          <span className="text-lg font-semibold text-slate-900">{completedTodoCount}</span> / {todoChecklist.length || 0}
+        <p className="mt-2 text-sm font-medium text-slate-700 transition-colors duration-300 dark:text-slate-300">
+          <span className="text-lg font-semibold text-slate-900 transition-colors duration-300 dark:text-slate-100">{completedTodoCount}</span> / {todoChecklist.length || 0}
         </p>
         <div className="mt-3">
           <Progress progress={progress} status={status} />
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-3 text-sm text-slate-600">
+      <div className="mt-5 grid grid-cols-2 gap-3 text-sm text-slate-600 transition-colors duration-300 dark:text-slate-300">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Start Date</p>
-          <p className="mt-1 text-sm font-medium text-slate-900">{moment(createdAt).format("Do MMM YYYY")}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 transition-colors duration-300 dark:text-slate-400">Start Date</p>
+          <p className="mt-1 text-sm font-medium text-slate-900 transition-colors duration-300 dark:text-slate-100">{moment(createdAt).format("Do MMM YYYY")}</p>
         </div>
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Due Date</p>
-          <p className="mt-1 text-sm font-medium text-slate-900">{moment(dueDate).format("Do MMM YYYY")}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 transition-colors duration-300 dark:text-slate-400">Due Date</p>
+          <p className="mt-1 text-sm font-medium text-slate-900 transition-colors duration-300 dark:text-slate-100">{moment(dueDate).format("Do MMM YYYY")}</p>
         </div>
       </div>
 
@@ -124,14 +124,14 @@ typeof attachmentCount === "number" && !Number.isNaN(attachmentCount)
         <div className="flex flex-col gap-2">
           <AvatarGroup avatars={assigneeAvatars} />
           {assigneeNames.length > 0 && (
-            <p className="text-xs font-medium text-slate-600">
+            <p className="text-xs font-medium text-slate-600 transition-colors duration-300 dark:text-slate-300">
               {assigneeNames.join(", ")}
             </p>
           )}
         </div>
 
-        <div className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/80 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
-          <LuPaperclip className="text-base text-slate-500" />
+        <div className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/80 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600 transition-colors duration-300 dark:border-slate-700/60 dark:bg-slate-900/60 dark:text-slate-300">
+          <LuPaperclip className="text-base text-slate-500 dark:text-slate-300" />
           {totalAttachments}
         </div>
         </div>

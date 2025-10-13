@@ -66,11 +66,11 @@ const SideMenu = ({ activeMenu }) => {
   }, [isPrivilegedUser, user]);
 
   return (
-    <aside className="relative w-full overflow-hidden rounded-[26px] border border-white/50 bg-white/75 p-6 shadow-[0_24px_48px_rgba(15,23,42,0.08)] backdrop-blur-xl lg:sticky lg:top-28">
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,_rgba(79,70,229,0.08),_transparent_65%)]" />
-      <div className="absolute inset-0 -z-20 bg-[radial-gradient(circle_at_bottom_right,_rgba(56,189,248,0.12),_transparent_60%)]" />
+    <aside className="relative w-full overflow-hidden rounded-[26px] border border-white/50 bg-white/75 p-6 shadow-[0_24px_48px_rgba(15,23,42,0.08)] backdrop-blur-xl transition-colors duration-300 dark:border-slate-800/60 dark:bg-slate-900/60 dark:shadow-[0_26px_60px_rgba(2,6,23,0.55)] lg:sticky lg:top-28">
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,_rgba(79,70,229,0.08),_transparent_65%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(79,70,229,0.18),_transparent_60%)]" />
+      <div className="absolute inset-0 -z-20 bg-[radial-gradient(circle_at_bottom_right,_rgba(56,189,248,0.12),_transparent_60%)] dark:bg-[radial-gradient(circle_at_bottom_right,_rgba(56,189,248,0.2),_transparent_55%)]" />
 
-      <div className="flex flex-col items-center justify-center rounded-2xl border border-white/50 bg-white/60 px-4 py-5 text-center shadow-inner">
+      <div className="flex flex-col items-center justify-center rounded-2xl border border-white/50 bg-white/60 px-4 py-5 text-center shadow-inner transition-colors duration-300 dark:border-slate-700/60 dark:bg-slate-900/60 dark:text-slate-200">
         <div className="relative">
         <span className="absolute inset-0 -z-10 animate-pulse rounded-full bg-gradient-to-tr from-primary/30 to-cyan-200/30 blur-xl" />
         {user?.profileImageUrl 
@@ -87,8 +87,8 @@ const SideMenu = ({ activeMenu }) => {
           </div>
         )}
 
-        <h5 className="mt-4 text-base font-semibold text-slate-900">{user?.name || ""}</h5>
-        <p className="text-xs text-slate-500">{user?.email || ""}</p>
+        <h5 className="mt-4 text-base font-semibold text-slate-900 transition-colors duration-300 dark:text-slate-100">{user?.name || ""}</h5>
+        <p className="text-xs text-slate-500 transition-colors duration-300 dark:text-slate-400">{user?.email || ""}</p>
       </div>
 
       <nav className="mt-8 space-y-1.5">
@@ -118,7 +118,7 @@ const SideMenu = ({ activeMenu }) => {
               className={`group flex w-full items-center gap-4 cursor-pointer rounded-2xl border px-4 py-3 text-sm font-medium transition ${
                 isActive
                   ? "border-transparent bg-gradient-to-r from-primary/90 via-indigo-500 to-sky-400 text-white shadow-[0_18px_40px_rgba(59,130,246,0.35)]"
-                  : "border-white/60 bg-white/60 text-slate-600 shadow-[0_12px_24px_rgba(15,23,42,0.08)] hover:border-primary/40 hover:bg-blue-50/70 hover:text-primary"
+                  : "border-white/60 bg-white/60 text-slate-600 shadow-[0_12px_24px_rgba(15,23,42,0.08)] hover:border-primary/40 hover:bg-blue-50/70 hover:text-primary dark:border-slate-700/60 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:text-indigo-300"
               }`}
               onClick={() => handleClick(item?.path)}
             >
@@ -127,7 +127,7 @@ const SideMenu = ({ activeMenu }) => {
                   className={`flex h-10 w-10 items-center justify-center rounded-2xl border text-base transition ${
                     isActive
                       ? "border-white/40 bg-white/20 text-white"
-                      : "border-slate-200 bg-white/80 text-primary/70 group-hover:border-primary/30"
+                      : "border-slate-200 bg-white/80 text-primary/70 group-hover:border-primary/30 dark:border-slate-700/60 dark:bg-slate-900/60 dark:text-indigo-200"
                   }`}
                 >
                   <Icon />
