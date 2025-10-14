@@ -87,7 +87,7 @@ html.dark .input-box textarea {
 
 html.dark .input-box input::placeholder,
 html.dark .input-box textarea::placeholder {
-  color: rgba(148, 163, 184, 0.6);
+  color: rgba(203, 213, 225, 0.82);
 }
 
 html.dark .input-box button {

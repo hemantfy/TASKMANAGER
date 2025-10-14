@@ -6,25 +6,25 @@ const Input = ({ value, onChange, label, placeholder, type = "text", id, classNa
 
   const toggleShowPassword = () => {
     setShowPassword(!showPassword);
-    };
+  };
 
-    const inputType = type === "password" ? (showPassword ? "text" : "password") : type;
+  const inputType = type === "password" ? (showPassword ? "text" : "password") : type;
 
-    return (
-      <div className="space-y-2">
-        <label
-          htmlFor={id}
-          className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-300"
-        >
-          {label}
-        </label>
+  return (
+    <div className="space-y-2">
+      <label
+        htmlFor={id}
+        className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-300"
+      >
+        {label}
+      </label>
   
-        <div className="input-box">
+      <div className="input-box">
         <input
-          id={id}
-          type={inputType}
-          placeholder={placeholder}
-          className={`w-full bg-transparent text-sm text-slate-900 placeholder:text-slate-400 outline-none dark:text-slate-100 dark:placeholder:text-slate-500 ${className}`.trim()}
+         id={id}
+         type={inputType}
+         placeholder={placeholder}
+          className={`w-full bg-transparent text-sm text-slate-900 placeholder:text-slate-700 outline-none dark:text-slate-50 dark:placeholder:text-slate-200 ${className}`.trim()}
           value={value}
           onChange={(e) => onChange(e)}
           {...props}
