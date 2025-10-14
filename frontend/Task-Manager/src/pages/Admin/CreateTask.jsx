@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useContext, useEffect, useMemo, useState } from 'react'
 import DashboardLayout from '../../components/layouts/DashboardLayout'
 import { PRIORITY_DATA } from "../../utils/data";
 import axiosInstance from "../../utils/axiosInstance";
@@ -13,11 +13,18 @@ import AddAttachmentsInput from '../../components/inputs/AddAttachmentsInput';
 import moment from "moment";
 import DeleteAlert from '../../components/DeleteAlert';
 import Modal from '../../components/Modal';
+import { UserContext } from '../../context/userContext';
+import { getPrivilegedBasePath } from "../../utils/roleUtils";
 
 const CreateTask = () => {
 
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useContext(UserContext);
+  const privilegedBasePath = useMemo(
+    () => getPrivilegedBasePath(user?.role),
+    [user?.role]
+  );  
   const { taskId } = location.state || {};
   const [taskData, setTaskData] = useState({
     title: "",
@@ -195,7 +202,7 @@ const CreateTask = () => {
     
       setOpenDeleteAlert(false);
       toast.success("Task deleted successfully");
-      navigate('/admin/tasks')
+      navigate(`${privilegedBasePath}/tasks`)
     } catch (error) {
       console.error(
         "Error deleting Task:",

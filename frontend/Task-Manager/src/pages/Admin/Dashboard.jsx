@@ -13,6 +13,7 @@ import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import moment from "moment";
 import { addThousandsSeparator } from "../../utils/helper";
+import { getPrivilegedBasePath } from "../../utils/roleUtils";
 import InfoCard from "../../components/Cards/infoCard";
 import {
   LuArrowRight,
@@ -109,8 +110,13 @@ const Dashboard = () => {
     }
   }, [prepareChartData]);
 
+  const privilegedBasePath = useMemo(
+    () => getPrivilegedBasePath(user?.role),
+    [user?.role]
+  );
+
   const onSeeMore = () => {
-    navigate("/admin/tasks");
+    navigate(`${privilegedBasePath}/tasks`);
   };
 
   useEffect(() => {
@@ -176,7 +182,7 @@ const Dashboard = () => {
   );
 
   const handleCardClick = (filterStatus) => {
-    navigate("/admin/tasks", { state: { filterStatus } });
+    navigate(`${privilegedBasePath}/tasks`, { state: { filterStatus } });
   };
 
   return (

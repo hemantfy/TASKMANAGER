@@ -6,7 +6,7 @@ import Input from '../../components/inputs/input';
 import { validateEmail } from '../../utils/helper';
 import axiosInstance from '../../utils/axiosInstance';
 import { API_PATHS } from '../../utils/apiPaths';
-import { getRoleLabel, hasPrivilegedAccess, normalizeRole } from '../../utils/roleUtils';
+import { getDefaultRouteForRole, getRoleLabel, normalizeRole } from '../../utils/roleUtils';
 import uploadImage from '../../utils/uploadImage';
 import { UserContext } from '../../context/userContext';
 
@@ -140,11 +140,8 @@ const SignUp = () => {
       }   
       
       // Redirect based on role
-      if (hasPrivilegedAccess(role)) {
-        navigate("/admin/dashboard");
-      } else {
-        navigate("/user/dashboard");
-      }
+      const destination = getDefaultRouteForRole(role);
+      navigate(destination);
 
     } catch (error){
       if (error.response && error.response.data.message) {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import DashboardLayout from "../../components/layouts/DashboardLayout";
 import { useLocation, useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
@@ -8,6 +8,8 @@ import TaskStatusTabs from "../../components/TaskStatusTabs";
 import TaskCard from "../../components/Cards/TaskCard";
 import toast from "react-hot-toast";
 import LoadingOverlay from "../../components/LoadingOverlay";
+import { UserContext } from "../../context/userContext";
+import { getPrivilegedBasePath } from "../../utils/roleUtils";
 
 const ManageTasks = () => {
   const [allTasks, setAllTasks] = useState([]);
@@ -21,6 +23,11 @@ const ManageTasks = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   const navigate = useNavigate();
+  const { user } = useContext(UserContext);
+  const privilegedBasePath = useMemo(
+    () => getPrivilegedBasePath(user?.role),
+    [user?.role]
+  );
 
   const hasActiveFilters =
     filterStatus !== "All" || searchQuery.trim() || selectedDate.trim();
@@ -93,7 +100,9 @@ const handleResetFilters = () => {
   };
 
   const handleClick = (taskData) => {
-    navigate(`/admin/create-task`, { state: { taskId: taskData._id } });
+    navigate(`${privilegedBasePath}/create-task`, {
+      state: { taskId: taskData._id },
+    });
   };
 
   // download tasks report

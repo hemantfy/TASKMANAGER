@@ -7,6 +7,7 @@ import {
   getRoleLabel,
   hasPrivilegedAccess,
   normalizeRole,
+  resolvePrivilegedPath,  
 } from "../../utils/roleUtils";
 
 const SideMenu = ({ activeMenu }) => {
@@ -58,12 +59,27 @@ const SideMenu = ({ activeMenu }) => {
   const roleBadgeLabel = getRoleLabel(normalizedRole);
 
   useEffect(() => {
-    if (user) {
-      setSideMenuData(isPrivilegedUser ? SIDE_MENU_DATA : SIDE_MENU_USER_DATA);
+    if (!user) {
+      setSideMenuData([]);
+    } else if (isPrivilegedUser) {
+      setSideMenuData(
+        SIDE_MENU_DATA.map((item) => {
+          if (!item?.path || item.path === "logout") {
+            return item;
+          }
+
+          return {
+            ...item,
+            path: resolvePrivilegedPath(item.path, normalizedRole),
+          };
+        })
+      );
+    } else {
+      setSideMenuData(SIDE_MENU_USER_DATA);
     }
 
     return () => {};
-  }, [isPrivilegedUser, user]);
+  }, [isPrivilegedUser, normalizedRole, user]);
 
   return (
     <aside className="relative w-full overflow-hidden rounded-[26px] border border-white/50 bg-white/75 p-6 shadow-[0_24px_48px_rgba(15,23,42,0.08)] backdrop-blur-xl transition-colors duration-300 dark:border-slate-800/60 dark:bg-slate-900/60 dark:shadow-[0_26px_60px_rgba(2,6,23,0.55)] lg:sticky lg:top-28">

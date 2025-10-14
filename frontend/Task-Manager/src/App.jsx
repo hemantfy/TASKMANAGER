@@ -9,13 +9,14 @@ import ManageUsers from "./pages/Admin/ManageUsers";
 import UserDetails from "./pages/Admin/UserDetails";
 import ProfileSettings from "./pages/Profile/ProfileSettings";
 import SignUp from "./pages/Auth/SignUp";
+import Unauthorized from "./pages/Errors/Unauthorized";
 
 import UserDashboard from "./pages/User/UserDashboard";
 import MyTasks from "./pages/User/MyTasks";
 import ViewTaskDetails from "./pages/User/ViewTaskDetails";
 import UserProvider, { UserContext } from "./context/userContext";
 import { Toaster } from "react-hot-toast";
-import { hasPrivilegedAccess } from "./utils/roleUtils";
+import { getDefaultRouteForRole } from "./utils/roleUtils";
 
 
 const App = () => {
@@ -31,13 +32,23 @@ const App = () => {
 
 
           {/* Admin Routes */}
-          <Route element={<PrivateRoute allowedRoles={["admin", "owner"]} />}>
+          <Route element={<PrivateRoute allowedRoles={["admin"]} />}>
             <Route path="/admin/dashboard" element={<Dashboard />} />
             <Route path="/admin/tasks" element={<ManageTasks />} />
             <Route path="/admin/create-task" element={<CreateTask />} />
             <Route path="/admin/users" element={<ManageUsers />} />
             <Route path="/admin/users/:userId" element={<UserDetails />} />
             <Route path="/admin/profile-settings" element={<ProfileSettings />} />
+          </Route>
+
+          {/* Owner Routes */}
+          <Route element={<PrivateRoute allowedRoles={["owner"]} />}>
+            <Route path="/owner/dashboard" element={<Dashboard />} />
+            <Route path="/owner/tasks" element={<ManageTasks />} />
+            <Route path="/owner/create-task" element={<CreateTask />} />
+            <Route path="/owner/users" element={<ManageUsers />} />
+            <Route path="/owner/users/:userId" element={<UserDetails />} />
+            <Route path="/owner/profile-settings" element={<ProfileSettings />} />
           </Route>
 
           {/* User Routes */}
@@ -47,6 +58,8 @@ const App = () => {
             <Route path="/user/task-details/:id" element={<ViewTaskDetails />} />
             <Route path="/user/profile-settings" element={<ProfileSettings />} />
           </Route>
+
+          <Route path="/unauthorized" element={<Unauthorized />} />
 
           {/* Default Route*/}
         </Routes>
@@ -76,9 +89,7 @@ const Root = () => {
     return <Navigate to="/login" />;
   }
 
-  return hasPrivilegedAccess(user.role) ? (
-    <Navigate to="/admin/dashboard" />
-  ) : (
-    <Navigate to="/user/dashboard" />
-  );
+  const destination = getDefaultRouteForRole(user.role);
+
+  return <Navigate to={destination} />;
 };

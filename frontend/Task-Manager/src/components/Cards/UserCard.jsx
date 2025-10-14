@@ -1,11 +1,17 @@
-import React, { useMemo } from "react";
+import React, { useContext, useMemo } from "react";
 import { FaUser } from "react-icons/fa6";
 import { LuTrash2 } from "react-icons/lu";
 import { useNavigate } from "react-router-dom";
-import { getRoleLabel, normalizeRole } from "../../utils/roleUtils";
+import { UserContext } from "../../context/userContext";
+import {
+  getRoleLabel,
+  normalizeRole,
+  resolvePrivilegedPath,
+} from "../../utils/roleUtils";
 
 const UserCard = ({ userInfo, onDelete, onResetPassword }) => {
   const navigate = useNavigate();
+  const { user } = useContext(UserContext);
 
   const stats = [
     { label: "Pending", count: userInfo?.pendingTasks || 0, status: "Pending" },
@@ -25,7 +31,11 @@ const UserCard = ({ userInfo, onDelete, onResetPassword }) => {
 
   const handleNavigateToDetails = () => {
     if (userInfo?._id) {
-      navigate(`/admin/users/${userInfo._id}`);
+      const destination = resolvePrivilegedPath(
+        `/admin/users/${userInfo._id}`,
+        user?.role
+      );
+      navigate(destination);
     }
   };
 

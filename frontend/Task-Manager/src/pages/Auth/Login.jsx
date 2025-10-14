@@ -6,7 +6,7 @@ import { API_PATHS } from "../../utils/apiPaths";
 import { UserContext } from "../../context/userContext";
 import Input from "../../components/inputs/input";
 import { getStoredTokenPreference, getToken } from "../../utils/tokenStorage";
-import { hasPrivilegedAccess } from "../../utils/roleUtils";
+import { getDefaultRouteForRole } from "../../utils/roleUtils";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -76,11 +76,8 @@ const Login = () => {
           setShowChangePasswordModal(true);
         } else {
           // Redirect based on role
-          if (hasPrivilegedAccess(role)) { 
-            navigate("/admin/dashboard");
-          } else {
-            navigate("/user/dashboard");
-          }
+          const destination = getDefaultRouteForRole(role);
+          navigate(destination);
         }
       }
     } catch (error) {
@@ -128,11 +125,8 @@ const Login = () => {
 
       const role = pendingRoleRedirect || profileResponse?.data?.role;
       setPendingRoleRedirect(null);
-      if (hasPrivilegedAccess(role)) {
-        navigate("/admin/dashboard");
-      } else {
-        navigate("/user/dashboard");
-      }
+      const destination = getDefaultRouteForRole(role);
+      navigate(destination);
     } catch (error) {
       if (error.response && error.response.data?.message) {
         setChangePasswordError(error.response.data.message);

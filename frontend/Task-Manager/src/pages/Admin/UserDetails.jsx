@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import moment from "moment";
 import { LuArrowLeft, LuExternalLink, LuLoader } from "react-icons/lu";
@@ -7,6 +7,8 @@ import { FaUser } from "react-icons/fa6";
 import DashboardLayout from "../../components/layouts/DashboardLayout";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
+import { UserContext } from "../../context/userContext";
+import { getPrivilegedBasePath } from "../../utils/roleUtils";
 
 const statusBadgeStyles = {
   Pending: "bg-amber-100 text-amber-600 border-amber-200",
@@ -19,6 +21,11 @@ const formatDate = (date) => (date ? moment(date).format("Do MMM YYYY") : "—")
 const UserDetails = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
+  const { user } = useContext(UserContext);
+  const privilegedBasePath = useMemo(
+    () => getPrivilegedBasePath(user?.role),
+    [user?.role]
+  );  
 
   const [userData, setUserData] = useState(null);
   const [tasks, setTasks] = useState([]);
@@ -91,12 +98,12 @@ const UserDetails = () => {
   }, [userId]);
 
   const handleBackToTeam = () => {
-    navigate("/admin/users");
+    navigate(`${privilegedBasePath}/users`);
   };
 
   const handleOpenTaskDetails = (taskId) => {
     if (!taskId) return;
-    navigate("/admin/create-task", { state: { taskId } });
+    navigate(`${privilegedBasePath}/create-task`, { state: { taskId } });
   };
 
   const summaryItems = [
