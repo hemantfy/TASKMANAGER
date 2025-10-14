@@ -51,13 +51,13 @@ const App = () => {
             <Route path="/owner/profile-settings" element={<ProfileSettings />} />
           </Route>
 
-          {/* User Routes */}
-          <Route element={<PrivateRoute allowedRoles={["user", "admin", "owner"]} />}>
+          {/* Member Routes */}
+          <Route element={<PrivateRoute allowedRoles={["member", "user"]} />}>
             <Route path="/user/dashboard" element={<UserDashboard />} />
             <Route path="/user/tasks" element={<MyTasks />} />
             <Route path="/user/task-details/:id" element={<ViewTaskDetails />} />
             <Route path="/user/profile-settings" element={<ProfileSettings />} />
-          </Route>
+          </Route>          
 
           <Route path="/unauthorized" element={<Unauthorized />} />
 
