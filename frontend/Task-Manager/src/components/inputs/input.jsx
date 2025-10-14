@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { FaRegEye, FaRegEyeSlash } from "react-icons/fa6";
 
-const Input = ({ value, onChange, label, placeholder, type = "text", id, className = "", ...props }) => {
+const Input = ({ value, onChange, label, placeholder, type = "text", id, name, className = "", ...props }) => {
   const [showPassword, setShowPassword] = useState(false);
 
   const toggleShowPassword = () => {
@@ -9,11 +9,16 @@ const Input = ({ value, onChange, label, placeholder, type = "text", id, classNa
   };
 
   const inputType = type === "password" ? (showPassword ? "text" : "password") : type;
+    const fallbackId =
+    label?.toString().toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || undefined;
+  const inputId = id || fallbackId;
+  const inputName = name || inputId;
+  const labelFor = inputId;
 
   return (
     <div className="space-y-2">
       <label
-        htmlFor={id}
+        htmlFor={labelFor}
         className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-300"
       >
         {label}
@@ -21,9 +26,10 @@ const Input = ({ value, onChange, label, placeholder, type = "text", id, classNa
   
       <div className="input-box">
         <input
-         id={id}
-         type={inputType}
-         placeholder={placeholder}
+          id={inputId}
+          name={inputName}
+          type={inputType}
+          placeholder={placeholder}
           className={`w-full bg-transparent text-sm text-slate-900 placeholder:text-slate-700 outline-none dark:text-slate-50 dark:placeholder:text-slate-200 ${className}`.trim()}
           value={value}
           onChange={(e) => onChange(e)}
