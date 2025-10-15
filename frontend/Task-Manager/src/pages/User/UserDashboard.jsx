@@ -1,20 +1,29 @@
-import React, { useContext, useState, useEffect, useCallback } from "react";
+import React, {
+  lazy,
+  Suspense,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import { useUserAuth } from "../../hooks/useUserAuth";
 import { UserContext } from "../../context/userContext";
 import DashboardLayout from "../../components/layouts/DashboardLayout";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
-import moment from "moment";
 import { addThousandsSeparator, getGreetingMessage } from "../../utils/helper";
 import InfoCard from "../../components/Cards/infoCard";
 import { LuArrowRight, LuBadgeCheck, LuClipboardList, LuClock3, LuRefreshCcw } from "react-icons/lu";
-import TaskListTable from "../../components/TaskListTable";
-import CustomPieChart from "../../components/Charts/CustomPieChart";
-import CustomBarChart from "../../components/Charts/CustomBarChart";
 import LoadingOverlay from "../../components/LoadingOverlay";
-import NoticeBoard from "../../components/NoticeBoard";
 import useActiveNotices from "../../hooks/useActiveNotices";
+import { formatFullDateTime } from "../../utils/dateUtils";
+
+const NoticeBoard = lazy(() => import("../../components/NoticeBoard"));
+const CustomPieChart = lazy(() => import("../../components/Charts/CustomPieChart"));
+const CustomBarChart = lazy(() => import("../../components/Charts/CustomBarChart"));
+const TaskListTable = lazy(() => import("../../components/TaskListTable"));
 
 const COLORS = ["#8D51FF", "#00B8DB", "#7BCE00"];
 
@@ -28,7 +37,7 @@ const UserDashboard = () => {
   const [pieChartData, setPieChartData] = useState([]);
   const [barChartData, setBarChartData] = useState([]);
   const [currentMoment, setCurrentMoment] = useState(moment());
-  const [isLoading, setIsLoading] = useState(true);
+  const [currentTime, setCurrentTime] = useState(() => new Date());
   const { activeNotices, fetchActiveNotices, resetNotices } =
     useActiveNotices(false);  
 
@@ -93,11 +102,16 @@ const UserDashboard = () => {
 
   useEffect(() => {
     const intervalId = setInterval(() => {
-      setCurrentMoment(moment());
+      setCurrentTime(new Date());
     }, 1000);
 
     return () => clearInterval(intervalId);
   }, []);
+
+  const formattedTimestamp = useMemo(
+    () => formatFullDateTime(currentTime),
+    [currentTime]
+  );
 
   const infoCards = [
     {
@@ -140,7 +154,15 @@ const UserDashboard = () => {
         <LoadingOverlay message="Loading your dashboard..." className="py-24" />
       ) : (
         <>
-          <NoticeBoard notices={activeNotices} />
+          <Suspense
+            fallback={
+              <div className="card mb-6 animate-pulse bg-white/60 text-sm text-slate-500">
+                Loading announcements...
+              </div>
+            }
+          >
+            <NoticeBoard notices={activeNotices} />
+          </Suspense>
 
           <section className="relative overflow-hidden rounded-[32px] border border-white/60 bg-gradient-to-br from-slate-900 via-indigo-700 to-sky-600 px-4 py-8 text-white shadow-[0_20px_45px_rgba(30,64,175,0.35)] sm:px-6 sm:py-10">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.18),_transparent_65%)]" />
@@ -151,9 +173,7 @@ const UserDashboard = () => {
                 <h2 className="mt-3 text-3xl font-semibold leading-tight sm:text-4xl">
                   {getGreetingMessage()}, {user?.name}
                 </h2>
-                <p className="mt-3 text-sm text-white/70">
-                  {currentMoment.format("dddd Do MMMM YYYY • HH:mm:ss")}
-                </p>
+                <p className="mt-3 text-sm text-white/70">{formattedTimestamp}</p>
               </div>
 
               <div className="rounded-3xl border border-white/40 bg-white/15 px-4 py-4 text-sm backdrop-blur sm:px-6">
@@ -186,7 +206,15 @@ const UserDashboard = () => {
                 </span>
               </div>
 
-              <CustomPieChart data={pieChartData} colors={COLORS} />
+              <Suspense
+                fallback={
+                  <div className="flex h-[325px] items-center justify-center text-sm text-slate-500">
+                    Loading chart data...
+                  </div>
+                }
+              >
+                <CustomPieChart data={pieChartData} colors={COLORS} />
+              </Suspense>
             </div>
 
             <div className="card">
@@ -197,7 +225,15 @@ const UserDashboard = () => {
                 </span>
               </div>
 
-              <CustomBarChart data={barChartData} />
+              <Suspense
+                fallback={
+                  <div className="flex h-[325px] items-center justify-center text-sm text-slate-500">
+                    Loading chart data...
+                  </div>
+                }
+              >
+                <CustomBarChart data={barChartData} />
+              </Suspense>
             </div>
           </section>
 
@@ -215,7 +251,15 @@ const UserDashboard = () => {
               </button>
             </div>
 
-            <TaskListTable tableData={dashboardData?.recentTasks || []} />
+            <Suspense
+              fallback={
+                <div className="flex h-32 items-center justify-center text-sm text-slate-500">
+                  Loading recent tasks...
+                </div>
+              }
+            >
+              <TaskListTable tableData={dashboardData?.recentTasks || []} />
+            </Suspense>
           </section>
         </>
       )}

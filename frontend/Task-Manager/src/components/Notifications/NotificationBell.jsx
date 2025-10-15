@@ -5,13 +5,13 @@ import React, {
   useRef,
   useState,
 } from "react";
-import moment from "moment";
 import { LuBell, LuLoader } from "react-icons/lu";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { UserContext } from "../../context/userContext";
 import { hasPrivilegedAccess } from "../../utils/roleUtils";
 import PublishNoticeModal from "./PublishNoticeModal.jsx";
+import { formatRelativeTimeFromNow } from "../../utils/dateUtils";
 
 const STATUS_STYLES = {
   info: "bg-blue-50 text-blue-600",
@@ -225,9 +225,7 @@ const NotificationBell = () => {
                         {notification.message}
                       </p>
                       <span className="mt-2 text-[11px] uppercase tracking-[0.2em] text-slate-400">
-                        {notification.date
-                          ? moment(notification.date).fromNow()
-                          : "Just now"}
+                        {formatRelativeTimeFromNow(notification.date)}
                       </span>
                     </div>
                   </div>

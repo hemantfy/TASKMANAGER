@@ -10,11 +10,11 @@ import SelectDropdown from '../../components/inputs/SelectDropdown';
 import SelectUsers from '../../components/inputs/SelectUsers';
 import TodoListInput from '../../components/inputs/TodoListInput';
 import AddAttachmentsInput from '../../components/inputs/AddAttachmentsInput';
-import moment from "moment";
 import DeleteAlert from '../../components/DeleteAlert';
 import Modal from '../../components/Modal';
 import { UserContext } from '../../context/userContext';
 import { getPrivilegedBasePath } from "../../utils/roleUtils";
+import { formatDateInputValue } from "../../utils/dateUtils";
 
 const CreateTask = () => {
 
@@ -64,7 +64,10 @@ const CreateTask = () => {
     setLoading(true);
 
     try {
-      const dueDateMoment = moment(taskData.dueDate);
+      const dueDateValue = taskData.dueDate ? new Date(taskData.dueDate) : null;
+      if (!dueDateValue || Number.isNaN(dueDateValue.getTime())) {
+        throw new Error("Invalid due date value");
+      }
 
       const todolist = taskData.todoChecklist?.map((item) => ({
         text: item,
@@ -73,7 +76,7 @@ const CreateTask = () => {
     
       await axiosInstance.post(API_PATHS.TASKS.CREATE_TASK, {
         ...taskData,
-        dueDate: dueDateMoment.toISOString(),
+        dueDate: dueDateValue.toISOString(),
         todoChecklist: todolist,
       });
     
@@ -100,12 +103,17 @@ const CreateTask = () => {
           completed: matchedTask ? matchedTask.completed : false,
         };
       });
+      
+      const dueDateValue = taskData.dueDate ? new Date(taskData.dueDate) : null;
+      if (!dueDateValue || Number.isNaN(dueDateValue.getTime())) {
+        throw new Error("Invalid due date value");
+      }
     
       const response = await axiosInstance.put(
         API_PATHS.TASKS.UPDATE_TASK(taskId),
         {
           ...taskData,
-          dueDate: new Date(taskData.dueDate).toISOString(),
+          dueDate: dueDateValue.toISOString(),
           todoChecklist: todolist,
         }
       );
@@ -183,7 +191,7 @@ const CreateTask = () => {
           description: taskInfo.description,
           priority: taskInfo.priority,
           dueDate: taskInfo.dueDate
-            ? moment(taskInfo.dueDate).format("YYYY-MM-DD")
+            ? formatDateInputValue(taskInfo.dueDate)
             : null,
             assignedTo: assignedTo.map((item) => item?._id).filter(Boolean),
             todoChecklist: todoChecklist.map((item) => item?.text || item).filter(Boolean),

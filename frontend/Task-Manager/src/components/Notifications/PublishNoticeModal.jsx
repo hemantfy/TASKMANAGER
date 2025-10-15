@@ -2,34 +2,37 @@ import React, { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { LuLoader, LuTrash2, LuX } from "react-icons/lu";
 import toast from "react-hot-toast";
-import moment from "moment";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
-
-const formatDateTimeLocal = (value) => moment(value).format("YYYY-MM-DDTHH:mm");
+import {
+  addDays,
+  formatDateTimeLocal,
+  formatMediumDateTime,
+  toStartOfMinute,
+} from "../../utils/dateUtils";
 
 const getDefaultSchedule = () => {
-  const now = moment().seconds(0).milliseconds(0);
+  const now = toStartOfMinute();
   return {
     start: formatDateTimeLocal(now),
-    end: formatDateTimeLocal(moment(now).add(7, "days")),
+    end: formatDateTimeLocal(addDays(now, 7)),
   };
 };
 
 const getNoticeStatus = (notice) => {
-  const now = moment();
-  const start = moment(notice?.startsAt);
-  const end = moment(notice?.expiresAt);
+  const now = new Date();
+  const start = notice?.startsAt ? new Date(notice.startsAt) : null;
+  const end = notice?.expiresAt ? new Date(notice.expiresAt) : null;
 
-  if (!start.isValid() || !end.isValid()) {
+  if (!start || Number.isNaN(start.getTime()) || !end || Number.isNaN(end.getTime())) {
     return { label: "Unknown", className: "bg-slate-100 text-slate-500" };
   }
 
-  if (end.isSameOrBefore(now)) {
+  if (end.getTime() <= now.getTime()) {
     return { label: "Expired", className: "bg-rose-50 text-rose-600" };
   }
 
-  if (start.isAfter(now)) {
+  if (start.getTime() > now.getTime()) {
     return { label: "Scheduled", className: "bg-amber-50 text-amber-600" };
   }
 
@@ -86,20 +89,20 @@ const PublishNoticeModal = ({ open, onClose, onSuccess }) => {
     }
 
     const trimmedMessage = message.trim();
-    const startMoment = startsAt ? moment(startsAt) : moment();
-    const endMoment = expiresAt ? moment(expiresAt) : null;
+    const startDate = startsAt ? new Date(startsAt) : new Date();
+    const endDate = expiresAt ? new Date(expiresAt) : null;
 
-    if (!startMoment.isValid()) {
+    if (Number.isNaN(startDate.getTime())) {
       toast.error("Please provide a valid start time");
       return;
     }
 
-    if (!endMoment || !endMoment.isValid()) {
+    if (!endDate || Number.isNaN(endDate.getTime())) {
       toast.error("Please provide a valid expiration time");
       return;
     }
 
-    if (!endMoment.isAfter(startMoment)) {
+    if (endDate.getTime() <= startDate.getTime()) {
       toast.error("Expiration must be after the start time");
       return;
     }
@@ -108,8 +111,8 @@ const PublishNoticeModal = ({ open, onClose, onSuccess }) => {
       setSubmitting(true);
       const response = await axiosInstance.post(API_PATHS.NOTICES.PUBLISH, {
         message: trimmedMessage,
-        startsAt: startMoment.toISOString(),
-        expiresAt: endMoment.toISOString(),
+        startsAt: startDate.toISOString(),
+        expiresAt: endDate.toISOString(),
       });
 
       toast.success(
@@ -320,10 +323,10 @@ const PublishNoticeModal = ({ open, onClose, onSuccess }) => {
                             </p>
                             <div className="mt-3 flex flex-wrap gap-4 text-[11px] uppercase tracking-[0.18em] text-slate-400">
                               <span>
-                                Starts {moment(notice.startsAt).format("MMM D, YYYY • HH:mm")}
+                                Starts {formatMediumDateTime(notice.startsAt, "Unknown")}
                               </span>
                               <span>
-                                Ends {moment(notice.expiresAt).format("MMM D, YYYY • HH:mm")}
+                                Ends {formatMediumDateTime(notice.expiresAt, "Unknown")}
                               </span>
                             </div>
                           </div>

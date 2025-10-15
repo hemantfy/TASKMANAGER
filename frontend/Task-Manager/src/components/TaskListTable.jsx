@@ -1,6 +1,6 @@
 import React from "react";
-import moment from "moment";
 import { LuCalendar, LuClock3, LuUser } from "react-icons/lu";
+import { formatDateLabel } from "../utils/dateUtils";
 
 const TaskListTable = ({ tableData }) => {
   const safeTableData = Array.isArray(tableData)
@@ -58,8 +58,7 @@ const TaskListTable = ({ tableData }) => {
     return names.length ? names.join(", ") : "Unassigned";
   };
 
-  const formatDate = (value) =>
-    value ? moment(value).format("Do MMM YYYY") : "N/A";
+  const formatDate = (value) => formatDateLabel(value);
 
   return (
     <div className="mt-4 overflow-hidden rounded-[28px] border border-white/60 bg-white/80 shadow-[0_20px_45px_rgba(15,23,42,0.08)]">

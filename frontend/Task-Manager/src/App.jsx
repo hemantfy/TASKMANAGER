@@ -1,23 +1,22 @@
-import React, { useContext } from "react";
+import React, { Suspense, useContext } from "react";
 import { BrowserRouter as Router, Routes, Route, Outlet, Navigate } from "react-router-dom";
 import PrivateRoute from "./routes/PrivateRoute";
-import Dashboard from "./pages/Admin/Dashboard";
-import Login from "./pages/Auth/Login";
-import ManageTasks from "./pages/Admin/ManageTasks";
-import CreateTask from "./pages/Admin/CreateTask";
-import ManageUsers from "./pages/Admin/ManageUsers";
-import UserDetails from "./pages/Admin/UserDetails";
-import ProfileSettings from "./pages/Profile/ProfileSettings";
-import SignUp from "./pages/Auth/SignUp";
-import Unauthorized from "./pages/Errors/Unauthorized";
 
-import UserDashboard from "./pages/User/UserDashboard";
-import MyTasks from "./pages/User/MyTasks";
-import ViewTaskDetails from "./pages/User/ViewTaskDetails";
 import UserProvider, { UserContext } from "./context/userContext";
 import { Toaster } from "react-hot-toast";
 import { getDefaultRouteForRole } from "./utils/roleUtils";
-
+const Dashboard = React.lazy(() => import("./pages/Admin/Dashboard"));
+const Login = React.lazy(() => import("./pages/Auth/Login"));
+const ManageTasks = React.lazy(() => import("./pages/Admin/ManageTasks"));
+const CreateTask = React.lazy(() => import("./pages/Admin/CreateTask"));
+const ManageUsers = React.lazy(() => import("./pages/Admin/ManageUsers"));
+const UserDetails = React.lazy(() => import("./pages/Admin/UserDetails"));
+const ProfileSettings = React.lazy(() => import("./pages/Profile/ProfileSettings"));
+const SignUp = React.lazy(() => import("./pages/Auth/SignUp"));
+const Unauthorized = React.lazy(() => import("./pages/Errors/Unauthorized"));
+const UserDashboard = React.lazy(() => import("./pages/User/UserDashboard"));
+const MyTasks = React.lazy(() => import("./pages/User/MyTasks"));
+const ViewTaskDetails = React.lazy(() => import("./pages/User/ViewTaskDetails"));
 
 const App = () => {
   return (
@@ -25,10 +24,17 @@ const App = () => {
     <UserProvider>
     <div>
       <Router>
-        <Routes>
-          <Route path="/" element={<Login />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signUp" element={<SignUp />} />
+        <Suspense
+          fallback={
+            <div className="flex min-h-screen items-center justify-center bg-slate-50 text-sm font-medium text-slate-600">
+              Loading workspace...
+            </div>
+          }
+        >
+          <Routes>
+            <Route path="/" element={<Login />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signUp" element={<SignUp />} />
 
 
           {/* Admin Routes */}
@@ -61,8 +67,9 @@ const App = () => {
 
           <Route path="/unauthorized" element={<Unauthorized />} />
 
-          {/* Default Route*/}
-        </Routes>
+            {/* Default Route*/}
+          </Routes>
+        </Suspense>
       </Router>
     </div>
 

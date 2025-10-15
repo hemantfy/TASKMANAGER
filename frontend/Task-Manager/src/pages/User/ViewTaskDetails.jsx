@@ -4,9 +4,9 @@ import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import DashboardLayout from "../../components/layouts/DashboardLayout";
 import AvatarGroup from "../../components/AvatarGroup";
-import moment from "moment";
 import { LuSquareArrowOutUpRight } from "react-icons/lu";
 import LoadingOverlay from "../../components/LoadingOverlay";
+import { formatDateLabel } from "../../utils/dateUtils";
 
 const ViewTaskDetails = () => {
   const { id } = useParams();

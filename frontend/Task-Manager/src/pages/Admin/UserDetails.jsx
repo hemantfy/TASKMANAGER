@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import moment from "moment";
+import { formatDateLabel } from "../../utils/dateUtils";
 import { LuArrowLeft, LuExternalLink, LuLoader } from "react-icons/lu";
 import { FaUser } from "react-icons/fa6";
 
@@ -16,7 +16,7 @@ const statusBadgeStyles = {
   Completed: "bg-emerald-100 text-emerald-600 border-emerald-200",
 };
 
-const formatDate = (date) => (date ? moment(date).format("Do MMM YYYY") : "—");
+const formatDate = (date) => (date ? formatDateLabel(date, "—") : "—");
 
 const UserDetails = () => {
   const { userId } = useParams();

@@ -2,7 +2,7 @@ import React from "react";
 import Progress from "../Progress";
 import AvatarGroup from "../AvatarGroup";
 import { LuPaperclip } from "react-icons/lu";
-import moment from "moment";
+import { formatDateLabel } from "../../utils/dateUtils";
 
 const TaskCard = ({
   title,
@@ -112,11 +112,11 @@ typeof attachmentCount === "number" && !Number.isNaN(attachmentCount)
       <div className="mt-5 grid grid-cols-2 gap-3 text-sm text-slate-600 transition-colors duration-300 dark:text-slate-300">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 transition-colors duration-300 dark:text-slate-400">Start Date</p>
-          <p className="mt-1 text-sm font-medium text-slate-900 transition-colors duration-300 dark:text-slate-100">{moment(createdAt).format("Do MMM YYYY")}</p>
+          <p className="mt-1 text-sm font-medium text-slate-900 transition-colors duration-300 dark:text-slate-100">{formatDateLabel(createdAt)}</p>
         </div>
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 transition-colors duration-300 dark:text-slate-400">Due Date</p>
-          <p className="mt-1 text-sm font-medium text-slate-900 transition-colors duration-300 dark:text-slate-100">{moment(dueDate).format("Do MMM YYYY")}</p>
+          <p className="mt-1 text-sm font-medium text-slate-900 transition-colors duration-300 dark:text-slate-100">{formatDateLabel(dueDate)}</p>
         </div>
       </div>
 
