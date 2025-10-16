@@ -113,10 +113,16 @@ const UserDetails = () => {
     fetchUserDetails();
   }, [fetchUserDetails]);
 
-  const handleBackToTeam = () => {
-    setSelectedTaskId(taskId);
-    setIsTaskFormOpen(true);
-  };
+  const handleBackToTeam = useCallback(() => {
+    const hasHistory = window?.history?.state?.idx > 0;
+
+    if (hasHistory) {
+      navigate(-1);
+      return;
+    }
+
+    navigate(`${privilegedBasePath}/users`, { replace: true });
+  }, [navigate, privilegedBasePath]);
 
   const handleTaskFormClose = () => {
     setIsTaskFormOpen(false);
