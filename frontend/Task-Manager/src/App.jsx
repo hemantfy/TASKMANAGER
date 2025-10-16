@@ -7,8 +7,7 @@ import { Toaster } from "react-hot-toast";
 import { getDefaultRouteForRole } from "./utils/roleUtils";
 const Dashboard = React.lazy(() => import("./pages/Admin/Dashboard"));
 const Login = React.lazy(() => import("./pages/Auth/Login"));
-const ManageTasks = React.lazy(() => import("./pages/Admin/ManageTasks"));
-const CreateTask = React.lazy(() => import("./pages/Admin/CreateTask"));
+const Tasks = React.lazy(() => import("./pages/Admin/Tasks"));
 const ManageUsers = React.lazy(() => import("./pages/Admin/ManageUsers"));
 const UserDetails = React.lazy(() => import("./pages/Admin/UserDetails"));
 const ProfileSettings = React.lazy(() => import("./pages/Profile/ProfileSettings"));
@@ -40,8 +39,7 @@ const App = () => {
           {/* Admin Routes */}
           <Route element={<PrivateRoute allowedRoles={["admin"]} />}>
             <Route path="/admin/dashboard" element={<Dashboard />} />
-            <Route path="/admin/tasks" element={<ManageTasks />} />
-            <Route path="/admin/create-task" element={<CreateTask />} />
+            <Route path="/admin/tasks" element={<Tasks />} />
             <Route path="/admin/users" element={<ManageUsers />} />
             <Route path="/admin/users/:userId" element={<UserDetails />} />
             <Route path="/admin/profile-settings" element={<ProfileSettings />} />
@@ -50,8 +48,7 @@ const App = () => {
           {/* Owner Routes */}
           <Route element={<PrivateRoute allowedRoles={["owner"]} />}>
             <Route path="/owner/dashboard" element={<Dashboard />} />
-            <Route path="/owner/tasks" element={<ManageTasks />} />
-            <Route path="/owner/create-task" element={<CreateTask />} />
+            <Route path="/owner/tasks" element={<Tasks />} />
             <Route path="/owner/users" element={<ManageUsers />} />
             <Route path="/owner/users/:userId" element={<UserDetails />} />
             <Route path="/owner/profile-settings" element={<ProfileSettings />} />

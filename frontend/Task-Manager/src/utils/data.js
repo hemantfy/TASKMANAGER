@@ -2,7 +2,6 @@ import {
   LuLayoutDashboard,
   LuUsers,
   LuClipboardCheck,
-  LuSquarePlus,
   LuLogOut,
   LuUserCog,
 } from "react-icons/lu";
@@ -16,30 +15,24 @@ export const SIDE_MENU_DATA = [
   },
   {
     id: "02",
-    label: "Manage Tasks",
+    label: "Tasks",
     icon: LuClipboardCheck,
     path: "/admin/tasks",
   },
   {
     id: "03",
-    label: "Create Task",
-    icon: LuSquarePlus,
-    path: "/admin/create-task",
-  },
-  {
-    id: "04",
     label: "Team Members",
     icon: LuUsers,
     path: "/admin/users",
   },
   {
-    id: "05",
+    id: "04",
     label: "Profile Setting",
     icon: LuUserCog,
     path: "/admin/profile-settings",
   },
   {
-    id: "06",
+    id: "05",
     label: "Logout",
     icon: LuLogOut,
     path: "logout",

@@ -1,4 +1,10 @@
-import React, { useContext, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { formatDateLabel } from "../../utils/dateUtils";
 import { LuArrowLeft, LuExternalLink, LuLoader } from "react-icons/lu";
@@ -9,6 +15,7 @@ import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { UserContext } from "../../context/userContext";
 import { getPrivilegedBasePath } from "../../utils/roleUtils";
+import TaskFormModal from "../../components/TaskFormModal";
 
 const statusBadgeStyles = {
   Pending: "bg-amber-100 text-amber-600 border-amber-200",
@@ -37,10 +44,11 @@ const UserDetails = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
+  const [selectedTaskId, setSelectedTaskId] = useState(null);
 
-  useEffect(() => {
-    const fetchUserDetails = async () => {
-      if (!userId) return;
+  const fetchUserDetails = useCallback(async () => {
+    if (!userId) return;
 
       try {
         setIsLoading(true);
@@ -54,51 +62,62 @@ const UserDetails = () => {
           responseData.userData ||
           (responseData._id ? responseData : null);
 
-          if (!normalizedUser) {
-            throw new Error(
-              responseData?.message ||
-                "We were unable to find this team member."
-            );
-          }
-  
-          const userTasks = Array.isArray(responseData.tasks)
-            ? responseData.tasks
-            : Array.isArray(responseData.assignedTasks)
-              ? responseData.assignedTasks
-              : [];
-          const summary = responseData.taskSummary || responseData.summary || {};
-  
-          setUserData(normalizedUser);
-          setTasks(userTasks);
-        setTaskSummary({
-            total:
-            typeof summary.total === "number"
-              ? summary.total
-              : userTasks.length,
-          pending: summary?.pending ?? 0,
-          inProgress: summary?.inProgress ?? 0,
-          completed: summary?.completed ?? 0,
-        });
-        setError("");
-      } catch (requestError) {
-        console.error("Failed to fetch user details", requestError);
-        const message =
-          requestError.response?.data?.message ||
-          requestError.message ||
-          "We were unable to load this team member. Please try again later.";
-        setError(message);
-        setUserData(null);
-        setTasks([]);
-      } finally {
-        setIsLoading(false);
+      if (!normalizedUser) {
+        throw new Error(
+          responseData?.message || "We were unable to find this team member."
+        );
       }
-    };
 
-    fetchUserDetails();
+      const userTasks = Array.isArray(responseData.tasks)
+        ? responseData.tasks
+        : Array.isArray(responseData.assignedTasks)
+        ? responseData.assignedTasks
+        : [];
+      const summary = responseData.taskSummary || responseData.summary || {};
+
+      setUserData(normalizedUser);
+      setTasks(userTasks);
+      setTaskSummary({
+        total:
+          typeof summary.total === "number"
+            ? summary.total
+            : userTasks.length,
+        pending: summary?.pending ?? 0,
+        inProgress: summary?.inProgress ?? 0,
+        completed: summary?.completed ?? 0,
+      });
+      setError("");
+    } catch (requestError) {
+      console.error("Failed to fetch user details", requestError);
+      const message =
+        requestError.response?.data?.message ||
+        requestError.message ||
+        "We were unable to load this team member. Please try again later.";
+      setError(message);
+      setUserData(null);
+      setTasks([]);
+    } finally {
+      setIsLoading(false);
+    }
   }, [userId]);
 
+    useEffect(() => {
+    fetchUserDetails();
+  }, [fetchUserDetails]);
+
   const handleBackToTeam = () => {
-    navigate(`${privilegedBasePath}/users`);
+    setSelectedTaskId(taskId);
+    setIsTaskFormOpen(true);
+  };
+
+  const handleTaskFormClose = () => {
+    setIsTaskFormOpen(false);
+    setSelectedTaskId(null);
+  };
+
+  const handleTaskMutationSuccess = () => {
+    fetchUserDetails();
+    handleTaskFormClose();
   };
 
   const handleOpenTaskDetails = (taskId) => {
@@ -311,6 +330,13 @@ const UserDetails = () => {
       </div>
 
       <div className="mt-6">{renderContent()}</div>
+
+      <TaskFormModal
+        isOpen={isTaskFormOpen}
+        onClose={handleTaskFormClose}
+        taskId={selectedTaskId}
+        onSuccess={handleTaskMutationSuccess}
+      />      
     </DashboardLayout>
   );
 };
