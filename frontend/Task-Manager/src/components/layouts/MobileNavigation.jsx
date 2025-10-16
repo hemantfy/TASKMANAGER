@@ -105,19 +105,24 @@ const MobileNavigation = () => {
       >
         <ul
           className={`mobile-nav-scroll flex items-stretch gap-2 ${
-            shouldEnableScroll ? "overflow-x-auto pb-1" : "justify-center"
+            shouldEnableScroll
+              ? "overflow-x-auto pb-1"
+              : "w-full justify-between"
           }`}
         >
           {menuItems.map((item) => {
             const Icon = item.icon;
             const active = isItemActive(item.path);
+            const itemWrapperClass = shouldEnableScroll
+              ? "flex-shrink-0"
+              : "flex-1 flex";            
 
             return (
-              <li key={item.path} className="flex-shrink-0">
+              <li key={item.path} className={itemWrapperClass}>
                 <button
                   type="button"
                   onClick={() => handleNavigation(item.path)}
-                  className={`flex h-full min-w-[64px] flex-col items-center gap-1 rounded-2xl px-3 py-2 text-[11px] font-medium uppercase tracking-[0.24em] transition ${
+                  className={`flex h-full w-full min-w-[56px] flex-col items-center justify-center gap-2 rounded-2xl px-3 py-2 text-[11px] font-medium uppercase tracking-[0.24em] transition ${
                     active
                       ? "bg-gradient-to-r from-primary/90 via-indigo-500 to-sky-500 text-white shadow-[0_12px_24px_rgba(59,130,246,0.35)]"
                       : "text-slate-500 hover:text-primary dark:text-slate-300 dark:hover:text-indigo-300"
@@ -126,34 +131,32 @@ const MobileNavigation = () => {
                   aria-current={active ? "page" : undefined}
                 >
                   <span
-                    className={`flex h-10 w-10 items-center justify-center rounded-xl border text-lg transition ${
+                     className={`flex h-12 w-12 items-center justify-center rounded-2xl border text-xl transition ${
                       active
-                        ? "border-white/50 bg-white/20 text-white"
-                         : "border-slate-200 bg-white/80 text-primary/70 dark:border-slate-700/60 dark:bg-slate-900/60 dark:text-indigo-200"
+                        ? "border-white/40 bg-white/20 text-white"
+                        : "border-slate-200 bg-white/80 text-primary/70 dark:border-slate-700/60 dark:bg-slate-900/60 dark:text-indigo-200"
                     }`}
                   >
                     {Icon ? <Icon /> : item.label?.slice(0, 1) || "•"}
                   </span>
-                  <span className="text-[10px] font-semibold tracking-[0.28em]">
-                    {item.label}
-                  </span>
+                  <span className="sr-only">{item.label}</span>
                 </button>
               </li>
             );
           })}
 
           {/* Logout */}
-          <li className="flex-shrink-0">
+          <li className={shouldEnableScroll ? "flex-shrink-0" : "flex-1 flex"}>
             <button
               type="button"
               onClick={() => handleNavigation("logout")}
-                        className="flex h-full min-w-[64px] flex-col items-center gap-1 rounded-2xl px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-rose-500 transition hover:text-rose-600 dark:text-rose-300 dark:hover:text-rose-200"
+              className="flex h-full w-full min-w-[56px] flex-col items-center justify-center gap-2 rounded-2xl px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-rose-500 transition hover:text-rose-600 dark:text-rose-300 dark:hover:text-rose-200"
               aria-label="Logout"
             >
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-rose-200 bg-white/90 text-lg text-rose-500 transition-colors duration-300 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-200">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-rose-200 bg-white/90 text-xl text-rose-500 transition-colors duration-300 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-200">
                 <LuLogOut />
               </span>
-              <span className="text-[10px] tracking-[0.28em]">Logout</span>
+              <span className="sr-only">Logout</span>
             </button>
           </li>
         </ul>
