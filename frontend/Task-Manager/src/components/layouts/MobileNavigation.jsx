@@ -95,10 +95,13 @@ const MobileNavigation = () => {
   );
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-3 z-40 flex justify-center px-3 lg:hidden">
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center lg:hidden">
       <nav
         aria-label="Primary navigation"
-        className="pointer-events-auto w-full max-w-[460px] rounded-[26px] border border-white/60 bg-white/95 px-3 py-2 shadow-[0_18px_40px_rgba(15,23,42,0.16)] backdrop-blur transition-colors duration-300 dark:border-slate-800/60 dark:bg-slate-900/80 dark:shadow-[0_24px_50px_rgba(2,6,23,0.55)]"
+        className="pointer-events-auto w-full rounded-t-[26px] border border-white/60 bg-white/95 px-4 py-3 shadow-[0_18px_40px_rgba(15,23,42,0.16)] backdrop-blur transition-colors duration-300 dark:border-slate-800/60 dark:bg-slate-900/80 dark:shadow-[0_24px_50px_rgba(2,6,23,0.55)]"
+        style={{
+          paddingBottom: `max(0.75rem, env(safe-area-inset-bottom, 0px))`,
+        }}
       >
         <ul
           className={`mobile-nav-scroll flex items-stretch gap-2 ${
