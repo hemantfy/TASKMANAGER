@@ -127,9 +127,13 @@ const SelectUsers = ({ selectedUsers, setSelectedUsers }) => {
           </p>
 
           <div className="space-y-3 overflow-y-auto rounded-2xl border border-slate-200/80 bg-slate-50 p-3">
-            {allUsers.map((user) => {
-              const normalizedRole = normalizeRole(user?.role);
-              const roleLabel = getRoleLabel(normalizedRole);
+          {allUsers.map((user) => {
+            const normalizedRole = normalizeRole(user?.role);
+            const roleLabel = getRoleLabel(normalizedRole);
+            const normalizedGender =
+              typeof user?.gender === "string"
+                ? user.gender.trim().toLowerCase()
+                : "";
 
               return (
                 <div
@@ -143,7 +147,15 @@ const SelectUsers = ({ selectedUsers, setSelectedUsers }) => {
                       className="h-10 w-10 rounded-full object-cover"
                     />
                   ) : (
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+                    <span
+                      className={`flex h-10 w-10 items-center justify-center rounded-full ${
+                        normalizedGender === "female"
+                          ? "bg-rose-50 text-rose-400"
+                          : normalizedGender === "male"
+                          ? "bg-blue-50 text-primary"
+                          : "bg-slate-100 text-slate-500"
+                      }`}
+                    >
                       <FaUser className="text-base" />
                     </span>
                   )}

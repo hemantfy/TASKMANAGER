@@ -54,6 +54,14 @@ const SideMenu = ({ activeMenu }) => {
     navigate("/login");
   };
 
+  const normalizedGender = useMemo(() => {
+    if (typeof user?.gender !== "string") {
+      return "";
+    }
+
+    return user.gender.trim().toLowerCase();
+  }, [user?.gender]);
+
   const normalizedRole = useMemo(() => normalizeRole(user?.role), [user?.role]);
   const isPrivilegedUser = hasPrivilegedAccess(normalizedRole);
   const roleBadgeLabel = getRoleLabel(normalizedRole);
@@ -94,7 +102,15 @@ const SideMenu = ({ activeMenu }) => {
             src={user?.profileImageUrl || ""}
             alt="Profile Image"
             className="h-20 w-20 rounded-full border-4 border-white object-cover shadow-lg shadow-primary/20"
-          /> : <FaUser className="text-4xl text-primary"/>}
+          /> : <FaUser
+            className={`text-4xl ${
+              normalizedGender === "female"
+                ? "text-rose-300 drop-shadow-[0_12px_24px_rgba(244,114,182,0.25)]"
+                : normalizedGender === "male"
+                ? "text-primary drop-shadow-[0_12px_24px_rgba(79,70,229,0.25)]"
+                : "text-indigo-200 drop-shadow-[0_10px_20px_rgba(79,70,229,0.18)]"
+            }`}
+          />}
         </div>
 
         {isPrivilegedUser && roleBadgeLabel && (

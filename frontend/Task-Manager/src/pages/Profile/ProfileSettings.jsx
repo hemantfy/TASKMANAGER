@@ -38,6 +38,13 @@ const ProfileSettings = () => {
   const navigate = useNavigate();
 
   const gender = user?.gender || "Not specified";
+    const normalizedGender = useMemo(() => {
+    if (typeof user?.gender !== "string") {
+      return "";
+    }
+
+    return user.gender.trim().toLowerCase();
+  }, [user?.gender]);
   const officeLocation = user?.officeLocation || "Not specified";
 
   const currentProfileImage = useMemo(() => {
@@ -371,7 +378,15 @@ const ProfileSettings = () => {
                 src={currentProfileImage}
                 alt="Profile"
                 className="h-28 w-28 rounded-full border-4 border-white object-cover shadow-lg shadow-primary/20"
-              /> : <FaUser className="h-28 w-28 rounded-full border-4 border-white object-cover shadow-lg shadow-primary/20 text-primary p-3"/>}
+              /> : <FaUser
+                className={`h-28 w-28 rounded-full border-4 border-white object-cover p-3 shadow-lg ${
+                  normalizedGender === "female"
+                    ? "text-rose-300 shadow-[0_24px_45px_rgba(244,114,182,0.25)]"
+                    : normalizedGender === "male"
+                    ? "text-primary shadow-[0_24px_45px_rgba(79,70,229,0.25)]"
+                    : "text-indigo-200 shadow-[0_24px_45px_rgba(79,70,229,0.18)]"
+                }`}
+              />}
               <label
                 htmlFor="profileImage"
                 className="absolute bottom-0 right-0 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-gradient-to-br from-primary via-indigo-500 to-sky-400 text-white shadow-[0_12px_24px_rgba(79,70,229,0.35)]"

@@ -19,6 +19,14 @@ const UserCard = ({ userInfo, onDelete, onResetPassword }) => {
     { label: "Completed", count: userInfo?.completedTasks || 0, status: "Completed" }
   ];
 
+    const normalizedGender = useMemo(() => {
+    if (typeof userInfo?.gender !== "string") {
+      return "";
+    }
+
+    return userInfo.gender.trim().toLowerCase();
+  }, [userInfo?.gender]);
+
   const normalizedRole = useMemo(
     () => normalizeRole(userInfo?.role),
     [userInfo?.role]
@@ -72,7 +80,15 @@ const UserCard = ({ userInfo, onDelete, onResetPassword }) => {
             src={userInfo?.profileImageUrl}
             alt="Avatar"
             className="h-14 w-14 rounded-2xl border-4 border-white object-cover shadow-[0_12px_24px_rgba(79,70,229,0.25)]"
-          /> : <FaUser className="h-14 w-14 rounded-2xl border-4 border-white object-cover shadow-[0_12px_24px_rgba(79,70,229,0.25)] text-primary p-3"/>}
+          /> : <FaUser
+            className={`h-14 w-14 rounded-2xl border-4 border-white object-cover p-3 ${
+              normalizedGender === "female"
+                ? "text-rose-300 shadow-[0_12px_24px_rgba(244,114,182,0.25)]"
+                : normalizedGender === "male"
+                ? "text-primary shadow-[0_12px_24px_rgba(79,70,229,0.25)]"
+                : "text-indigo-300 shadow-[0_12px_24px_rgba(79,70,229,0.18)]"
+            }`}
+          />}
 
           <div>
             <p className="text-base font-semibold text-slate-900">{userInfo?.name}</p>

@@ -47,6 +47,14 @@ const UserDetails = () => {
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState(null);
 
+ const normalizedUserGender = useMemo(() => {
+    if (typeof userData?.gender !== "string") {
+      return "";
+    }
+
+    return userData.gender.trim().toLowerCase();
+  }, [userData?.gender]);
+
   const fetchUserDetails = useCallback(async () => {
     if (!userId) return;
 
@@ -190,7 +198,15 @@ const UserDetails = () => {
                   className="h-16 w-16 rounded-2xl border-4 border-white object-cover shadow-[0_14px_32px_rgba(79,70,229,0.3)]"
                 />
               ) : (
-                <span className="flex h-16 w-16 items-center justify-center rounded-2xl border-4 border-white bg-white/20 text-white shadow-[0_14px_32px_rgba(79,70,229,0.3)]">
+                <span
+                  className={`flex h-16 w-16 items-center justify-center rounded-2xl border-4 border-white bg-white/20 shadow-[0_14px_32px_rgba(79,70,229,0.3)] ${
+                    normalizedUserGender === "female"
+                      ? "text-rose-100"
+                      : normalizedUserGender === "male"
+                      ? "text-primary"
+                      : "text-white"
+                  }`}
+                >
                   <FaUser className="h-7 w-7" />
                 </span>
               )}

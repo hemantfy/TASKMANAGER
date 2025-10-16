@@ -122,7 +122,7 @@ const MobileNavigation = () => {
                 <button
                   type="button"
                   onClick={() => handleNavigation(item.path)}
-                  className={`flex h-full w-full min-w-[56px] flex-col items-center justify-center gap-2 rounded-2xl px-3 py-2 text-[11px] font-medium uppercase tracking-[0.24em] transition ${
+                  className={`flex h-full w-full min-w-[48px] flex-col items-center justify-center gap-1.5 rounded-2xl px-2.5 py-1.5 text-[10px] font-medium uppercase tracking-[0.24em] transition ${
                     active
                       ? "bg-gradient-to-r from-primary/90 via-indigo-500 to-sky-500 text-white shadow-[0_12px_24px_rgba(59,130,246,0.35)]"
                       : "text-slate-500 hover:text-primary dark:text-slate-300 dark:hover:text-indigo-300"
@@ -131,7 +131,7 @@ const MobileNavigation = () => {
                   aria-current={active ? "page" : undefined}
                 >
                   <span
-                     className={`flex h-12 w-12 items-center justify-center rounded-2xl border text-xl transition ${
+                         className={`flex h-10 w-10 items-center justify-center rounded-2xl border text-lg transition ${
                       active
                         ? "border-white/40 bg-white/20 text-white"
                         : "border-slate-200 bg-white/80 text-primary/70 dark:border-slate-700/60 dark:bg-slate-900/60 dark:text-indigo-200"
