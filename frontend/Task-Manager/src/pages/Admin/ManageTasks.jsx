@@ -99,9 +99,9 @@ const handleResetFilters = () => {
     }
   };
 
-  const handleClick = (taskData) => {
+  const handleClick = (taskId) => {
     navigate(`${privilegedBasePath}/create-task`, {
-      state: { taskId: taskData._id },
+      state: { taskId }
     });
   };
 
