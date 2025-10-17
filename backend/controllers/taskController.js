@@ -1,7 +1,7 @@
 const Task = require("../models/Task");
 const User = require("../models/User");
 const { sendTaskAssignmentEmail } = require("../utils/emailService");
-const { hasPrivilegedAccess } = require("../utils/roleUtils");
+const { hasPrivilegedAccess, matchesRole } = require("../utils/roleUtils");
 
 const isPrivileged = (role) => hasPrivilegedAccess(role);
 
@@ -583,9 +583,12 @@ const getDashboardData = async (req, res) => {
       }, {});
 
       // Compute leaderboard statistics for admins and members
-      const teamMembers = await User.find({
-        role: { $in: ["admin", "member"] },
-      }).select("name role profileImageUrl");
+      const potentialTeamMembers = await User.find()
+        .select("name role profileImageUrl");
+
+      const teamMembers = potentialTeamMembers.filter((user) =>
+        matchesRole(user.role, "admin") || matchesRole(user.role, "member")
+      );
 
       const relevantUserIds = teamMembers.map((user) => user._id);
       const now = new Date();
