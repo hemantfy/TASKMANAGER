@@ -584,7 +584,7 @@ const getDashboardData = async (req, res) => {
 
       // Compute leaderboard statistics for admins and members
       const potentialTeamMembers = await User.find()
-        .select("name role profileImageUrl");
+        .select("name role profileImageUrl officeLocation");
 
       const teamMembers = potentialTeamMembers.filter((user) =>
         matchesRole(user.role, "admin") || matchesRole(user.role, "member")
@@ -724,6 +724,7 @@ const getDashboardData = async (req, res) => {
             name: user.name,
             role: user.role,
             profileImageUrl: user.profileImageUrl,
+            officeLocation: user.officeLocation,
             totalAssigned,
             completedTasks: completed,
             pendingTasks: pending,
