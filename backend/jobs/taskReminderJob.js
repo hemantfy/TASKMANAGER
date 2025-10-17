@@ -7,12 +7,12 @@ let reminderTimer = null;
 
 const runReminderCheck = async () => {
   const now = new Date();
-  dueDate: { $gte: previousDay, $lte: nextDay },
+  const previousDay = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const nextDay = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
   try {
     const tasksDueSoon = await Task.find({
-      dueDate: { $gte: now, $lte: nextDay },
+      dueDate: { $gte: previousDay, $lte: nextDay },
       status: { $ne: "Completed" },
       $or: [{ reminderSentAt: null }, { reminderSentAt: { $exists: false } }],
     })
@@ -26,11 +26,12 @@ const runReminderCheck = async () => {
           : task.assignedTo
           ? [task.assignedTo]
           : [];
-        const assignees = assigneesSource.filter(Boolean);
-
-        if (!task.dueDate) {
+        const assignees = assigneesSource.filter(Boolean);  
+                
+        if (!assignees.length) {
           return;
         }
+
         if (!assignees.length) {
           return;
         }
