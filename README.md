@@ -34,10 +34,14 @@ EMAIL_PORT=587
 EMAIL_USER=user@example.com
 EMAIL_PASS=<email_password>
 EMAIL_FROM="Task Manager <no-reply@example.com>"
+ADMIN_NOTIFICATION_EMAILS=admin1@example.com,admin2@example.com
 ```
 
 - `ADMIN_INVITE_TOKEN` is required for protected admin-only flows.
-- Email settings are only necessary when using features that send notification emails.
+- Email settings are only necessary when using features that send notification emails. If no `EMAIL_FROM` is provided, emails
+  will be sent from `helpdesk@ravaladvocates.com` by default.
+- Set `ADMIN_NOTIFICATION_EMAILS` (comma-separated) to automatically copy admin recipients on task assignment and reminder
+  emails.
 
 ## Backend Setup
 

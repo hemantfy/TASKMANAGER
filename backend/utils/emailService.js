@@ -1,6 +1,17 @@
 const nodemailer = require("nodemailer");
 
 let transporter = null;
+const DEFAULT_FROM_EMAIL = "helpdesk@ravaladvocates.com";
+
+const getAdminNotificationEmails = () => {
+  const rawAdminEmails =
+    process.env.ADMIN_NOTIFICATION_EMAILS || process.env.ADMIN_EMAIL || "";
+
+  return rawAdminEmails
+    .split(",")
+    .map((email) => email.trim())
+    .filter(Boolean);
+};
 
 const isEmailConfigured = () => {
   return (
@@ -44,7 +55,8 @@ const sendEmail = async ({ to, subject, text, html }) => {
     return;
   }
 
-  const from = process.env.EMAIL_FROM || process.env.EMAIL_USER;
+  const from =
+    process.env.EMAIL_FROM || process.env.EMAIL_USER || DEFAULT_FROM_EMAIL;
 
   await mailer.sendMail({ from, to, subject, text, html });
 };
@@ -132,8 +144,18 @@ Thank you.`;
   return { subject: `Reminder: ${task.title}`, text, html };
 };
 
+const buildRecipientList = (assignees) => {
+  const assigneeEmails = assignees
+    .filter((user) => user?.email)
+    .map((user) => user.email);
+
+  const adminEmails = getAdminNotificationEmails();
+
+  return Array.from(new Set([...assigneeEmails, ...adminEmails]));
+};
+
 const sendTaskAssignmentEmail = async ({ task, assignees, assignedBy }) => {
-  const recipients = assignees.filter((user) => user?.email).map((user) => user.email);
+  const recipients = buildRecipientList(assignees);
 
   if (!recipients.length) {
     return;
@@ -143,8 +165,13 @@ const sendTaskAssignmentEmail = async ({ task, assignees, assignedBy }) => {
   await sendEmail({ to: recipients, subject, text, html });
 };
 
-const sendTaskReminderEmail = async ({ task, assignees, assignedBy, message }) => {
-  const recipients = assignees.filter((user) => user?.email).map((user) => user.email);
+const sendTaskReminderEmail = async ({
+  task,
+  assignees,
+  assignedBy,
+  message,
+}) => {
+  const recipients = buildRecipientList(assignees);
 
   if (!recipients.length) {
     return;
