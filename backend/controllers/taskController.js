@@ -119,19 +119,33 @@ const createTask = async (req, res) => {
               .json({ message: "assignedTo must be an array of user IDs" });
           }
 
+          const normalizedAssignees = assignedTo
+            .map((assignee) => {
+              if (assignee && typeof assignee === "object" && assignee._id) {
+                return assignee._id.toString();
+              }
+
+              return assignee?.toString();
+            })
+            .filter(Boolean);
+
+          const uniqueAssigneeIds = [
+            ...new Set(normalizedAssignees.map((id) => id.toString())),
+          ];
+
           const task = await Task.create({
             title,
             description,
             priority,
             dueDate,
-            assignedTo,
+            assignedTo: uniqueAssigneeIds,
             createdBy: req.user._id,
             todoChecklist,
             attachments,
           });
           try {
             const assignees = await User.find({
-              _id: { $in: assignedTo },
+              _id: { $in: uniqueAssigneeIds },
             }).select("name email");
 
             if (assignees.length) {
