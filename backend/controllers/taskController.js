@@ -540,67 +540,240 @@ const getDashboardData = async (req, res) => {
       }
       
       // Fetch statistics
-const totalTasks = await Task.countDocuments();
-const pendingTasks = await Task.countDocuments({ status: "Pending" });
-const completedTasks = await Task.countDocuments({ status: "Completed" });
-const overdueTasks = await Task.countDocuments({
-  status: { $ne: "Completed" },
-  dueDate: { $lt: new Date() },
-});
+      const totalTasks = await Task.countDocuments();
+      const pendingTasks = await Task.countDocuments({ status: "Pending" });
+      const completedTasks = await Task.countDocuments({ status: "Completed" });
+      const overdueTasks = await Task.countDocuments({
+        status: { $ne: "Completed" },
+        dueDate: { $lt: new Date() },
+      });
 
-// Ensure all possible statuses are included
-const taskStatuses = ["Pending", "In Progress", "Completed"];
-const taskDistributionRaw = await Task.aggregate([
-  {
-    $group: {
-      _id: "$status",
-      count: { $sum: 1 },
-    },
-  },
-]);
-const taskDistribution = taskStatuses.reduce((acc, status) => {
-  const formattedKey = status.replace(/\s+/g, ""); // Remove spaces for response keys
-  acc[formattedKey] =
-    taskDistributionRaw.find((item) => item._id === status)?.count || 0;
-  return acc;
-}, {});
-taskDistribution["All"] = totalTasks; // Add total count to taskDistribution
+      // Ensure all possible statuses are included
+      const taskStatuses = ["Pending", "In Progress", "Completed"];
+      const taskDistributionRaw = await Task.aggregate([
+        {
+          $group: {
+            _id: "$status",
+            count: { $sum: 1 },
+          },
+        },
+      ]);
+      const taskDistribution = taskStatuses.reduce((acc, status) => {
+        const formattedKey = status.replace(/\s+/g, ""); // Remove spaces for response keys
+        acc[formattedKey] =
+          taskDistributionRaw.find((item) => item._id === status)?.count || 0;
+        return acc;
+      }, {});
+      taskDistribution["All"] = totalTasks; // Add total count to taskDistribution
 
-// Ensure all priority levels are included
-const taskPriorities = ["Low", "Medium", "High"];
-const taskPriorityLevelsRaw = await Task.aggregate([
-  {
-    $group: {
-      _id: "$priority",
-      count: { $sum: 1 },
-    },
-  },
-]);
-const taskPriorityLevels = taskPriorities.reduce((acc, priority) => {
-  acc[priority] =
-    taskPriorityLevelsRaw.find((item) => item._id === priority)?.count || 0;
-  return acc;
-}, {});
-// Fetch recent 10 tasks
-const recentTasks = await Task.find()
-  .sort({ createdAt: -1 })
-  .limit(10)
-  .select("title status priority dueDate createdAt assignedTo")
-  .populate("assignedTo", "name email");
+      // Ensure all priority levels are included
+      const taskPriorities = ["Low", "Medium", "High"];
+      const taskPriorityLevelsRaw = await Task.aggregate([
+        {
+          $group: {
+            _id: "$priority",
+            count: { $sum: 1 },
+          },
+        },
+      ]);
+      const taskPriorityLevels = taskPriorities.reduce((acc, priority) => {
+        acc[priority] =
+          taskPriorityLevelsRaw.find((item) => item._id === priority)?.count || 0;
+        return acc;
+      }, {});
 
-res.status(200).json({
-  statistics: {
-    totalTasks,
-    pendingTasks,
-    completedTasks,
-    overdueTasks,
-  },
-  charts: {
-    taskDistribution,
-    taskPriorityLevels,
-  },
-  recentTasks,
-});
+      // Compute leaderboard statistics for admins and members
+      const teamMembers = await User.find({
+        role: { $in: ["admin", "member"] },
+      }).select("name role profileImageUrl");
+
+      const relevantUserIds = teamMembers.map((user) => user._id);
+      const now = new Date();
+
+      const leaderboardAggregation = relevantUserIds.length
+        ? await Task.aggregate([
+            { $unwind: "$assignedTo" },
+            { $match: { assignedTo: { $in: relevantUserIds } } },
+            {
+              $group: {
+                _id: "$assignedTo",
+                totalAssigned: { $sum: 1 },
+                completedTasks: {
+                  $sum: {
+                    $cond: [{ $eq: ["$status", "Completed"] }, 1, 0],
+                  },
+                },
+                pendingTasks: {
+                  $sum: {
+                    $cond: [{ $eq: ["$status", "Pending"] }, 1, 0],
+                  },
+                },
+                inProgressTasks: {
+                  $sum: {
+                    $cond: [{ $eq: ["$status", "In Progress"] }, 1, 0],
+                  },
+                },
+                onTimeCompletions: {
+                  $sum: {
+                    $cond: [
+                      {
+                        $and: [
+                          { $eq: ["$status", "Completed"] },
+                          { $ne: ["$completedAt", null] },
+                          { $lte: ["$completedAt", "$dueDate"] },
+                        ],
+                      },
+                      1,
+                      0,
+                    ],
+                  },
+                },
+                lateCompletions: {
+                  $sum: {
+                    $cond: [
+                      {
+                        $and: [
+                          { $eq: ["$status", "Completed"] },
+                          { $ne: ["$completedAt", null] },
+                          { $gt: ["$completedAt", "$dueDate"] },
+                        ],
+                      },
+                      1,
+                      0,
+                    ],
+                  },
+                },
+                overdueTasks: {
+                  $sum: {
+                    $cond: [
+                      {
+                        $and: [
+                          { $ne: ["$status", "Completed"] },
+                          { $lt: ["$dueDate", now] },
+                        ],
+                      },
+                      1,
+                      0,
+                    ],
+                  },
+                },
+              },
+            },
+          ])
+        : [];
+
+      const leaderboardStatsMap = leaderboardAggregation.reduce(
+        (acc, item) => {
+          acc[item._id.toString()] = {
+            totalAssigned: item.totalAssigned || 0,
+            completedTasks: item.completedTasks || 0,
+            pendingTasks: item.pendingTasks || 0,
+            inProgressTasks: item.inProgressTasks || 0,
+            onTimeCompletions: item.onTimeCompletions || 0,
+            lateCompletions: item.lateCompletions || 0,
+            overdueTasks: item.overdueTasks || 0,
+          };
+          return acc;
+        },
+        {}
+      );
+
+      const leaderboard = teamMembers
+        .map((user) => {
+          const stats =
+            leaderboardStatsMap[user._id.toString()] || {
+              totalAssigned: 0,
+              completedTasks: 0,
+              pendingTasks: 0,
+              inProgressTasks: 0,
+              onTimeCompletions: 0,
+              lateCompletions: 0,
+              overdueTasks: 0,
+            };
+
+          const {
+            totalAssigned,
+            completedTasks: completed,
+            pendingTasks: pending,
+            inProgressTasks: inProgress,
+            onTimeCompletions: onTime,
+            lateCompletions: late,
+            overdueTasks: overdue,
+          } = stats;
+
+          const completionRate = totalAssigned
+            ? Math.round((completed / totalAssigned) * 100)
+            : 0;
+          const onTimeRate = completed
+            ? Math.round((onTime / completed) * 100)
+            : 0;
+
+          const score =
+            completed * 10 +
+            onTime * 5 +
+            inProgress * 2 -
+            late * 3 -
+            overdue * 3 -
+            pending;
+
+          return {
+            userId: user._id,
+            name: user.name,
+            role: user.role,
+            profileImageUrl: user.profileImageUrl,
+            totalAssigned,
+            completedTasks: completed,
+            pendingTasks: pending,
+            inProgressTasks: inProgress,
+            onTimeCompletions: onTime,
+            lateCompletions: late,
+            overdueTasks: overdue,
+            completionRate,
+            onTimeRate,
+            score,
+          };
+        })
+        .sort((a, b) => {
+          if (b.score !== a.score) {
+            return b.score - a.score;
+          }
+
+          if (b.onTimeCompletions !== a.onTimeCompletions) {
+            return b.onTimeCompletions - a.onTimeCompletions;
+          }
+
+          if (b.completedTasks !== a.completedTasks) {
+            return b.completedTasks - a.completedTasks;
+          }
+
+          return (a.name || "").localeCompare(b.name || "");
+        })
+        .map((entry, index) => ({
+          ...entry,
+          rank: index + 1,
+        }));
+
+      // Fetch recent 10 tasks
+      const recentTasks = await Task.find()
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .select("title status priority dueDate createdAt assignedTo")
+        .populate("assignedTo", "name email");
+
+      res.status(200).json({
+        statistics: {
+          totalTasks,
+          pendingTasks,
+          completedTasks,
+          overdueTasks,
+        },
+        charts: {
+          taskDistribution,
+          taskPriorityLevels,
+        },
+        recentTasks,
+        leaderboard,
+      });
 
     } catch (error) {
       res.status(500).json({ message: "Server error", error: error.message });

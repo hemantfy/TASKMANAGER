@@ -31,6 +31,7 @@ const NoticeBoard = lazy(() => import("../../components/NoticeBoard"));
 const CustomPieChart = lazy(() => import("../../components/Charts/CustomPieChart"));
 const CustomBarChart = lazy(() => import("../../components/Charts/CustomBarChart"));
 const TaskListTable = lazy(() => import("../../components/TaskListTable"));
+const LeaderboardTable = lazy(() => import("../../components/LeaderboardTable"));
 
 const getGreetingMessage = (hour) => {
   if (hour < 12) {
@@ -87,6 +88,7 @@ const Dashboard = () => {
   const [pieChartData, setPieChartData] = useState([]);
   const [barChartData, setBarChartData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [leaderboardFilter, setLeaderboardFilter] = useState("All");
   const { activeNotices, fetchActiveNotices, resetNotices } =
     useActiveNotices(false);
 
@@ -143,6 +145,7 @@ const Dashboard = () => {
         setBarChartData([]);
         resetNotices();
 
+        setLeaderboardFilter("All");        
         await Promise.all([getDashboardData(), fetchActiveNotices()]);
       } finally {
         setIsLoading(false);
@@ -199,6 +202,53 @@ const Dashboard = () => {
   const handleCardClick = (filterStatus) => {
     navigate(`${privilegedBasePath}/tasks`, { state: { filterStatus } });
   };
+
+  const safeLeaderboardData = useMemo(() => {
+    if (!Array.isArray(dashboardData?.leaderboard)) {
+      return [];
+    }
+
+    return [...dashboardData.leaderboard].sort((a, b) => {
+      if (a?.rank && b?.rank) {
+        return a.rank - b.rank;
+      }
+
+      if (a?.rank) {
+        return -1;
+      }
+
+      if (b?.rank) {
+        return 1;
+      }
+
+      return Number(b?.score || 0) - Number(a?.score || 0);
+    });
+  }, [dashboardData?.leaderboard]);
+
+  const filteredLeaderboard = useMemo(() => {
+    if (leaderboardFilter === "All") {
+      return safeLeaderboardData;
+    }
+
+    const normalizedFilter = leaderboardFilter.toLowerCase();
+
+    return safeLeaderboardData.filter((entry) =>
+      normalizedFilter === "admin"
+        ? entry.role === "admin"
+        : entry.role === "member"
+    );
+  }, [leaderboardFilter, safeLeaderboardData]);
+
+  const visibleTopPerformer = filteredLeaderboard[0] || null;
+  const topPerformerScore = useMemo(
+    () =>
+      visibleTopPerformer
+        ? Number(visibleTopPerformer.score || 0).toLocaleString()
+        : null,
+    [visibleTopPerformer]
+  );
+
+  const leaderboardFilters = ["All", "Admin", "Members"];
 
   return (
     <DashboardLayout activeMenu="Dashboard">
@@ -309,6 +359,59 @@ const Dashboard = () => {
               }
             >
               <TaskListTable tableData={dashboardData?.recentTasks || []} />
+            </Suspense>
+          </section>
+          
+          <section className="card">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <h5 className="text-lg font-semibold text-slate-900">
+                  Employee Leaderboard
+                </h5>
+                <p className="text-sm text-slate-500">
+                  Celebrate on-time delivery and shine a light on the most reliable teammates.
+                </p>
+                {visibleTopPerformer ? (
+                  <p className="mt-2 inline-flex items-center gap-2 rounded-full bg-slate-900/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
+                    Top Performer · {visibleTopPerformer.name} · Score {topPerformerScore}
+                  </p>
+                ) : (
+                  <p className="mt-2 text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
+                    Leaderboard updates once work is completed.
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {leaderboardFilters.map((filter) => {
+                  const isActive = leaderboardFilter === filter;
+
+                  return (
+                    <button
+                      key={filter}
+                      type="button"
+                      onClick={() => setLeaderboardFilter(filter)}
+                      className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] transition ${
+                        isActive
+                          ? "bg-slate-900 text-white shadow-[0_10px_25px_rgba(15,23,42,0.25)]"
+                          : "bg-white/80 text-slate-600 hover:bg-white"
+                      }`}
+                    >
+                      {filter}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <Suspense
+              fallback={
+                <div className="flex h-40 items-center justify-center text-sm text-slate-500">
+                  Loading leaderboard...
+                </div>
+              }
+            >
+              <LeaderboardTable entries={filteredLeaderboard} />
             </Suspense>
           </section>
         </>
