@@ -61,21 +61,22 @@ const LeaderboardTable = ({ entries }) => {
 
   return (
     <div className="mt-4 overflow-hidden rounded-[28px] border border-white/60 bg-white/80 shadow-[0_20px_45px_rgba(15,23,42,0.08)]">
-      <div className="hidden overflow-x-auto md:block">
-        <table className="min-w-full divide-y divide-white/60">
-          <thead className="bg-white/70">
-            <tr className="text-left text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-              <th className="px-6 py-4">Rank</th>
-              <th className="px-6 py-4">Team Member</th>
-              <th className="px-6 py-4">Score</th>
-              <th className="px-6 py-4">Completed</th>
-              <th className="px-6 py-4">On-Time</th>
-              <th className="px-6 py-4">Late</th>
-              <th className="px-6 py-4">Overdue</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/50 bg-white/60">
-            {data.map((entry, index) => (
+      <div className="hidden md:block">
+        <div className="max-h-[420px] overflow-y-auto overflow-x-auto pr-1">
+          <table className="min-w-full divide-y divide-white/60">
+            <thead className="sticky top-0 z-10 bg-white/80 backdrop-blur">
+              <tr className="text-left text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                <th className="px-6 py-4">Rank</th>
+                <th className="px-6 py-4">Team Member</th>
+                <th className="px-6 py-4">Score</th>
+                <th className="px-6 py-4">Completed</th>
+                <th className="px-6 py-4">On-Time</th>
+                <th className="px-6 py-4">Late</th>
+                <th className="px-6 py-4">Overdue</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/50 bg-white/60">
+              {data.map((entry, index) => (
               <tr
                 key={entry.userId || index}
                 className={`text-sm text-slate-600 transition hover:bg-white ${
@@ -123,12 +124,13 @@ const LeaderboardTable = ({ entries }) => {
                   {entry.overdueTasks}
                 </td>
               </tr>
-            ))}
-          </tbody>
-        </table>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <div className="space-y-3 p-4 md:hidden">
+      <div className="max-h-[520px] space-y-3 overflow-y-auto p-4 pr-1 md:hidden">
         {data.map((entry, index) => (
           <article
             key={entry.userId || index}
