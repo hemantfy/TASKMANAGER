@@ -20,6 +20,7 @@ const taskSchema = new mongoose.Schema(
     todoChecklist: [todoSchema],
     progress: { type: Number, default: 0 },
     completedAt: { type: Date, default: null },
+    reminderSentAt: { type: Date, default: null },    
   },
   { timestamps: true }
 );

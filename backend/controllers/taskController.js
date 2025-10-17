@@ -1,4 +1,6 @@
 const Task = require("../models/Task");
+const User = require("../models/User");
+const { sendTaskAssignmentEmail } = require("../utils/emailService");
 const { hasPrivilegedAccess } = require("../utils/roleUtils");
 
 const isPrivileged = (role) => hasPrivilegedAccess(role);
@@ -127,8 +129,26 @@ const createTask = async (req, res) => {
             todoChecklist,
             attachments,
           });
-          
-          res.status(201).json({ message: "Task created successfully", task });   
+          try {
+            const assignees = await User.find({
+              _id: { $in: assignedTo },
+            }).select("name email");
+
+            if (assignees.length) {
+              await sendTaskAssignmentEmail({
+                task,
+                assignees,
+                assignedBy: req.user,
+              });
+            }
+          } catch (notificationError) {
+            console.error(
+              "Failed to send task assignment notification:",
+              notificationError
+            );
+          }
+
+          res.status(201).json({ message: "Task created successfully", task }); 
     } catch (error) {
       res.status(500).json({ message: "Server error", error: error.message });
     }
@@ -143,23 +163,88 @@ const updateTask = async (req, res) => {
 
 if (!task) return res.status(404).json({ message: "Task not found" });
 
-task.title = req.body.title || task.title;
-task.description = req.body.description || task.description;
-task.priority = req.body.priority || task.priority;
-task.dueDate = req.body.dueDate || task.dueDate;
-task.todoChecklist = req.body.todoChecklist || task.todoChecklist;
-task.attachments = req.body.attachments || task.attachments;
+const existingAssigneeIds = Array.isArray(task.assignedTo)
+  ? task.assignedTo.map((id) => id.toString())
+  : [];
+
+const originalDueDate = task.dueDate ? task.dueDate.getTime() : null;
+let dueDateChanged = false;
+let newlyAssignedIds = [];
+
+if (req.body.title !== undefined) {
+  task.title = req.body.title;
+}
+if (req.body.description !== undefined) {
+  task.description = req.body.description;
+}
+if (req.body.priority !== undefined) {
+  task.priority = req.body.priority;
+}
+if (req.body.dueDate) {
+  const incomingDueDate = new Date(req.body.dueDate);
+  if (!Number.isNaN(incomingDueDate.getTime())) {
+    dueDateChanged = originalDueDate !== incomingDueDate.getTime();
+    task.dueDate = incomingDueDate;
+  }
+}
+if (req.body.todoChecklist !== undefined) {
+  task.todoChecklist = req.body.todoChecklist;
+}
+if (req.body.attachments !== undefined) {
+  task.attachments = req.body.attachments;
+}
 
 if (req.body.assignedTo) {
   if (!Array.isArray(req.body.assignedTo)) {
     return res
       .status(400)
       .json({ message: "assignedTo must be an array of user IDs" });
-    }
-        task.assignedTo = req.body.assignedTo;
-    }
+  }
+
+  const normalizedAssignees = req.body.assignedTo
+    .map((assignee) => {
+      if (assignee && typeof assignee === "object" && assignee._id) {
+        return assignee._id.toString();
+      }
+      return assignee?.toString();
+    })
+    .filter(Boolean);
+
+  newlyAssignedIds = normalizedAssignees.filter(
+    (assigneeId) =>
+      assigneeId && !existingAssigneeIds.includes(assigneeId.toString())
+  );
+
+  task.assignedTo = normalizedAssignees;
+}
+
+if (dueDateChanged) {
+  task.reminderSentAt = null;
+}
 
 const updatedTask = await task.save();
+
+if (newlyAssignedIds.length) {
+  try {
+    const assignees = await User.find({
+      _id: { $in: newlyAssignedIds },
+    }).select("name email");
+
+    if (assignees.length) {
+      await sendTaskAssignmentEmail({
+        task: updatedTask,
+        assignees,
+        assignedBy: req.user,
+      });
+    }
+  } catch (notificationError) {
+    console.error(
+      "Failed to send task reassignment notification:",
+      notificationError
+    );
+  }
+}
+
 res.json({ message: "Task updated successfully", updatedTask });
 
     } catch (error) {

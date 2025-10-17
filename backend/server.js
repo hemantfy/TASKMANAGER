@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const connectDB = require("./config/db");
+const { startTaskReminderJob } = require("./jobs/taskReminderJob");
 
 const authRoutes = require("./routes/authRoutes")
 const userRoutes = require("./routes/userRoutes")
@@ -35,8 +36,9 @@ app.use("/api/reports", reportRoutes);
 app.use("/api/notices", noticeRoutes);
 
 //Serve uploads folder
-app.use("/uploads", express.static(path.join(__dirname, "uploads"))) 
+app.use("/uploads", express.static(path.join(__dirname, "uploads")))
 
 //Start Server
 const PORT = process.env.PORT || 5000;
+startTaskReminderJob();
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
