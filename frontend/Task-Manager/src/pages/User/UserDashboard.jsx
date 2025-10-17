@@ -36,7 +36,7 @@ const UserDashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [pieChartData, setPieChartData] = useState([]);
   const [barChartData, setBarChartData] = useState([]);
-  const [currentMoment, setCurrentMoment] = useState(moment());
+    const [isLoading, setIsLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(() => new Date());
   const { activeNotices, fetchActiveNotices, resetNotices } =
     useActiveNotices(false);  

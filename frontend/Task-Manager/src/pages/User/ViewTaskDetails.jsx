@@ -106,7 +106,7 @@ const ViewTaskDetails = () => {
 
   return (
     <DashboardLayout activeMenu="My Tasks">
-           {isLoading ? (
+      {isLoading ? (
         <LoadingOverlay message="Loading task details..." className="py-24" />
       ) : (
         <>
@@ -125,19 +125,19 @@ const ViewTaskDetails = () => {
                 </div>
               )}
             </div>
-            </section>
+          </section>
 
-{task ? (
-  <section className="grid gap-6 lg:grid-cols-[2fr,1fr]">
-    <div className="form-card">
-      <div className="grid grid-cols-1 gap-6">
-        <InfoBox label="Description" value={task?.description} />
+          {task ? (
+            <section className="grid gap-6 lg:grid-cols-[2fr,1fr]">
+              <div className="form-card">
+                <div className="grid grid-cols-1 gap-6">
+                  <InfoBox label="Description" value={task?.description} />
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <InfoBox label="Priority" value={task?.priority} />
-          <InfoBox
-            label="Due Date"
-            value={task?.dueDate ? moment(task?.dueDate).format("Do MMM YYYY") : "N/A"}
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <InfoBox label="Priority" value={task?.priority} />
+                    <InfoBox
+                      label="Due Date"
+                      value={formatDateLabel(task?.dueDate, "N/A")}
                     />
                                         <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.26em] text-slate-500">Assigned To</p>
@@ -199,8 +199,7 @@ const ViewTaskDetails = () => {
             <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
               Unable to load this task. Please return to your task list.
             </div>
- 
-)}
+          )}
         </>
       )}
     </DashboardLayout>
