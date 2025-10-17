@@ -6,6 +6,7 @@ import Input from '../../components/inputs/input';
 import { validateEmail } from '../../utils/helper';
 import axiosInstance from '../../utils/axiosInstance';
 import { API_PATHS } from '../../utils/apiPaths';
+import { DEFAULT_OFFICE_LOCATIONS } from '../../utils/data';
 import { getDefaultRouteForRole, getRoleLabel, normalizeRole } from '../../utils/roleUtils';
 import uploadImage from '../../utils/uploadImage';
 import { UserContext } from '../../context/userContext';
@@ -88,7 +89,10 @@ const SignUp = () => {
       return;
     }
 
-    if (!officeLocation) {
+    const trimmedOfficeLocation =
+      typeof officeLocation === "string" ? officeLocation.trim() : "";
+
+    if (!trimmedOfficeLocation) {
       setError("Please select your office location.");
       return;
     }
@@ -120,7 +124,7 @@ const SignUp = () => {
         password,
         profileImageUrl,
         gender,
-        officeLocation,
+        officeLocation: trimmedOfficeLocation,
       };
 
       if (trimmedAdminInviteToken) {
@@ -226,8 +230,11 @@ const SignUp = () => {
                   <option value="" disabled>
                     Select office location
                   </option>
-                  <option value="Ahmedabad">Ahmedabad</option>
-                  <option value="Gift City">Gift City</option>
+                  {DEFAULT_OFFICE_LOCATIONS.map((location) => (
+                    <option key={location} value={location}>
+                      {location}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

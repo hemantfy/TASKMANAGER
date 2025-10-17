@@ -694,6 +694,11 @@ const getDashboardData = async (req, res) => {
               overdueTasks: 0,
             };
 
+          const normalizedOfficeLocation =
+            typeof user.officeLocation === "string"
+              ? user.officeLocation.trim()
+              : user.officeLocation;
+
           const {
             totalAssigned,
             completedTasks: completed,
@@ -724,7 +729,7 @@ const getDashboardData = async (req, res) => {
             name: user.name,
             role: user.role,
             profileImageUrl: user.profileImageUrl,
-            officeLocation: user.officeLocation,
+            officeLocation: normalizedOfficeLocation,
             totalAssigned,
             completedTasks: completed,
             pendingTasks: pending,

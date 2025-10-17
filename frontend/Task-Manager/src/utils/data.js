@@ -77,3 +77,5 @@ export const STATUS_DATA = [
   { label: "In Progress", value: "In Progress" },
   { label: "Completed", value: "Completed" },
 ];
+
+export const DEFAULT_OFFICE_LOCATIONS = ["Ahmedabad", "Gift City"];

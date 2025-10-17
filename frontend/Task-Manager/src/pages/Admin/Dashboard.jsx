@@ -14,6 +14,7 @@ import DashboardLayout from "../../components/layouts/DashboardLayout";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { addThousandsSeparator } from "../../utils/helper";
+import { DEFAULT_OFFICE_LOCATIONS } from "../../utils/data";
 import { getPrivilegedBasePath } from "../../utils/roleUtils";
 import InfoCard from "../../components/Cards/infoCard";
 import {
@@ -229,22 +230,31 @@ const Dashboard = () => {
   }, [dashboardData?.leaderboard]);
 
   const filteredLeaderboard = useMemo(() => {
-    const normalizedRoleFilter = leaderboardFilter.toLowerCase();
-    const normalizedOfficeFilter = leaderboardOfficeFilter.toLowerCase();
+    const normalizedRoleFilter =
+      typeof leaderboardFilter === "string"
+        ? leaderboardFilter.trim().toLowerCase()
+        : "";
+    const normalizedOfficeFilter =
+      typeof leaderboardOfficeFilter === "string"
+        ? leaderboardOfficeFilter.trim().toLowerCase()
+        : "";
 
     return safeLeaderboardData.filter((entry) => {
       const matchesRole =
-        normalizedRoleFilter === "all"
+        normalizedRoleFilter === "all" || !normalizedRoleFilter
           ? true
           : normalizedRoleFilter === "admin"
           ? entry.role === "admin"
           : entry.role === "member";
 
+      const entryOffice = (entry.officeLocation || "")
+        .toString()
+        .trim()
+        .toLowerCase();          
       const matchesOffice =
-        normalizedOfficeFilter === "all"
+        normalizedOfficeFilter === "all" || !normalizedOfficeFilter
           ? true
-          : (entry.officeLocation || "").toLowerCase() ===
-            normalizedOfficeFilter;
+          : entryOffice === normalizedOfficeFilter;
 
       return matchesRole && matchesOffice;
     });
@@ -264,7 +274,53 @@ const Dashboard = () => {
   );
 
   const leaderboardRoleFilters = ["All", "Admin", "Members"];
-  const leaderboardOfficeFilters = ["All", "Gift City", "Ahmedabad"];
+  const leaderboardOfficeFilters = useMemo(() => {
+    const locationMap = new Map();
+
+    DEFAULT_OFFICE_LOCATIONS.forEach((location) => {
+      const trimmedLocation =
+        typeof location === "string" ? location.trim() : "";
+
+      if (!trimmedLocation) {
+        return;
+      }
+
+      locationMap.set(trimmedLocation.toLowerCase(), trimmedLocation);
+    });
+
+    safeLeaderboardData.forEach((entry) => {
+      const rawLocation =
+        typeof entry?.officeLocation === "string"
+          ? entry.officeLocation.trim()
+          : "";
+
+      if (!rawLocation) {
+        return;
+      }
+
+      const normalizedLocation = rawLocation.toLowerCase();
+
+      if (!locationMap.has(normalizedLocation)) {
+        locationMap.set(normalizedLocation, rawLocation);
+      }
+    });
+
+    const sortedLocations = Array.from(locationMap.values()).sort(
+      (first, second) => first.localeCompare(second)
+    );
+
+    return ["All", ...sortedLocations];
+  }, [safeLeaderboardData]);
+
+  useEffect(() => {
+    if (
+      typeof leaderboardOfficeFilter === "string" &&
+      leaderboardOfficeFilter &&
+      !leaderboardOfficeFilters.includes(leaderboardOfficeFilter)
+    ) {
+      setLeaderboardOfficeFilter("All");
+    }
+  }, [leaderboardOfficeFilter, leaderboardOfficeFilters]);
 
   return (
     <DashboardLayout activeMenu="Dashboard">

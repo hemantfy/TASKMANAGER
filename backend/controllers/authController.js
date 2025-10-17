@@ -23,7 +23,10 @@ const buildUserPayload = (user, { includeToken = false } = {}) => {
     profileImageUrl: formattedUser.profileImageUrl,
     birthdate: formattedUser.birthdate,
     gender: formattedUser.gender,
-    officeLocation: formattedUser.officeLocation,
+    officeLocation:
+      typeof formattedUser.officeLocation === "string"
+        ? formattedUser.officeLocation.trim()
+        : formattedUser.officeLocation,
     mustChangePassword: formattedUser.mustChangePassword,
   };
 
@@ -51,13 +54,16 @@ const registerUser = async (req, res) => {
       officeLocation,
     } = req.body;
 
+    const trimmedOfficeLocation =
+      typeof officeLocation === "string" ? officeLocation.trim() : "";
+
     // Check if User already exist
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    if (!gender || !officeLocation) {
+    if (!gender || !trimmedOfficeLocation) {
       return res
         .status(400)
         .json({ message: "Gender and office location are required" });
@@ -100,7 +106,7 @@ const registerUser = async (req, res) => {
       role,
       birthdate: parsedBirthdate && !isNaN(parsedBirthdate) ? parsedBirthdate : null,
       gender,
-      officeLocation,
+      officeLocation: trimmedOfficeLocation,
       mustChangePassword: false,
     });
 
@@ -170,7 +176,17 @@ const updateUserProfile = async (req, res) => {
     }
 
     if (Object.prototype.hasOwnProperty.call(req.body, "officeLocation")) {
-      user.officeLocation = req.body.officeLocation;
+      const incomingOfficeLocation = req.body.officeLocation;
+
+      if (typeof incomingOfficeLocation === "string") {
+        const trimmedLocation = incomingOfficeLocation.trim();
+
+        if (trimmedLocation) {
+          user.officeLocation = trimmedLocation;
+        }
+      } else if (incomingOfficeLocation) {
+        user.officeLocation = incomingOfficeLocation;
+      }
     }
 
     if (Object.prototype.hasOwnProperty.call(req.body, "birthdate")) {

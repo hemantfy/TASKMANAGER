@@ -7,6 +7,7 @@ import UserCard from "../../components/Cards/UserCard";
 import toast from "react-hot-toast";
 import LoadingOverlay from "../../components/LoadingOverlay";
 import { UserContext } from "../../context/userContext";
+import { DEFAULT_OFFICE_LOCATIONS } from "../../utils/data";
 import { normalizeRole } from "../../utils/roleUtils";
 
 const ManageUsers = () => {
@@ -84,13 +85,18 @@ const ManageUsers = () => {
 
     const requestedRole = normalizeRole(formData.role) || "member";
 
+    const trimmedOfficeLocation =
+      typeof formData.officeLocation === "string"
+        ? formData.officeLocation.trim()
+        : "";
+
     const payload = {
       name: formData.name.trim(),
       email: formData.email.trim(),
       password: formData.password,
       role: requestedRole,
       gender: formData.gender,
-      officeLocation: formData.officeLocation,
+      officeLocation: trimmedOfficeLocation,
     };
 
     if (!payload.name || !payload.email || !payload.password || !payload.gender || !payload.officeLocation) {
@@ -317,8 +323,67 @@ const ManageUsers = () => {
     ];
   }, [normalizedCurrentUserRole]);
 
+  const officeLocationOptions = useMemo(() => {
+    const locationMap = new Map();
+
+    DEFAULT_OFFICE_LOCATIONS.forEach((location) => {
+      const trimmedLocation =
+        typeof location === "string" ? location.trim() : "";
+
+      if (!trimmedLocation) {
+        return;
+      }
+
+      locationMap.set(trimmedLocation.toLowerCase(), trimmedLocation);
+    });
+
+    allUsers.forEach((user) => {
+      const rawLocation =
+        typeof user?.officeLocation === "string"
+          ? user.officeLocation.trim()
+          : "";
+
+      if (!rawLocation) {
+        return;
+      }
+
+      const normalizedLocation = rawLocation.toLowerCase();
+
+      if (!locationMap.has(normalizedLocation)) {
+        locationMap.set(normalizedLocation, rawLocation);
+      }
+    });
+
+    return Array.from(locationMap.values()).sort((first, second) =>
+      first.localeCompare(second)
+    );
+  }, [allUsers]);
+
+  useEffect(() => {
+    if (
+      typeof selectedOffice === "string" &&
+      selectedOffice &&
+      selectedOffice !== "All"
+    ) {
+      const normalizedSelection = selectedOffice.trim().toLowerCase();
+      const hasMatchingLocation = officeLocationOptions.some(
+        (location) =>
+          location &&
+          location.toString().trim().toLowerCase() === normalizedSelection
+      );
+
+      if (!hasMatchingLocation) {
+        setSelectedOffice("All");
+      }
+    }
+  }, [officeLocationOptions, selectedOffice]);
+
   const normalizedSearchTerm = searchTerm.trim().toLowerCase();
-    const canViewOwnerAccounts = normalizedCurrentUserRole === "owner";
+  const normalizedSelectedOffice =
+    typeof selectedOffice === "string"
+      ? selectedOffice.trim().toLowerCase()
+      : "";
+  const canViewOwnerAccounts = normalizedCurrentUserRole === "owner";
   const allowedRolesForDisplay = canViewOwnerAccounts
     ? ["owner", "admin", "member"]
     : ["admin", "member"];
@@ -334,9 +399,12 @@ const ManageUsers = () => {
       .toLowerCase()
       .includes(normalizedSearchTerm);
     const matchesOffice =
-      selectedOffice === "All" || !selectedOffice
+      normalizedSelectedOffice === "all" || !normalizedSelectedOffice
         ? true
-        : user?.officeLocation?.toLowerCase() === selectedOffice.toLowerCase();
+        : (user?.officeLocation || "")
+            .toString()
+            .trim()
+            .toLowerCase() === normalizedSelectedOffice;
 
     return matchesName && matchesOffice;
   });
@@ -468,8 +536,11 @@ const ManageUsers = () => {
                   <option value="" disabled>
                     Select office location
                   </option>
-                  <option value="Ahmedabad">Ahmedabad</option>
-                  <option value="Gift City">Gift City</option>
+                  {officeLocationOptions.map((location) => (
+                    <option key={location} value={location}>
+                      {location}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -562,21 +633,24 @@ const ManageUsers = () => {
             <label className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500" htmlFor="officeFilter">
               Filter by Office
             </label>
-            <div className="custom-select mt-2">
-              <select
-                id="officeFilter"
-                name="officeFilter"
-                value={selectedOffice}
-                onChange={(event) => setSelectedOffice(event.target.value)}
-                className="custom-select__field"
-                disabled={isLoading}
-              >
-                <option value="All">All locations</option>
-                <option value="Ahmedabad">Ahmedabad</option>
-                <option value="Gift City">Gift City</option>
-              </select>
+              <div className="custom-select mt-2">
+                <select
+                  id="officeFilter"
+                  name="officeFilter"
+                  value={selectedOffice}
+                  onChange={(event) => setSelectedOffice(event.target.value)}
+                  className="custom-select__field"
+                  disabled={isLoading}
+                >
+                  <option value="All">All locations</option>
+                  {officeLocationOptions.map((location) => (
+                    <option key={location} value={location}>
+                      {location}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-          </div>
         </div>
       </section>
 

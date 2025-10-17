@@ -43,8 +43,14 @@ const getUsers = async (req, res) => {
         const formattedUser = formatUserRole(user);
         const taskCounts = await buildTaskCountsForUser(formattedUser._id);
 
+        const normalizedOfficeLocation =
+          typeof formattedUser.officeLocation === "string"
+            ? formattedUser.officeLocation.trim()
+            : formattedUser.officeLocation;
+
         return {
           ...formattedUser,
+          officeLocation: normalizedOfficeLocation,          
           ...taskCounts,
         };
       })
@@ -141,7 +147,10 @@ const createUser = async (req, res) => {
   try {
     const { name, email, password, role, gender, officeLocation } = req.body || {};
 
-    if (!name || !email || !password || !gender || !officeLocation) {
+    const trimmedOfficeLocation =
+      typeof officeLocation === "string" ? officeLocation.trim() : "";
+
+    if (!name || !email || !password || !gender || !trimmedOfficeLocation) {
       return res
         .status(400)
         .json({ message: "Name, email, password, gender and office location are required" });
@@ -177,7 +186,7 @@ const createUser = async (req, res) => {
       password: hashedPassword,
       role: normalizedRole,
       gender,
-      officeLocation,
+      officeLocation: trimmedOfficeLocation,
       mustChangePassword: true,
     });
 
