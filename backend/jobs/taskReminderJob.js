@@ -10,6 +10,8 @@ const runReminderCheck = async () => {
   const previousDay = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const nextDay = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
+  console.log(`[TaskReminderJob] Running reminder check at ${now.toISOString()}`);
+
   try {
     const tasksDueSoon = await Task.find({
       dueDate: { $gte: previousDay, $lte: nextDay },
@@ -18,6 +20,8 @@ const runReminderCheck = async () => {
     })
       .populate("assignedTo", "name email")
       .populate("createdBy", "name email");
+
+    console.log(`[TaskReminderJob] Found ${tasksDueSoon.length} tasks due soon`);
 
     await Promise.all(
       tasksDueSoon.map(async (task) => {
@@ -29,12 +33,11 @@ const runReminderCheck = async () => {
         const assignees = assigneesSource.filter(Boolean);  
                 
         if (!assignees.length) {
+          console.log(`[TaskReminderJob] Task "${task.title}" has no assignees, skipping`);
           return;
         }
 
-        if (!assignees.length) {
-          return;
-        }
+        console.log(`[TaskReminderJob] Processing reminder for task "${task.title}" with ${assignees.length} assignees`);
 
         try {
           await sendTaskReminderEmail({
@@ -45,11 +48,11 @@ const runReminderCheck = async () => {
 
           task.reminderSentAt = now;
           await task.save();
+          console.log(`[TaskReminderJob] Reminder email sent successfully for task "${task.title}"`);
         } catch (error) {
           console.error(
-            "Failed to send reminder email for task",
-            task._id,
-            error
+            `[TaskReminderJob] Failed to send reminder email for task "${task.title}" (${task._id}):`,
+            error.message
           );
         }
       })

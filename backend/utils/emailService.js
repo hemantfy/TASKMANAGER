@@ -27,7 +27,7 @@ const getTransporter = () => {
   }
 
   if (!transporter) {
-    transporter = nodemailer.createTransport({
+    const config = {
       host: process.env.EMAIL_HOST,
       port: Number(process.env.EMAIL_PORT),
       secure: String(process.env.EMAIL_PORT) === "465",
@@ -38,7 +38,16 @@ const getTransporter = () => {
               pass: process.env.EMAIL_PASS,
             }
           : undefined,
-    });
+    };
+
+    // Handle WebHostBox SSL certificate issues
+    if (process.env.EMAIL_HOST && process.env.EMAIL_HOST.includes('webhostbox')) {
+      config.tls = {
+        rejectUnauthorized: false
+      };
+    }
+
+    transporter = nodemailer.createTransport(config);
   }
 
   return transporter;
@@ -49,16 +58,33 @@ const sendEmail = async ({ to, subject, text, html }) => {
 
   if (!mailer) {
     console.warn(
-      "Email transport is not configured. Skipping email delivery for:",
-      subject
+      "Email transport is not configured. Please check your environment variables:",
+      {
+        EMAIL_HOST: process.env.EMAIL_HOST ? "[SET]" : "[NOT SET]",
+        EMAIL_PORT: process.env.EMAIL_PORT ? "[SET]" : "[NOT SET]",
+        EMAIL_USER: process.env.EMAIL_USER ? "[SET]" : "[NOT SET]",
+        EMAIL_PASS: process.env.EMAIL_PASS ? "[SET]" : "[NOT SET]"
+      }
     );
+    console.warn("Skipping email delivery for:", subject);
     return;
   }
 
   const from =
     process.env.EMAIL_FROM || process.env.EMAIL_USER || DEFAULT_FROM_EMAIL;
 
-  await mailer.sendMail({ from, to, subject, text, html });
+  try {
+    console.log(`Attempting to send email: "${subject}" to:`, to);
+    await mailer.sendMail({ from, to, subject, text, html });
+    console.log(`Email sent successfully: "${subject}"`);
+  } catch (error) {
+    console.error(`Failed to send email: "${subject}"`, {
+      error: error.message,
+      to,
+      from
+    });
+    throw error;
+  }
 };
 
 const formatDueDate = (dueDate) => {
