@@ -89,6 +89,8 @@ const Dashboard = () => {
   const [barChartData, setBarChartData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [leaderboardFilter, setLeaderboardFilter] = useState("All");
+  const [leaderboardOfficeFilter, setLeaderboardOfficeFilter] =
+    useState("All");
   const { activeNotices, fetchActiveNotices, resetNotices } =
     useActiveNotices(false);
 
@@ -145,7 +147,8 @@ const Dashboard = () => {
         setBarChartData([]);
         resetNotices();
 
-        setLeaderboardFilter("All");        
+        setLeaderboardFilter("All");
+        setLeaderboardOfficeFilter("All");       
         await Promise.all([getDashboardData(), fetchActiveNotices()]);
       } finally {
         setIsLoading(false);
@@ -226,18 +229,30 @@ const Dashboard = () => {
   }, [dashboardData?.leaderboard]);
 
   const filteredLeaderboard = useMemo(() => {
-    if (leaderboardFilter === "All") {
-      return safeLeaderboardData;
-    }
+    const normalizedRoleFilter = leaderboardFilter.toLowerCase();
+    const normalizedOfficeFilter = leaderboardOfficeFilter.toLowerCase();
 
-    const normalizedFilter = leaderboardFilter.toLowerCase();
+    return safeLeaderboardData.filter((entry) => {
+      const matchesRole =
+        normalizedRoleFilter === "all"
+          ? true
+          : normalizedRoleFilter === "admin"
+          ? entry.role === "admin"
+          : entry.role === "member";
 
-    return safeLeaderboardData.filter((entry) =>
-      normalizedFilter === "admin"
-        ? entry.role === "admin"
-        : entry.role === "member"
-    );
-  }, [leaderboardFilter, safeLeaderboardData]);
+      const matchesOffice =
+        normalizedOfficeFilter === "all"
+          ? true
+          : (entry.officeLocation || "").toLowerCase() ===
+            normalizedOfficeFilter;
+
+      return matchesRole && matchesOffice;
+    });
+  }, [
+    leaderboardFilter,
+    leaderboardOfficeFilter,
+    safeLeaderboardData
+  ]);
 
   const visibleTopPerformer = filteredLeaderboard[0] || null;
   const topPerformerScore = useMemo(
@@ -248,7 +263,8 @@ const Dashboard = () => {
     [visibleTopPerformer]
   );
 
-  const leaderboardFilters = ["All", "Admin", "Members"];
+  const leaderboardRoleFilters = ["All", "Admin", "Members"];
+  const leaderboardOfficeFilters = ["All", "Gift City", "Ahmedabad"];
 
   return (
     <DashboardLayout activeMenu="Dashboard">
@@ -382,25 +398,54 @@ const Dashboard = () => {
                 )}
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                {leaderboardFilters.map((filter) => {
-                  const isActive = leaderboardFilter === filter;
-
-                  return (
-                    <button
-                      key={filter}
-                      type="button"
-                      onClick={() => setLeaderboardFilter(filter)}
-                      className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] transition ${
-                        isActive
-                          ? "bg-slate-900 text-white shadow-[0_10px_25px_rgba(15,23,42,0.25)]"
-                          : "bg-white/80 text-slate-600 hover:bg-white"
-                      }`}
+              <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-end sm:justify-end sm:gap-4">
+                <div className="flex w-full flex-col sm:w-auto">
+                  <label
+                    className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-500"
+                    htmlFor="leaderboard-role-filter"
+                  >
+                    Team Role
+                  </label>
+                  <div className="custom-select mt-2 min-w-[180px] sm:min-w-[200px]">
+                    <select
+                      id="leaderboard-role-filter"
+                      value={leaderboardFilter}
+                      onChange={(event) => setLeaderboardFilter(event.target.value)}
+                      className="custom-select__field"
                     >
-                      {filter}
-                    </button>
-                  );
-                })}
+                      {leaderboardRoleFilters.map((filter) => (
+                        <option key={filter} value={filter}>
+                          {filter}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex w-full flex-col sm:w-auto">
+                  <label
+                    className="text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-500"
+                    htmlFor="leaderboard-office-filter"
+                  >
+                    Office
+                  </label>
+                  <div className="custom-select mt-2 min-w-[180px] sm:min-w-[200px]">
+                    <select
+                      id="leaderboard-office-filter"
+                      value={leaderboardOfficeFilter}
+                      onChange={(event) =>
+                        setLeaderboardOfficeFilter(event.target.value)
+                      }
+                      className="custom-select__field"
+                    >
+                      {leaderboardOfficeFilters.map((filter) => (
+                        <option key={filter} value={filter}>
+                          {filter}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
             </div>
 
