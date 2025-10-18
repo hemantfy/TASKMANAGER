@@ -2,8 +2,45 @@ import axios from "axios";
 import { API_PATHS, BASE_URL } from "./apiPaths";
 import { getToken } from "./tokenStorage";
 
+const ABSOLUTE_URL_REGEX = /^https?:\/\//i;
+
+const normalizeBaseUrl = (url) => {
+  if (!url) {
+    return "";
+  }
+
+  return url.replace(/\/?$/, "");
+};
+
+const resolveBaseUrl = () => {
+  const envBaseUrl =
+    (typeof import.meta !== "undefined" && import.meta?.env?.VITE_API_BASE_URL) ||
+    (typeof globalThis !== "undefined" ? globalThis?.process?.env?.VITE_API_BASE_URL : undefined);
+
+  const baseUrlCandidate = envBaseUrl || BASE_URL;
+
+  return normalizeBaseUrl(baseUrlCandidate);
+};
+
+const mergeUrl = (url, baseUrl) => {
+  if (!url) {
+    return url;
+  }
+
+  if (ABSOLUTE_URL_REGEX.test(url)) {
+    return url;
+  }
+
+  const sanitizedBase = normalizeBaseUrl(baseUrl || BASE_URL);
+  const sanitizedPath = url.startsWith("/") ? url.slice(1) : url;
+
+  return `${sanitizedBase}/${sanitizedPath}`;
+};
+
+const initialBaseUrl = resolveBaseUrl();
+
 const axiosInstance = axios.create({
-  baseURL: BASE_URL,
+  baseURL: initialBaseUrl,
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
@@ -18,6 +55,13 @@ axiosInstance.interceptors.request.use(
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
+
+    const computedBaseUrl =
+      normalizeBaseUrl(config.baseURL) || axiosInstance.defaults.baseURL || initialBaseUrl;
+
+    config.url = mergeUrl(config.url, computedBaseUrl);
+    config.baseURL = undefined;
+
     return config;
   },
   (error) => {
