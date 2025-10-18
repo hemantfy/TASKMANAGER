@@ -21,6 +21,7 @@ const ProfileSettings = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [isUpdatingPhoto, setIsUpdatingPhoto] = useState(false);
+  const [isRemovingPhoto, setIsRemovingPhoto] = useState(false);
   const [displayName, setDisplayName] = useState(user?.name || "");
   const [birthdate, setBirthdate] = useState(
     user?.birthdate ? user.birthdate.slice(0, 10) : ""
@@ -159,6 +160,48 @@ const ProfileSettings = () => {
       toast.error(message);
     } finally {
       setIsUpdatingPhoto(false);
+    }
+  };
+
+ const handleRemovePhoto = async () => {
+    if (isRemovingPhoto) {
+      return;
+    }
+
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+      setSelectedImage(null);
+      toast.success("Preview removed");
+      return;
+    }
+
+    if (!user?.profileImageUrl) {
+      toast.error("No profile photo to remove");
+      return;
+    }
+
+    try {
+      setIsRemovingPhoto(true);
+      const response = await axiosInstance.delete(API_PATHS.PROFILE.DELETE_PHOTO);
+
+      const existingToken = getToken();
+
+      updateUser({
+        ...(user || {}),
+        profileImageUrl: "",
+        token: existingToken,
+      });
+
+      setSelectedImage(null);
+      setPreviewUrl(null);
+
+      toast.success(response.data?.message || "Profile photo removed");
+    } catch (error) {
+      const message = error?.response?.data?.message || "Failed to remove photo";
+      toast.error(message);
+    } finally {
+      setIsRemovingPhoto(false);
     }
   };
 
@@ -387,6 +430,22 @@ const ProfileSettings = () => {
                     : "text-indigo-200 shadow-[0_24px_45px_rgba(79,70,229,0.18)]"
                 }`}
               />}
+              {(previewUrl || user?.profileImageUrl) && (
+                <button
+                  type="button"
+                  onClick={handleRemovePhoto}
+                  disabled={isRemovingPhoto}
+                  className="absolute -top-2 -right-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-slate-500 shadow-[0_8px_16px_rgba(15,23,42,0.15)] transition hover:text-rose-500 disabled:cursor-not-allowed disabled:opacity-70"
+                  aria-label="Remove profile photo"
+                  title="Remove profile photo"
+                >
+                  {isRemovingPhoto ? (
+                    <LuLoader className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <LuTrash2 className="h-4 w-4" />
+                  )}
+                </button>
+              )}              
               <label
                 htmlFor="profileImage"
                 className="absolute bottom-0 right-0 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-gradient-to-br from-primary via-indigo-500 to-sky-400 text-white shadow-[0_12px_24px_rgba(79,70,229,0.35)]"

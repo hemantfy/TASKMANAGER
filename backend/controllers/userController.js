@@ -365,6 +365,43 @@ const updateProfileImage = async (req, res) => {
   }
 };
 
+// @desc    Remove profile image
+// @route   DELETE /api/users/profile/photo
+// @access  Private
+const removeProfileImage = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id || req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (!user.profileImageUrl) {
+      return res.status(400).json({ message: "No profile photo to remove" });
+    }
+
+    deleteExistingProfileImage(user.profileImageUrl);
+    user.profileImageUrl = "";
+    const updatedUser = await user.save();
+    const formattedUpdatedUser = formatUserRole(updatedUser);
+
+    res.json({
+      message: "Profile photo removed successfully",
+      profileImageUrl: "",
+      user: {
+        _id: formattedUpdatedUser._id,
+        name: formattedUpdatedUser.name,
+        email: formattedUpdatedUser.email,
+        role: formattedUpdatedUser.role,
+        profileImageUrl: formattedUpdatedUser.profileImageUrl,
+        birthdate: formattedUpdatedUser.birthdate,
+        mustChangePassword: formattedUpdatedUser.mustChangePassword,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 // @desc    Change account password
 // @route   PUT /api/users/profile/password
 // @access  Private
@@ -441,6 +478,7 @@ module.exports = {
   createUser,
   deleteUser,
   updateProfileImage,
+  removeProfileImage,  
   changePassword,
   resetUserPassword,
 };
