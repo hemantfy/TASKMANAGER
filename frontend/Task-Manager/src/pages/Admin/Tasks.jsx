@@ -28,6 +28,7 @@ const Tasks = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const [activeTaskId, setActiveTaskId] = useState(null);
+  const [taskScope, setTaskScope] = useState("All Tasks");
 
   const hasActiveFilters =
     filterStatus !== "All" || searchQuery.trim() || selectedDate.trim();
@@ -47,6 +48,7 @@ const Tasks = () => {
       const response = await axiosInstance.get(API_PATHS.TASKS.GET_ALL_TASKS, {
         params: {
           status: filterStatus === "All" ? "" : filterStatus,
+          scope: taskScope === "My Task" ? "my" : "all",          
         },
       });
 
@@ -148,7 +150,7 @@ const Tasks = () => {
     getAllTasks();
     return () => {};
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterStatus]);
+  }, [filterStatus, taskScope]);
 
   useEffect(() => {
     if (
@@ -190,6 +192,14 @@ const Tasks = () => {
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <select
+              value={taskScope}
+              onChange={(event) => setTaskScope(event.target.value)}
+              className="rounded-full border border-white/60 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600 transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-gradient-to-r hover:from-primary/90 hover:to-sky-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+            >
+              <option>All Tasks</option>
+              <option>My Task</option>
+            </select>            
             <button
               type="button"
               className="inline-flex items-center justify-center gap-2 rounded-full border border-white/60 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600 transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-gradient-to-r hover:from-primary/90 hover:to-sky-500 hover:text-white"

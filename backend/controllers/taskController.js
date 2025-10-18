@@ -10,71 +10,68 @@ const isPrivileged = (role) => hasPrivilegedAccess(role);
 // @access  Private
 const getTasks = async (req, res) => {
   try {
-    const { status } = req.query;
-let filter = {};
+    const { status, scope } = req.query;
+    let filter = {};
 
 if (status) {
   filter.status = status;
 }
 
-let tasks;
+    const normalizedScope = typeof scope === "string" ? scope.toLowerCase() : "";
+    const shouldLimitToCurrentUser =
+      !isPrivileged(req.user.role) || normalizedScope === "my";
 
-if (isPrivileged(req.user.role)) {
-  tasks = await Task.find(filter).populate(
-    "assignedTo",
-    "name email profileImageUrl"
-  );
-}   else {
-    tasks = await Task.find({ ...filter, assignedTo: req.user._id }).populate(
+    const assignedFilter = shouldLimitToCurrentUser
+      ? { assignedTo: req.user._id }
+      : {};
+
+    const tasks = await Task.find({ ...filter, ...assignedFilter }).populate(
       "assignedTo",
       "name email profileImageUrl"
     );
-  }
-  
-  // Add completed todoChecklist count to each task
-  tasks = await Promise.all(
-    tasks.map(async (task) => {
-      const completedCount = task.todoChecklist.filter(
-        (item) => item.completed
-      ).length;
-  
-      return { ...task._doc, completedTodoCount: completedCount };
-    })
-  );
 
-  // Status summary counts
-const allTasks = await Task.countDocuments(
-    isPrivileged(req.user.role) ? {} : { assignedTo: req.user._id }
-  );
-  
-  const pendingTasks = await Task.countDocuments({
-    ...filter,
-    status: "Pending",
-    ...(!isPrivileged(req.user.role) && { assignedTo: req.user._id }),
-  });
-  
-  const inProgressTasks = await Task.countDocuments({
-    ...filter,
-    status: "In Progress",
-    ...(!isPrivileged(req.user.role) && { assignedTo: req.user._id }),
-  });
-  
-  const completedTasks = await Task.countDocuments({
-    ...filter,
-    status: "Completed",
-    ...(!isPrivileged(req.user.role) && { assignedTo: req.user._id }),
-  });
- 
-  res.json({
-    tasks,
-    statusSummary: {
-      all: allTasks,
-      pendingTasks,
-      inProgressTasks,
-      completedTasks,
-    },
-  });
-    
+    // Add completed todoChecklist count to each task
+    const tasksWithChecklistCounts = await Promise.all(
+      tasks.map(async (task) => {
+        const completedCount = task.todoChecklist.filter(
+          (item) => item.completed
+        ).length;
+
+        return { ...task._doc, completedTodoCount: completedCount };
+      })
+    );
+
+    // Status summary counts
+    const summaryBaseFilter = shouldLimitToCurrentUser
+      ? { assignedTo: req.user._id }
+      : {};
+
+    const allTasks = await Task.countDocuments(summaryBaseFilter);
+
+    const pendingTasks = await Task.countDocuments({
+      ...summaryBaseFilter,
+      status: "Pending",
+    });
+
+    const inProgressTasks = await Task.countDocuments({
+      ...summaryBaseFilter,
+      status: "In Progress",
+    });
+
+    const completedTasks = await Task.countDocuments({
+      ...summaryBaseFilter,
+      status: "Completed",
+    });
+
+    res.json({
+      tasks: tasksWithChecklistCounts,
+      statusSummary: {
+        all: allTasks,
+        pendingTasks,
+        inProgressTasks,
+        completedTasks,
+      },
+    });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
