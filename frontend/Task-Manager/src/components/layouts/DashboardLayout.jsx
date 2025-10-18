@@ -76,7 +76,7 @@ const DashboardLayout = ({ children, activeMenu }) => {
         <div className="absolute bottom-[-25%] left-1/3 h-80 w-80 rounded-full bg-gradient-to-br from-cyan-100/80 via-blue-100/70 to-transparent blur-3xl dark:from-cyan-500/30 dark:via-blue-500/20 dark:to-transparent" />
       </div>
 
-      <Navbar activeMenu={activeMenu} />
+      <Navbar />
 
         <div className="mx-auto flex w-full max-w-[1400px] gap-6 px-3 pb-24 pt-4 transition-colors duration-300 sm:px-4 sm:pt-6 sm:pb-16 lg:px-8">
         <div className="hidden shrink-0 lg:block lg:w-[260px] xl:w-[280px]">

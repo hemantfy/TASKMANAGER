@@ -1,10 +1,14 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { LuMoonStar, LuSun } from "react-icons/lu";
+import React, { useCallback, useContext, useEffect, useState } from "react";
+import { LuLogOut, LuMoonStar, LuSun } from "react-icons/lu";
 import NotificationBell from "../Notifications/NotificationBell";
 import logo from "../../assets/images/logo.png";
+import { useNavigate } from "react-router-dom";
+import { UserContext } from "../../context/userContext";
 
-const Navbar = ({ activeMenu: _activeMenu }) => {
+const Navbar = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const navigate = useNavigate();
+  const { clearUser } = useContext(UserContext);  
   const applyThemePreference = useCallback((shouldUseDarkTheme) => {
     const root = document.documentElement;
 
@@ -47,6 +51,22 @@ const Navbar = ({ activeMenu: _activeMenu }) => {
     });
   };
 
+  const handleLogout = useCallback(() => {
+    const confirmed = window.confirm("Are you sure you want to logout?");
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      localStorage.clear();
+    } catch {
+      // ignore storage errors
+    }
+
+    clearUser?.();
+    navigate("/login");
+  }, [clearUser, navigate]);
 
   return (
     <header className="app-header sticky top-0 z-30 border-b border-white/30 bg-white/70 backdrop-blur-xl transition-colors duration-300 dark:border-slate-800/70 dark:bg-slate-900/70 dark:shadow-[0_20px_40px_rgba(2,6,23,0.6)]">
@@ -85,6 +105,15 @@ const Navbar = ({ activeMenu: _activeMenu }) => {
             {isDarkMode ? <LuSun className="h-5 w-5" /> : <LuMoonStar className="h-5 w-5" />}
           </button>
           <NotificationBell />
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="inline-flex h-11 items-center gap-2 rounded-2xl border border-rose-200 bg-white/80 px-4 text-sm font-semibold uppercase tracking-[0.26em] text-rose-500 transition hover:-translate-y-0.5 hover:border-rose-400 hover:bg-rose-500 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/70 dark:border-rose-500/40 dark:bg-slate-900/70 dark:text-rose-300 dark:hover:bg-rose-500/80"
+            aria-label="Logout"
+          >
+            <LuLogOut className="h-5 w-5" />
+            <span className="hidden sm:inline">Logout</span>
+          </button>          
         </div>
       </div>
     </header>

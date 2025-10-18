@@ -12,7 +12,7 @@ import {
 } from "../../utils/roleUtils";
 
 const SideMenu = ({ activeMenu }) => {
-  const { user, clearUser } = useContext(UserContext);
+  const { user } = useContext(UserContext);
   const [sideMenuData, setSideMenuData] = useState([]);
 
   const navigate = useNavigate();
@@ -35,26 +35,9 @@ const SideMenu = ({ activeMenu }) => {
       return;
     }
 
-    if (trimmedRoute === "logout") {
-      handelLogout();
-      return;
-    }
-
     navigate(trimmedRoute);
   };
-
-  const handelLogout = () => {
-    const confirmed = window.confirm("Are you sure you want to logout?");
-
-    if (!confirmed) {
-      return;
-    }
-
-    localStorage.clear();
-    clearUser();
-    navigate("/login");
-  };
-
+  
   const normalizedGender = useMemo(() => {
     if (typeof user?.gender !== "string") {
       return "";
