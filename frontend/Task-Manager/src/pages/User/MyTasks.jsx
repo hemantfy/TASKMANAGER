@@ -28,9 +28,30 @@ const MyTasks = () => {
         },
       });
 
-      setAllTasks(
-        response.data?.tasks?.length > 0 ? response.data.tasks : []
-      );
+      const fetchedTasks =
+        response.data?.tasks?.length > 0 ? response.data.tasks : [];
+
+      const statusRank = { Completed: 1 };
+
+      const sortedTasks = [...fetchedTasks].sort((taskA, taskB) => {
+        const taskAStatusRank = statusRank[taskA.status] ?? 0;
+        const taskBStatusRank = statusRank[taskB.status] ?? 0;
+
+        if (taskAStatusRank !== taskBStatusRank) {
+          return taskAStatusRank - taskBStatusRank;
+        }
+
+        const taskADueDate = taskA.dueDate
+          ? new Date(taskA.dueDate).getTime()
+          : Number.MAX_SAFE_INTEGER;
+        const taskBDueDate = taskB.dueDate
+          ? new Date(taskB.dueDate).getTime()
+          : Number.MAX_SAFE_INTEGER;
+
+        return taskADueDate - taskBDueDate;
+      });
+
+      setAllTasks(sortedTasks);
 
     //Map status Summary data with fixed labels and orders
     const statusSummary = response.data?.statusSummary || {};

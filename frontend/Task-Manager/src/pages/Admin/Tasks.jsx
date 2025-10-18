@@ -60,7 +60,16 @@ const Tasks = () => {
         Low: 2,
       };
 
+      const statusRank = { Completed: 1 };
+
       const sortedTasks = [...tasks].sort((taskA, taskB) => {
+        const taskAStatusRank = statusRank[taskA.status] ?? 0;
+        const taskBStatusRank = statusRank[taskB.status] ?? 0;
+
+        if (taskAStatusRank !== taskBStatusRank) {
+          return taskAStatusRank - taskBStatusRank;
+        }
+
         const taskAPriority =
           priorityRank[taskA.priority] ?? Number.MAX_SAFE_INTEGER;
         const taskBPriority =
