@@ -1,10 +1,31 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { LuMoonStar, LuSun } from "react-icons/lu";
+import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { LuMoonStar, LuSun, LuUserCog } from "react-icons/lu";
 import NotificationBell from "../Notifications/NotificationBell";
 import logo from "../../assets/images/logo.png";
+import { UserContext } from "../../context/userContext";
+import {
+  hasPrivilegedAccess,
+  normalizeRole,
+  resolvePrivilegedPath,
+} from "../../utils/roleUtils";
 
 const Navbar = ({ activeMenu: _activeMenu }) => {
     const [isDarkMode, setIsDarkMode] = useState(false);
+  const { user } = useContext(UserContext);
+  const navigate = useNavigate();
+  const normalizedRole = useMemo(() => normalizeRole(user?.role), [user?.role]);
+  const profileSettingsPath = useMemo(() => {
+    if (!user) {
+      return "";
+    }
+
+    if (hasPrivilegedAccess(normalizedRole)) {
+      return resolvePrivilegedPath("/admin/profile-settings", normalizedRole);
+    }
+
+    return "/user/profile-settings";
+  }, [normalizedRole, user]);    
 
   const applyThemePreference = useCallback((shouldUseDarkTheme) => {
     const root = document.documentElement;
@@ -48,6 +69,14 @@ const Navbar = ({ activeMenu: _activeMenu }) => {
     });
   };
 
+  const handleProfileSettingsNavigation = useCallback(() => {
+    if (!profileSettingsPath) {
+      return;
+    }
+
+    navigate(profileSettingsPath);
+  }, [navigate, profileSettingsPath]);
+
   return (
     <header className="app-header sticky top-0 z-30 border-b border-white/30 bg-white/70 backdrop-blur-xl transition-colors duration-300 dark:border-slate-800/70 dark:bg-slate-900/70 dark:shadow-[0_20px_40px_rgba(2,6,23,0.6)]">
       <div className="mx-auto flex w-full max-w-[1400px] items-center gap-4 px-4 py-4 transition-colors duration-300 sm:gap-6 lg:px-8">
@@ -75,6 +104,17 @@ const Navbar = ({ activeMenu: _activeMenu }) => {
         </div>
         
         <div className="flex items-center gap-3">
+          {profileSettingsPath && (
+            <button
+              type="button"
+              onClick={handleProfileSettingsNavigation}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200/70 bg-white/60 text-slate-600 transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-gradient-to-r hover:from-primary/90 hover:to-sky-500 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200"
+              aria-label="Open profile settings"
+              title="Profile settings"
+            >
+              <LuUserCog className="h-5 w-5" />
+            </button>
+          )}          
            <button
             type="button"
             onClick={handleThemeToggle}

@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { SIDE_MENU_DATA, SIDE_MENU_USER_DATA } from "../../utils/data";
 import { UserContext } from "../../context/userContext";
 import { FaUser } from "react-icons/fa6";
+import { LuUserCog } from "react-icons/lu";
 import {
   getRoleLabel,
   hasPrivilegedAccess,
@@ -65,6 +66,17 @@ const SideMenu = ({ activeMenu }) => {
   const normalizedRole = useMemo(() => normalizeRole(user?.role), [user?.role]);
   const isPrivilegedUser = hasPrivilegedAccess(normalizedRole);
   const roleBadgeLabel = getRoleLabel(normalizedRole);
+  const profileSettingsPath = useMemo(() => {
+    if (!user) {
+      return "";
+    }
+
+    if (isPrivilegedUser) {
+      return resolvePrivilegedPath("/admin/profile-settings", normalizedRole);
+    }
+
+    return "/user/profile-settings";
+  }, [isPrivilegedUser, normalizedRole, user]);  
 
   useEffect(() => {
     if (!user) {
@@ -94,7 +106,17 @@ const SideMenu = ({ activeMenu }) => {
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,_rgba(79,70,229,0.08),_transparent_65%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(79,70,229,0.18),_transparent_60%)]" />
       <div className="absolute inset-0 -z-20 bg-[radial-gradient(circle_at_bottom_right,_rgba(56,189,248,0.12),_transparent_60%)] dark:bg-[radial-gradient(circle_at_bottom_right,_rgba(56,189,248,0.2),_transparent_55%)]" />
 
-      <div className="flex flex-col items-center justify-center rounded-2xl border border-white/50 bg-white/60 px-4 py-5 text-center shadow-inner transition-colors duration-300 dark:border-slate-700/60 dark:bg-slate-900/60 dark:text-slate-200">
+      <div className="relative flex flex-col items-center justify-center rounded-2xl border border-white/50 bg-white/60 px-4 py-5 text-center shadow-inner transition-colors duration-300 dark:border-slate-700/60 dark:bg-slate-900/60 dark:text-slate-200">
+        {profileSettingsPath && (
+          <button
+            type="button"
+            onClick={() => handleClick(profileSettingsPath)}
+            className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200/70 bg-white/80 text-slate-500 transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/90 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:border-indigo-400 dark:hover:bg-indigo-500/80"
+            aria-label="Open profile settings"
+          >
+            <LuUserCog className="h-4 w-4" />
+          </button>
+        )}
         <div className="relative">
         <span className="absolute inset-0 -z-10 animate-pulse rounded-full bg-gradient-to-tr from-primary/30 to-cyan-200/30 blur-xl" />
         {user?.profileImageUrl 

@@ -3,7 +3,6 @@ import {
   LuUsers,
   LuClipboardCheck,
   LuLogOut,
-  LuUserCog,
 } from "react-icons/lu";
 
 export const SIDE_MENU_DATA = [
@@ -27,12 +26,6 @@ export const SIDE_MENU_DATA = [
   },
   {
     id: "04",
-    label: "Profile Setting",
-    icon: LuUserCog,
-    path: "/admin/profile-settings",
-  },
-  {
-    id: "05",
     label: "Logout",
     icon: LuLogOut,
     path: "logout",
@@ -54,12 +47,6 @@ export const SIDE_MENU_USER_DATA = [
   },
   {
     id: "03",
-    label: "Profile Setting",
-    icon: LuUserCog,
-    path: "/user/profile-settings",
-  },
-  {
-    id: "04",
     label: "Logout",
     icon: LuLogOut,
     path: "logout",
