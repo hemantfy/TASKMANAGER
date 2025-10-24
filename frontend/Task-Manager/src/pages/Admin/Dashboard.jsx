@@ -26,7 +26,11 @@ import {
 } from "react-icons/lu";
 import LoadingOverlay from "../../components/LoadingOverlay";
 import useActiveNotices from "../../hooks/useActiveNotices";
-import { formatFullDateTime } from "../../utils/dateUtils";
+import {
+  formatFullDateTime,
+  formatDateLabel,
+  formatDateInputValue
+} from "../../utils/dateUtils";
 
 const NoticeBoard = lazy(() => import("../../components/NoticeBoard"));
 const CustomPieChart = lazy(() => import("../../components/Charts/CustomPieChart"));
@@ -79,6 +83,22 @@ const LiveGreeting = React.memo(({ userName }) => {
 
 const COLORS = ["#8D51FF", "#00B8DB", "#7BCE00"];
 
+const createDefaultDateRange = () => {
+  const today = new Date();
+  const endDate = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate()
+  );
+  const startDate = new Date(endDate);
+  startDate.setMonth(startDate.getMonth() - 1);
+
+  return {
+    startDate: formatDateInputValue(startDate),
+    endDate: formatDateInputValue(endDate)
+  };
+};
+
 const Dashboard = () => {
   useUserAuth();
 
@@ -92,9 +112,53 @@ const Dashboard = () => {
   const [leaderboardFilter, setLeaderboardFilter] = useState("All");
   const [leaderboardOfficeFilter, setLeaderboardOfficeFilter] =
     useState("All");
+  const [activeDateRange, setActiveDateRange] = useState(() =>
+    createDefaultDateRange()
+  );
+  const [pendingDateRange, setPendingDateRange] = useState(() =>
+    createDefaultDateRange()
+  );    
   const { activeNotices, fetchActiveNotices, resetNotices } =
     useActiveNotices(false);
 
+  const isRangeValid = useMemo(() => {
+    if (!pendingDateRange.startDate || !pendingDateRange.endDate) {
+      return false;
+    }
+
+    const start = new Date(pendingDateRange.startDate);
+    const end = new Date(pendingDateRange.endDate);
+
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      return false;
+    }
+
+    return start.getTime() <= end.getTime();
+  }, [pendingDateRange.endDate, pendingDateRange.startDate]);
+
+  const showRangeError = useMemo(() => {
+    if (!pendingDateRange.startDate || !pendingDateRange.endDate) {
+      return false;
+    }
+
+    return !isRangeValid;
+  }, [isRangeValid, pendingDateRange.endDate, pendingDateRange.startDate]);
+
+  const activeRangeLabel = useMemo(() => {
+    if (!activeDateRange.startDate || !activeDateRange.endDate) {
+      return "";
+    }
+
+    const startLabel = formatDateLabel(activeDateRange.startDate, "");
+    const endLabel = formatDateLabel(activeDateRange.endDate, "");
+
+    if (!startLabel || !endLabel) {
+      return "";
+    }
+
+    return `${startLabel} → ${endLabel}`;
+  }, [activeDateRange.endDate, activeDateRange.startDate]);
+   
   const prepareChartData = useCallback((data) => {
     const taskDistribution = data?.taskDistribution || null;
     const taskPriorityLevels = data?.taskPriorityLevels || null;
@@ -116,10 +180,21 @@ const Dashboard = () => {
     setBarChartData(PriorityLevelData);
   }, []);
 
-  const getDashboardData = useCallback(async () => {
+  const getDashboardData = useCallback(async (range) => {
     try {
+      const params = {};
+
+      if (range?.startDate) {
+        params.startDate = range.startDate;
+      }
+
+      if (range?.endDate) {
+        params.endDate = range.endDate;
+      }
+
       const response = await axiosInstance.get(
-        API_PATHS.TASKS.GET_DASHBOARD_DATA
+        API_PATHS.TASKS.GET_DASHBOARD_DATA,
+        { params }
       );
       if (response.data) {
         setDashboardData(response.data);
@@ -139,8 +214,10 @@ const Dashboard = () => {
     navigate(`${privilegedBasePath}/tasks`);
   };
 
-  useEffect(() => {
-    const fetchDashboard = async () => {
+  const fetchDashboard = useCallback(
+    async (range) => {
+      const effectiveRange = range || activeDateRange;
+
       try {
         setIsLoading(true);
         setDashboardData(null);
@@ -149,17 +226,64 @@ const Dashboard = () => {
         resetNotices();
 
         setLeaderboardFilter("All");
-        setLeaderboardOfficeFilter("All");       
-        await Promise.all([getDashboardData(), fetchActiveNotices()]);
+        setLeaderboardOfficeFilter("All");
+        await Promise.all([
+          getDashboardData(effectiveRange),
+          fetchActiveNotices()
+        ]);
       } finally {
         setIsLoading(false);
       }
-    };
+    },
+    [activeDateRange, fetchActiveNotices, getDashboardData, resetNotices]
+  );
 
+  useEffect(() => {  
     fetchDashboard();
 
-    return () => {};
-  }, [fetchActiveNotices, getDashboardData, resetNotices, user?._id]);
+    return () => {
+      resetNotices();
+    };
+  }, [fetchDashboard, resetNotices]);
+
+  const handleDateInputChange = useCallback((key, value) => {
+    setPendingDateRange((previous) => ({
+      ...previous,
+      [key]: value
+    }));
+  }, []);
+
+  const handleDateFilterSubmit = useCallback(
+    (event) => {
+      event.preventDefault();
+
+      if (!isRangeValid) {
+        return;
+      }
+
+      if (
+        pendingDateRange.startDate === activeDateRange.startDate &&
+        pendingDateRange.endDate === activeDateRange.endDate
+      ) {
+        return;
+      }
+
+      setActiveDateRange({ ...pendingDateRange });
+    },
+    [activeDateRange, isRangeValid, pendingDateRange]
+  );
+
+  const handlePresetRange = useCallback(() => {
+    const presetRange = createDefaultDateRange();
+    setPendingDateRange(presetRange);
+
+    if (
+      presetRange.startDate !== activeDateRange.startDate ||
+      presetRange.endDate !== activeDateRange.endDate
+    ) {
+      setActiveDateRange(presetRange);
+    }
+  }, [activeDateRange]);
 
   const infoCards = useMemo(
     () => [
@@ -347,11 +471,79 @@ const Dashboard = () => {
                 <LiveGreeting userName={user?.name || "User"} />
               </div>
 
-              <div className="rounded-3xl border border-white/40 bg-white/15 px-4 py-4 text-sm backdrop-blur sm:px-6">
-                <p className="text-xs uppercase tracking-[0.28em] text-white/70">Today&apos;s Focus</p>
-                <p className="mt-2 text-base font-medium">
-                  Align priorities, unblock your team and watch progress accelerate.
-                </p>
+              <div className="flex w-full flex-col gap-4 text-sm lg:max-w-[360px]">
+                <div className="rounded-3xl border border-white/40 bg-white/15 px-4 py-4 backdrop-blur sm:px-6">
+                  <p className="text-xs uppercase tracking-[0.28em] text-white/70">Today&apos;s Focus</p>
+                  <p className="mt-2 text-base font-medium">
+                    Align priorities, unblock your team and watch progress accelerate.
+                  </p>
+                </div>
+
+                <div className="rounded-3xl border border-white/40 bg-white/10 px-4 py-4 backdrop-blur-sm sm:px-6">
+                  <div className="flex flex-col gap-1">
+                    <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/70">
+                      Date Range
+                    </p>
+                    {activeRangeLabel ? (
+                      <p className="text-sm font-medium text-white/80">
+                        {activeRangeLabel}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <form
+                    className="mt-4 space-y-3"
+                    onSubmit={handleDateFilterSubmit}
+                  >
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label className="flex flex-col gap-1 text-xs text-white/70">
+                        <span className="uppercase tracking-[0.18em]">From</span>
+                        <input
+                          type="date"
+                          value={pendingDateRange.startDate}
+                          onChange={({ target }) =>
+                            handleDateInputChange("startDate", target.value)
+                          }
+                          className="w-full rounded-xl border border-white/30 bg-white/90 px-3 py-2 text-sm font-medium text-slate-900 outline-none transition focus:border-white focus:ring-2 focus:ring-white/70"
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1 text-xs text-white/70">
+                        <span className="uppercase tracking-[0.18em]">To</span>
+                        <input
+                          type="date"
+                          value={pendingDateRange.endDate}
+                          onChange={({ target }) =>
+                            handleDateInputChange("endDate", target.value)
+                          }
+                          className="w-full rounded-xl border border-white/30 bg-white/90 px-3 py-2 text-sm font-medium text-slate-900 outline-none transition focus:border-white focus:ring-2 focus:ring-white/70"
+                        />
+                      </label>
+                    </div>
+
+                    {showRangeError ? (
+                      <p className="text-xs font-medium text-rose-100">
+                        Start date must be on or before the end date.
+                      </p>
+                    ) : null}
+
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="submit"
+                        disabled={!isRangeValid}
+                        className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2 text-sm font-semibold text-primary transition hover:bg-white/90 disabled:cursor-not-allowed disabled:bg-white/50 disabled:text-white/70"
+                      >
+                        Apply
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handlePresetRange}
+                        className="inline-flex items-center justify-center rounded-xl border border-white/40 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
+                      >
+                        Last 30 Days
+                      </button>
+                    </div>
+                  </form>
+                </div>
               </div>
             </div>
           </section>

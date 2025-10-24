@@ -535,12 +535,68 @@ const getDashboardData = async (req, res) => {
           .status(403)
           .json({ message: "Access denied, admin only" });
       }
+
+      const normalizeStartDate = (value) => {
+        if (!value) {
+          return null;
+        }
+
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) {
+          return null;
+        }
+
+        parsed.setHours(0, 0, 0, 0);
+        return parsed;
+      };
+
+      const normalizeEndDate = (value) => {
+        if (!value) {
+          return null;
+        }
+
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) {
+          return null;
+        }
+
+        parsed.setHours(23, 59, 59, 999);
+        return parsed;
+      };
+
+      const startDate = normalizeStartDate(req.query.startDate);
+      const endDate = normalizeEndDate(req.query.endDate);
+
+      const createdAtFilter = {};
+
+      if (startDate) {
+        createdAtFilter.$gte = startDate;
+      }
+
+      if (endDate) {
+        createdAtFilter.$lte = endDate;
+      }
+
+      const baseTaskFilter = Object.keys(createdAtFilter).length
+        ? { createdAt: createdAtFilter }
+        : {};
+
+      const baseMatchStages = Object.keys(createdAtFilter).length
+        ? [{ $match: { createdAt: createdAtFilter } }]
+        : [];
       
       // Fetch statistics
-      const totalTasks = await Task.countDocuments();
-      const pendingTasks = await Task.countDocuments({ status: "Pending" });
-      const completedTasks = await Task.countDocuments({ status: "Completed" });
+      const totalTasks = await Task.countDocuments(baseTaskFilter);
+      const pendingTasks = await Task.countDocuments({
+        ...baseTaskFilter,
+        status: "Pending",
+      });
+      const completedTasks = await Task.countDocuments({
+        ...baseTaskFilter,
+        status: "Completed",
+      });
       const overdueTasks = await Task.countDocuments({
+        ...baseTaskFilter,        
         status: { $ne: "Completed" },
         dueDate: { $lt: new Date() },
       });
@@ -548,6 +604,7 @@ const getDashboardData = async (req, res) => {
       // Ensure all possible statuses are included
       const taskStatuses = ["Pending", "In Progress", "Completed"];
       const taskDistributionRaw = await Task.aggregate([
+        ...baseMatchStages,        
         {
           $group: {
             _id: "$status",
@@ -566,6 +623,7 @@ const getDashboardData = async (req, res) => {
       // Ensure all priority levels are included
       const taskPriorities = ["Low", "Medium", "High"];
       const taskPriorityLevelsRaw = await Task.aggregate([
+        ...baseMatchStages,        
         {
           $group: {
             _id: "$priority",
@@ -592,6 +650,7 @@ const getDashboardData = async (req, res) => {
 
       const leaderboardAggregation = relevantUserIds.length
         ? await Task.aggregate([
+            ...baseMatchStages,          
             { $unwind: "$assignedTo" },
             { $match: { assignedTo: { $in: relevantUserIds } } },
             {
