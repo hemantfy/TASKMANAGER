@@ -108,7 +108,7 @@ const Navbar = () => {
           <button
             type="button"
             onClick={handleLogout}
-            className="inline-flex h-11 items-center gap-2 rounded-2xl border border-rose-200 bg-white/80 px-4 text-sm font-semibold uppercase tracking-[0.26em] text-rose-500 transition hover:-translate-y-0.5 hover:border-rose-400 hover:bg-rose-500 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/70 dark:border-rose-500/40 dark:bg-slate-900/70 dark:text-rose-300 dark:hover:bg-rose-500/80"
+            className="hidden h-11 items-center gap-2 rounded-2xl border border-rose-200 bg-white/80 px-4 text-sm font-semibold uppercase tracking-[0.26em] text-rose-500 transition hover:-translate-y-0.5 hover:border-rose-400 hover:bg-rose-500 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/70 dark:border-rose-500/40 dark:bg-slate-900/70 dark:text-rose-300 dark:hover:bg-rose-500/80 sm:inline-flex"
             aria-label="Logout"
           >
             <LuLogOut className="h-5 w-5" />
