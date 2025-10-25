@@ -466,86 +466,86 @@ const Dashboard = () => {
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.2),_transparent_65%)]" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,_rgba(255,255,255,0.18),_transparent_60%)]" />
             <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.42em] text-white/70">Welcome Back</p>
-                <LiveGreeting userName={user?.name || "User"} />
-              </div>
+              <div className="flex flex-col gap-4 text-sm lg:max-w-[420px] lg:flex-1">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.42em] text-white/70">Welcome Back</p>
+                  <LiveGreeting userName={user?.name || "User"} />
+                </div>
 
-              <div className="flex w-full flex-col gap-4 text-sm lg:max-w-[360px]">
                 <div className="rounded-3xl border border-white/40 bg-white/15 px-4 py-4 backdrop-blur sm:px-6">
                   <p className="text-xs uppercase tracking-[0.28em] text-white/70">Today&apos;s Focus</p>
                   <p className="mt-2 text-base font-medium">
                     Align priorities, unblock your team and watch progress accelerate.
                   </p>
                 </div>
+              </div>
 
-                <div className="rounded-3xl border border-white/40 bg-white/10 px-4 py-4 backdrop-blur-sm sm:px-6">
-                  <div className="flex flex-col gap-1">
-                    <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/70">
-                      Date Range
+              <div className="rounded-3xl border border-white/40 bg-white/10 px-4 py-4 text-sm backdrop-blur-sm sm:px-6 lg:max-w-[360px] lg:self-stretch">
+                <div className="flex flex-col gap-1">
+                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/70">
+                    Date Range
+                  </p>
+                  {activeRangeLabel ? (
+                    <p className="text-sm font-medium text-white/80">
+                      {activeRangeLabel}
                     </p>
-                    {activeRangeLabel ? (
-                      <p className="text-sm font-medium text-white/80">
-                        {activeRangeLabel}
-                      </p>
-                    ) : null}
+                  ) : null}
+                </div>
+
+                <form
+                  className="mt-4 space-y-3"
+                  onSubmit={handleDateFilterSubmit}
+                >
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="flex flex-col gap-1 text-xs text-white/70">
+                      <span className="uppercase tracking-[0.18em]">From</span>
+                      <input
+                        type="date"
+                        value={pendingDateRange.startDate}
+                        onChange={({ target }) =>
+                          handleDateInputChange("startDate", target.value)
+                        }
+                        className="w-full rounded-xl border border-white/30 bg-white/90 px-3 py-2 text-sm font-medium text-slate-900 outline-none transition focus:border-white focus:ring-2 focus:ring-white/70"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1 text-xs text-white/70">
+                      <span className="uppercase tracking-[0.18em]">To</span>
+                      <input
+                        type="date"
+                        value={pendingDateRange.endDate}
+                        onChange={({ target }) =>
+                          handleDateInputChange("endDate", target.value)
+                        }
+                        className="w-full rounded-xl border border-white/30 bg-white/90 px-3 py-2 text-sm font-medium text-slate-900 outline-none transition focus:border-white focus:ring-2 focus:ring-white/70"
+                      />
+                    </label>
                   </div>
 
-                  <form
-                    className="mt-4 space-y-3"
-                    onSubmit={handleDateFilterSubmit}
-                  >
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <label className="flex flex-col gap-1 text-xs text-white/70">
-                        <span className="uppercase tracking-[0.18em]">From</span>
-                        <input
-                          type="date"
-                          value={pendingDateRange.startDate}
-                          onChange={({ target }) =>
-                            handleDateInputChange("startDate", target.value)
-                          }
-                          className="w-full rounded-xl border border-white/30 bg-white/90 px-3 py-2 text-sm font-medium text-slate-900 outline-none transition focus:border-white focus:ring-2 focus:ring-white/70"
-                        />
-                      </label>
-                      <label className="flex flex-col gap-1 text-xs text-white/70">
-                        <span className="uppercase tracking-[0.18em]">To</span>
-                        <input
-                          type="date"
-                          value={pendingDateRange.endDate}
-                          onChange={({ target }) =>
-                            handleDateInputChange("endDate", target.value)
-                          }
-                          className="w-full rounded-xl border border-white/30 bg-white/90 px-3 py-2 text-sm font-medium text-slate-900 outline-none transition focus:border-white focus:ring-2 focus:ring-white/70"
-                        />
-                      </label>
-                    </div>
+                  {showRangeError ? (
+                    <p className="text-xs font-medium text-rose-100">
+                      Start date must be on or before the end date.
+                    </p>
+                  ) : null}
 
-                    {showRangeError ? (
-                      <p className="text-xs font-medium text-rose-100">
-                        Start date must be on or before the end date.
-                      </p>
-                    ) : null}
-
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="submit"
-                        disabled={!isRangeValid}
-                        className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2 text-sm font-semibold text-primary transition hover:bg-white/90 disabled:cursor-not-allowed disabled:bg-white/50 disabled:text-white/70"
-                      >
-                        Apply
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handlePresetRange}
-                        className="inline-flex items-center justify-center rounded-xl border border-white/40 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
-                      >
-                        Last 30 Days
-                      </button>
-                    </div>
-                  </form>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="submit"
+                      disabled={!isRangeValid}
+                      className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2 text-sm font-semibold text-primary transition hover:bg-white/90 disabled:cursor-not-allowed disabled:bg-white/50 disabled:text-white/70"
+                    >
+                      Apply
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handlePresetRange}
+                      className="inline-flex items-center justify-center rounded-xl border border-white/40 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
+                    >
+                      Last 30 Days
+                    </button>
+                  </div>
+                </form>
                 </div>
               </div>
-            </div>
           </section>
 
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
