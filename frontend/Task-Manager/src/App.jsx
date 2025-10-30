@@ -71,14 +71,15 @@ const App = () => {
 
           {/* Client Routes */}
           <Route element={<PrivateRoute allowedRoles={["client"]} />}>
-            <Route path="/client/dashboard" element={<ClientDashboard />} />
-            <Route path="/client/projects" element={<ClientProjects />} />
-            <Route
-              path="/client/task-details/:id"
-              element={<ClientViewTaskDetails />}
-            />
-            <Route path="/client/profile-settings" element={<ProfileSettings />} />
-          </Route>        
+            <Route path="/client">
+              <Route index element={<Navigate to="dashboard" replace />} />
+              <Route path="dashboard" element={<ClientDashboard />} />
+              <Route path="projects" element={<ClientProjects />} />
+              <Route path="task-details/:id" element={<ClientViewTaskDetails />} />
+              <Route path="profile-settings" element={<ProfileSettings />} />
+            </Route>
+          </Route>
+      
 
           <Route path="/unauthorized" element={<Unauthorized />} />
 
