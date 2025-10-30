@@ -39,9 +39,25 @@ const mergeUrl = (url, baseUrl) => {
 
 const initialBaseUrl = resolveBaseUrl();
 
+const resolveTimeout = () => {
+  const envTimeout =
+    (typeof import.meta !== "undefined" && import.meta?.env?.VITE_API_TIMEOUT) ||
+    (typeof globalThis !== "undefined" ? globalThis?.process?.env?.VITE_API_TIMEOUT : undefined);
+
+  const parsedTimeout = Number.parseInt(envTimeout, 10);
+
+  if (Number.isFinite(parsedTimeout) && parsedTimeout > 0) {
+    return parsedTimeout;
+  }
+
+  // Render-hosted services can take a while to warm up. Give them plenty of time
+  // instead of failing after just 10 seconds.
+  return 60000;
+};
+
 const axiosInstance = axios.create({
   baseURL: initialBaseUrl,
-  timeout: 10000,
+  timeout: resolveTimeout(),
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
