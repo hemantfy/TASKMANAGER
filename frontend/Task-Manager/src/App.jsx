@@ -20,6 +20,9 @@ const OwnerDashboard = React.lazy(() => import("./pages/Owner/Dashboard"));
 const OwnerTasks = React.lazy(() => import("./pages/Owner/Tasks"));
 const OwnerManageUsers = React.lazy(() => import("./pages/Owner/ManageUsers"));
 const OwnerUserDetails = React.lazy(() => import("./pages/Owner/UserDetails"));
+const ClientDashboard = React.lazy(() => import("./pages/Client/ClientDashboard"));
+const ClientProjects = React.lazy(() => import("./pages/Client/ClientProjects"));
+const ClientViewTaskDetails = React.lazy(() => import("./pages/Client/ViewTaskDetails"));
 
 const App = () => {
   return (
@@ -64,7 +67,18 @@ const App = () => {
             <Route path="/user/tasks" element={<MyTasks />} />
             <Route path="/user/task-details/:id" element={<ViewTaskDetails />} />
             <Route path="/user/profile-settings" element={<ProfileSettings />} />
-          </Route>          
+          </Route>
+
+          {/* Client Routes */}
+          <Route element={<PrivateRoute allowedRoles={["client"]} />}>
+            <Route path="/client/dashboard" element={<ClientDashboard />} />
+            <Route path="/client/projects" element={<ClientProjects />} />
+            <Route
+              path="/client/task-details/:id"
+              element={<ClientViewTaskDetails />}
+            />
+            <Route path="/client/profile-settings" element={<ProfileSettings />} />
+          </Route>        
 
           <Route path="/unauthorized" element={<Unauthorized />} />
 

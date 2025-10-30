@@ -41,6 +41,10 @@ const getRoleLabel = (role) => {
     return "Member";
   }
 
+  if (matchesRole(role, "client")) {
+    return "Client";
+  }
+
   return "";
 };
 

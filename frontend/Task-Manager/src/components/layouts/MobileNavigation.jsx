@@ -2,7 +2,11 @@ import React, { useContext, useMemo, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { LuLogOut } from "react-icons/lu";
 import { UserContext } from "../../context/userContext";
-import { SIDE_MENU_DATA, SIDE_MENU_USER_DATA } from "../../utils/data";
+import {
+  SIDE_MENU_DATA,
+  SIDE_MENU_USER_DATA,
+  SIDE_MENU_CLIENT_DATA,
+} from "../../utils/data";
 import {
   hasPrivilegedAccess,
   normalizeRole,
@@ -25,7 +29,11 @@ const MobileNavigation = () => {
     if (!user) return [];
 
     const isPrivileged = hasPrivilegedAccess(normalizedRole);
-    const source = isPrivileged ? SIDE_MENU_DATA : SIDE_MENU_USER_DATA;
+    const source = isPrivileged
+      ? SIDE_MENU_DATA
+      : normalizedRole === "client"
+      ? SIDE_MENU_CLIENT_DATA
+      : SIDE_MENU_USER_DATA;
 
     // Only include items with a valid path and exclude the "logout" pseudo-item
     return (source || [])

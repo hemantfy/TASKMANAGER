@@ -46,6 +46,7 @@ const ManageUsers = () => {
             owner: 0,
             admin: 1,
             member: 2,
+            client: 3,            
           };
 
           const normalizedRoleA = normalizeRole(userA?.role);
@@ -112,7 +113,7 @@ const ManageUsers = () => {
     try {
       setIsSubmitting(true);
       await axiosInstance.post(API_PATHS.USERS.CREATE_USER, payload);
-      toast.success("Team member added successfully.");
+      toast.success("Account added successfully.");
       setShowCreateForm(false);
       setFormData({
         name: "",
@@ -126,7 +127,7 @@ const ManageUsers = () => {
       await getAllUsers();
     } catch (error) {
       console.error("Error creating user:", error);
-      const message = error?.response?.data?.message || "Unable to add member. Please try again.";
+      const message = error?.response?.data?.message || "Unable to add the account. Please try again.";
       toast.error(message);
     } finally {
       setIsSubmitting(false);
@@ -175,7 +176,7 @@ const ManageUsers = () => {
     if (!confirmDelete) return;
 
     const confirmTaskCleanup = window.confirm(
-      "Deleting this team member will also remove any tasks assigned exclusively to them. Tasks shared with other members will remain available to the rest of the assignees. Do you want to proceed?"
+      "Deleting this account will also remove any tasks assigned exclusively to them. Tasks shared with other collaborators will remain available to the rest of the assignees. Do you want to proceed?"
     );
 
     if (!confirmTaskCleanup) return;
@@ -280,7 +281,7 @@ const ManageUsers = () => {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Error downloading expense details:", error);
-      toast.error("Failed to download Team Members Report. Please try again later.");
+      toast.error("Failed to download directory report. Please try again later.");
     }    
   };
 
@@ -297,8 +298,8 @@ const ManageUsers = () => {
 
     const allowedRoles =
       normalizedCurrentUserRole === "owner"
-        ? ["member", "admin", "owner"]
-        : ["member", "admin"];
+        ? ["member", "client", "admin", "owner"]
+        : ["member", "client", "admin"];
 
     if (!allowedRoles.includes(formData.role)) {
       setFormData((prev) => ({
@@ -312,6 +313,7 @@ const ManageUsers = () => {
     if (normalizedCurrentUserRole === "owner") {
       return [
         { value: "member", label: "Member" },
+        { value: "client", label: "Client" },        
         { value: "admin", label: "Admin" },
         { value: "owner", label: "Owner" },
       ];
@@ -319,6 +321,7 @@ const ManageUsers = () => {
 
     return [
       { value: "member", label: "Member" },
+      { value: "client", label: "Client" },      
       { value: "admin", label: "Admin" },
     ];
   }, [normalizedCurrentUserRole]);
@@ -385,8 +388,8 @@ const ManageUsers = () => {
       : "";
   const canViewOwnerAccounts = normalizedCurrentUserRole === "owner";
   const allowedRolesForDisplay = canViewOwnerAccounts
-    ? ["owner", "admin", "member"]
-    : ["admin", "member"];
+    ? ["owner", "admin", "member", "client"]
+    : ["admin", "member", "client"];
 
   const filteredUsers = allUsers.filter((user) => {
     const normalizedRole = normalizeRole(user?.role);
@@ -410,16 +413,16 @@ const ManageUsers = () => {
   });
 
   return (
-    <DashboardLayout activeMenu="Team Members">
+     <DashboardLayout activeMenu="Directory">
       <section className="relative overflow-hidden rounded-[32px] border border-white/60 bg-gradient-to-br from-primary via-indigo-500 to-purple-500 px-4 py-7 text-white shadow-[0_20px_45px_rgba(126,58,242,0.28)] sm:px-6 sm:py-8">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.18),_transparent_65%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,_rgba(251,191,36,0.16),_transparent_60%)]" />
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.42em] text-white/70">Dream Team</p>
-            <h2 className="mt-3 text-3xl font-semibold leading-tight sm:text-4xl">Team Members</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.42em] text-white/70">People & Partners</p>
+            <h2 className="mt-3 text-3xl font-semibold leading-tight sm:text-4xl">Directory</h2>
             <p className="mt-3 text-sm text-white/70">
-              Celebrate collaboration with clear visibility into progress and wins.
+              Manage internal team members and client accounts from a single, transparent view.
             </p>
           </div>
 
@@ -429,10 +432,10 @@ const ManageUsers = () => {
               className="download-btn"
               onClick={() => setShowCreateForm((prev) => !prev)}
             >
-              {showCreateForm ? "Close" : "Add Member"}
+              {showCreateForm ? "Close" : "Add Account"}
             </button>
             <button className="download-btn" onClick={handleDownloadReport}>
-              <LuFileSpreadsheet className="text-lg" /> Export Roster
+              <LuFileSpreadsheet className="text-lg" /> Export Directory
             </button>
           </div>
         </div>
@@ -440,8 +443,8 @@ const ManageUsers = () => {
 
       {showCreateForm && (
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-slate-900">Add a new team member</h3>
-          <p className="mt-1 text-sm text-slate-500">Provide the member's details and choose their access level.</p>
+          <h3 className="text-lg font-semibold text-slate-900">Add a new account</h3>
+          <p className="mt-1 text-sm text-slate-500">Provide the account's details and choose their access level.</p>
 
           <form className="mt-6 grid gap-5 md:grid-cols-2" onSubmit={handleCreateUser}>
             <div className="md:col-span-1">
@@ -596,7 +599,7 @@ const ManageUsers = () => {
                 className="rounded-2xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(79,70,229,0.35)] transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-indigo-300"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "Adding Member..." : "Create Member"}
+                {isSubmitting ? "Creating Account..." : "Create Account"}
               </button>
             </div>
           </form>
@@ -608,15 +611,15 @@ const ManageUsers = () => {
           <LuUsers className="text-base" />
         </span>
         {isLoading
-          ? "Loading team members..."
-          : `${filteredUsers.length} talented humans keeping the mission in motion.`}
+          ? "Loading directory..."
+          : `${filteredUsers.length} collaborators powering the mission.`}
       </section>
 
       <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="w-full md:max-w-sm">
             <label className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500" htmlFor="memberSearch">
-              Search Members
+              Search Directory
             </label>
             <input
               id="memberSearch"
@@ -655,7 +658,7 @@ const ManageUsers = () => {
       </section>
 
       {isLoading ? (
-        <LoadingOverlay message="Loading team members..." className="py-24" />
+        <LoadingOverlay message="Loading directory..." className="py-24" />
       ) : (
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filteredUsers?.map((user) => {
@@ -693,7 +696,7 @@ const ManageUsers = () => {
           {filteredUsers.length === 0 && (
             <div className="md:col-span-2 xl:col-span-3">
               <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
-                No team members match your current search and filter settings.
+                No accounts match your current search and filter settings.
               </div>
             </div>
           )}

@@ -72,7 +72,7 @@ const UserDetails = () => {
 
       if (!normalizedUser) {
         throw new Error(
-          responseData?.message || "We were unable to find this team member."
+        responseData?.message || "We were unable to find this account."
         );
       }
 
@@ -100,7 +100,7 @@ const UserDetails = () => {
       const message =
         requestError.response?.data?.message ||
         requestError.message ||
-        "We were unable to load this team member. Please try again later.";
+        "We were unable to load this account. Please try again later.";
       setError(message);
       setUserData(null);
       setTasks([]);
@@ -180,7 +180,7 @@ const UserDetails = () => {
             className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-rose-500 px-5 py-2 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(244,63,94,0.35)] transition hover:bg-rose-600"
             onClick={handleBackToTeam}
           >
-            <LuArrowLeft className="text-base" /> Back to Team Members
+          <LuArrowLeft className="text-base" /> Back to Directory
           </button>
         </div>
       );
@@ -217,7 +217,7 @@ const UserDetails = () => {
                 </span>
               )}
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.42em] text-white/70">Team Member</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.42em] text-white/70">Account Overview</p>
                 <h2 className="mt-2 text-3xl font-semibold leading-tight sm:text-4xl">
                   {userData?.name}
                 </h2>
@@ -264,7 +264,7 @@ const UserDetails = () => {
             <div>
               <h3 className="text-lg font-semibold text-slate-900">Assigned Tasks</h3>
               <p className="mt-1 text-sm text-slate-500">
-                Every task where {userData?.name?.split(" ")[0] || "this member"} is part of the crew.
+                Every task where {userData?.name?.split(" ")[0] || "this collaborator"} is part of the crew.
               </p>
             </div>
             <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.28em] text-slate-600">
@@ -274,7 +274,7 @@ const UserDetails = () => {
 
           {tasks.length === 0 ? (
             <div className="mt-8 rounded-3xl border border-dashed border-slate-200 bg-slate-50/60 p-10 text-center text-sm text-slate-500">
-              No tasks have been assigned to this member yet.
+              No tasks have been assigned to this collaborator yet.
             </div>
           ) : (
             <div className="mt-6 overflow-x-auto">
@@ -335,14 +335,14 @@ const UserDetails = () => {
   };
 
   return (
-    <DashboardLayout activeMenu="Team Members">
+    <DashboardLayout activeMenu="Directory">
       <div className="flex items-center gap-3 text-sm font-medium text-slate-600">
         <button
           type="button"
           onClick={handleBackToTeam}
           className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
         >
-          <LuArrowLeft className="text-base" /> Back to Team Members
+          <LuArrowLeft className="text-base" /> Back to Directory
         </button>
         {userData?.name && (
           <span className="text-xs font-semibold uppercase tracking-[0.42em] text-slate-400">

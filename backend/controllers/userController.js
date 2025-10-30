@@ -162,18 +162,19 @@ const createUser = async (req, res) => {
     }
 
     const requesterRole = normalizeRole(req.user?.role);
-    const allowedRoles = ["member"];
+    const allowedRoles = new Set(["member", "client"]);
 
     if (requesterRole === "admin") {
-      allowedRoles.push("admin");
+      allowedRoles.add("admin");
     }
 
     if (requesterRole === "owner") {
-      allowedRoles.push("admin", "owner");
+      allowedRoles.add("admin");
+      allowedRoles.add("owner");
     }
 
     const normalizedRequestedRole = normalizeRole(role);
-    const normalizedRole = allowedRoles.includes(normalizedRequestedRole)
+    const normalizedRole = allowedRoles.has(normalizedRequestedRole)
       ? normalizedRequestedRole
       : "member";
 

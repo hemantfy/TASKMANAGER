@@ -637,12 +637,14 @@ const getDashboardData = async (req, res) => {
         return acc;
       }, {});
 
-      // Compute leaderboard statistics for admins and members
+      // Compute leaderboard statistics for admins, members, and clients
       const potentialTeamMembers = await User.find()
         .select("name role profileImageUrl officeLocation");
 
       const teamMembers = potentialTeamMembers.filter((user) =>
-        matchesRole(user.role, "admin") || matchesRole(user.role, "member")
+        matchesRole(user.role, "admin") ||
+        matchesRole(user.role, "member") ||
+        matchesRole(user.role, "client")
       );
 
       const relevantUserIds = teamMembers.map((user) => user._id);

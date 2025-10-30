@@ -74,6 +74,8 @@ const registerUser = async (req, res) => {
     const normalizedPrivilegedRole = normalizeRole(privilegedRole) || "";
 
     // Determine user role based on provided token/selection
+    const allowedPrivilegedRoles = ["admin", "owner"];
+    const selfAssignableRoles = ["member", "client"];    
     let role = "member";
 
     if (trimmedAdminInviteToken) {
@@ -81,14 +83,20 @@ const registerUser = async (req, res) => {
         return res.status(403).json({ message: "Invalid admin invite token" });
       }
 
-      const allowedPrivilegedRoles = ["admin", "owner"];
       role = allowedPrivilegedRoles.includes(normalizedPrivilegedRole)
         ? normalizedPrivilegedRole
         : "admin";
-    } else if (normalizedPrivilegedRole && normalizedPrivilegedRole !== "member") {
-      return res.status(400).json({
-        message: "Admin invite token is required to register as an admin or owner",
-      });
+    } else if (normalizedPrivilegedRole) {
+      if (allowedPrivilegedRoles.includes(normalizedPrivilegedRole)) {
+        return res.status(400).json({
+          message:
+            "Admin invite token is required to register as an admin or owner",
+        });
+      }
+
+      if (selfAssignableRoles.includes(normalizedPrivilegedRole)) {
+        role = normalizedPrivilegedRole;
+      }
     }
 
     // Hash password

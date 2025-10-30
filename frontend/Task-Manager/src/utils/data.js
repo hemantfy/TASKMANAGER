@@ -15,7 +15,7 @@ export const SIDE_MENU_DATA = [
   },
   {
     id: "03",
-    label: "Team Members",
+    label: "Directory",
     icon: LuUsers,
     path: "/admin/users",
   },
@@ -33,6 +33,21 @@ export const SIDE_MENU_USER_DATA = [
     label: "My Tasks",
     icon: LuClipboardCheck,
     path: "/user/tasks",
+  },
+];
+
+export const SIDE_MENU_CLIENT_DATA = [
+  {
+    id: "01",
+    label: "Dashboard",
+    icon: LuLayoutDashboard,
+    path: "/client/dashboard",
+  },
+  {
+    id: "02",
+    label: "Projects",
+    icon: LuClipboardCheck,
+    path: "/client/projects",
   },
 ];
 

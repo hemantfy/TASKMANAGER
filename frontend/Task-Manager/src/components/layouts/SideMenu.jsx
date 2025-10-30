@@ -1,6 +1,10 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { SIDE_MENU_DATA, SIDE_MENU_USER_DATA } from "../../utils/data";
+import {
+  SIDE_MENU_DATA,
+  SIDE_MENU_USER_DATA,
+  SIDE_MENU_CLIENT_DATA,
+} from "../../utils/data";
 import { UserContext } from "../../context/userContext";
 import { FaUser } from "react-icons/fa6";
 import { LuUserCog } from "react-icons/lu";
@@ -77,6 +81,8 @@ const SideMenu = ({ activeMenu }) => {
           };
         })
       );
+    } else if (normalizedRole === "client") {
+      setSideMenuData(SIDE_MENU_CLIENT_DATA);      
     } else {
       setSideMenuData(SIDE_MENU_USER_DATA);
     }

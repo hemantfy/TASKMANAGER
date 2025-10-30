@@ -15,7 +15,13 @@ import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { addThousandsSeparator, getGreetingMessage } from "../../utils/helper";
 import InfoCard from "../../components/Cards/infoCard";
-import { LuArrowRight, LuBadgeCheck, LuClipboardList, LuClock3, LuRefreshCcw } from "react-icons/lu";
+import {
+  LuArrowRight,
+  LuBadgeCheck,
+  LuClipboardList,
+  LuClock3,
+  LuRefreshCcw,
+} from "react-icons/lu";
 import LoadingOverlay from "../../components/LoadingOverlay";
 import useActiveNotices from "../../hooks/useActiveNotices";
 import { formatFullDateTime } from "../../utils/dateUtils";
@@ -27,7 +33,7 @@ const TaskListTable = lazy(() => import("../../components/TaskListTable"));
 
 const COLORS = ["#8D51FF", "#00B8DB", "#7BCE00"];
 
-const UserDashboard = () => {
+const ClientDashboard = () => {
   useUserAuth();
 
   const { user } = useContext(UserContext);
@@ -39,7 +45,30 @@ const UserDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(() => new Date());
   const { activeNotices, fetchActiveNotices, resetNotices } =
-    useActiveNotices(false);  
+    useActiveNotices(false);
+
+  const heroCopy = useMemo(
+    () => ({
+      salutationLabel: "Client Hub",
+      alignmentLabel: "Alignment",
+      alignmentCopy:
+        "Stay connected with your advisory team and keep every deliverable on track.",
+    }),
+    []
+  );
+
+  const chartsCopy = useMemo(
+    () => ({
+      distributionTitle: "Deliverable Distribution",
+      distributionBadge: "Status Mix",
+      priorityTitle: "Deliverable Priority",
+      priorityBadge: "Priority",
+      listTitle: "Recent Deliverables",
+      listDescription:
+        "Monitor updates, approvals and requests that need your attention next.",
+    }),
+    []
+  );
 
   const prepareChartData = useCallback((data) => {
     const taskDistribution = data?.taskDistribution || null;
@@ -72,13 +101,13 @@ const UserDashboard = () => {
         prepareChartData(response.data?.charts || null);
       }
     } catch (error) {
-      console.error("Error fetching users:", error);
+      console.error("Error fetching client dashboard data:", error);
     }
   }, [prepareChartData]);
 
-  const onSeeMore = () => {
-    navigate("/user/tasks");
-  };
+  const onSeeMore = useCallback(() => {
+    navigate("/client/projects");
+  }, [navigate]);
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -113,45 +142,44 @@ const UserDashboard = () => {
     [currentTime]
   );
 
-  const infoCards = [
-    {
-      label: "Total Tasks",
-      value: addThousandsSeparator(
-        dashboardData?.charts?.taskDistribution?.All || 0
-      ),
-      color: "from-primary via-indigo-500 to-sky-400",
-      icon: LuClipboardList,
-    },
-    {
-      label: "Pending Tasks",
-      value: addThousandsSeparator(
-        dashboardData?.charts?.taskDistribution?.Pending || 0
-      ),
-      color: "from-amber-400 via-orange-500 to-red-400",
-      icon: LuClock3,
-    },
-    {
-      label: "In Progress",
-      value: addThousandsSeparator(
-        dashboardData?.charts?.taskDistribution?.InProgress || 0
-      ),
-      color: "from-sky-400 via-cyan-500 to-emerald-400",
-      icon: LuRefreshCcw,
-    },
-    {
-      label: "Completed Tasks",
-      value: addThousandsSeparator(
-        dashboardData?.charts?.taskDistribution?.Completed || 0
-      ),
-      color: "from-emerald-400 via-lime-400 to-green-500",
-      icon: LuBadgeCheck,
-    },
-  ];
+  const infoCards = useMemo(() => {
+    const distribution = dashboardData?.charts?.taskDistribution || {};
+
+    return [
+      {
+        label: "Shared Deliverables",
+        value: addThousandsSeparator(distribution?.All || 0),
+        color: "from-primary via-indigo-500 to-sky-400",
+        icon: LuClipboardList,
+      },
+      {
+        label: "Awaiting Review",
+        value: addThousandsSeparator(distribution?.Pending || 0),
+        color: "from-amber-400 via-orange-500 to-red-400",
+        icon: LuClock3,
+      },
+      {
+        label: "In Collaboration",
+        value: addThousandsSeparator(distribution?.InProgress || 0),
+        color: "from-sky-400 via-cyan-500 to-emerald-400",
+        icon: LuRefreshCcw,
+      },
+      {
+        label: "Approved",
+        value: addThousandsSeparator(distribution?.Completed || 0),
+        color: "from-emerald-400 via-lime-400 to-green-500",
+        icon: LuBadgeCheck,
+      },
+    ];
+  }, [dashboardData?.charts?.taskDistribution]);
 
   return (
     <DashboardLayout activeMenu="Dashboard">
-     {isLoading ? (
-        <LoadingOverlay message="Loading your dashboard..." className="py-24" />
+      {isLoading ? (
+        <LoadingOverlay
+          message="Loading your client dashboard..."
+          className="py-24"
+        />
       ) : (
         <>
           <Suspense
@@ -169,7 +197,9 @@ const UserDashboard = () => {
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,_rgba(56,189,248,0.22),_transparent_60%)]" />
             <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.42em] text-white/60">Hello</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.42em] text-white/60">
+                  {heroCopy.salutationLabel}
+                </p>
                 <h2 className="mt-3 text-3xl font-semibold leading-tight sm:text-4xl">
                   {getGreetingMessage()}, {user?.name}
                 </h2>
@@ -177,9 +207,11 @@ const UserDashboard = () => {
               </div>
 
               <div className="rounded-3xl border border-white/40 bg-white/15 px-4 py-4 text-sm backdrop-blur sm:px-6">
-                <p className="text-xs uppercase tracking-[0.28em] text-white/70">Momentum</p>
+                <p className="text-xs uppercase tracking-[0.28em] text-white/70">
+                  {heroCopy.alignmentLabel}
+                </p>
                 <p className="mt-2 text-base font-medium">
-                  Tick off tasks, celebrate the wins and keep the flow going.
+                  {heroCopy.alignmentCopy}
                 </p>
               </div>
             </div>
@@ -200,9 +232,11 @@ const UserDashboard = () => {
           <section className="grid gap-6 lg:grid-cols-2">
             <div className="card">
               <div className="flex items-center justify-between">
-                <h5 className="text-base font-semibold text-slate-900">Task Distribution</h5>
+                <h5 className="text-base font-semibold text-slate-900">
+                  {chartsCopy.distributionTitle}
+                </h5>
                 <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-indigo-500">
-                  Progress Mix
+                  {chartsCopy.distributionBadge}
                 </span>
               </div>
 
@@ -219,9 +253,11 @@ const UserDashboard = () => {
 
             <div className="card">
               <div className="flex items-center justify-between">
-                <h5 className="text-base font-semibold text-slate-900">Task Priority Levels</h5>
+                <h5 className="text-base font-semibold text-slate-900">
+                  {chartsCopy.priorityTitle}
+                </h5>
                 <span className="rounded-full bg-slate-900/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
-                  Priorities
+                  {chartsCopy.priorityBadge}
                 </span>
               </div>
 
@@ -240,9 +276,11 @@ const UserDashboard = () => {
           <section className="card">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h5 className="text-lg font-semibold text-slate-900">Recent Tasks</h5>
+                <h5 className="text-lg font-semibold text-slate-900">
+                  {chartsCopy.listTitle}
+                </h5>
                 <p className="text-sm text-slate-500">
-                  Track status updates, collaborations and what needs your attention next.
+                  {chartsCopy.listDescription}
                 </p>
               </div>
 
@@ -254,7 +292,7 @@ const UserDashboard = () => {
             <Suspense
               fallback={
                 <div className="flex h-32 items-center justify-center text-sm text-slate-500">
-                  Loading recent tasks...
+                  Loading recent deliverables...
                 </div>
               }
             >
@@ -267,4 +305,4 @@ const UserDashboard = () => {
   );
 };
 
-export default UserDashboard;
+export default ClientDashboard;
