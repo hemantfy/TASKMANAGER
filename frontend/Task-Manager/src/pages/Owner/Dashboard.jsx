@@ -539,7 +539,7 @@ const Dashboard = () => {
           <section className="relative overflow-hidden rounded-[32px] border border-white/60 bg-gradient-to-br from-primary via-indigo-500 to-sky-500 px-4 py-8 text-white shadow-[0_20px_45px_rgba(59,130,246,0.25)] sm:px-6 sm:py-10">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.2),_transparent_65%)]" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,_rgba(255,255,255,0.18),_transparent_60%)]" />
-            <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex flex-col gap-4 text-sm lg:max-w-[420px] lg:flex-1">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.42em] text-white/70">Welcome Back</p>
@@ -547,7 +547,7 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              <div className="rounded-3xl border border-white/40 bg-white/10 px-4 py-4 text-sm backdrop-blur-sm sm:px-6 lg:min-w-[380px] lg:max-w-[460px] lg:self-stretch">
+              <div className="w-full rounded-3xl border border-white/40 bg-white/10 px-5 py-3 text-sm backdrop-blur-sm sm:px-7 lg:w-[500px]">
                 <div className="flex flex-col gap-1">
                   <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/70">
                     Date Range
@@ -560,10 +560,10 @@ const Dashboard = () => {
                 </div>
 
                 <form
-                  className="mt-4 space-y-3"
+                  className="mt-3 space-y-2"
                   onSubmit={handleDateFilterSubmit}
                 >
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid gap-2 sm:grid-cols-2">
                     <label className="flex flex-col gap-1 text-xs text-white/70">
                       <span className="uppercase tracking-[0.18em]">From</span>
                       <input
