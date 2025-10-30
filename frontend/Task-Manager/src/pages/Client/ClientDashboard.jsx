@@ -59,11 +59,11 @@ const ClientDashboard = () => {
 
   const chartsCopy = useMemo(
     () => ({
-      distributionTitle: "Deliverable Distribution",
+      distributionTitle: "Case Distribution",
       distributionBadge: "Status Mix",
-      priorityTitle: "Deliverable Priority",
+      priorityTitle: "Case Priority",
       priorityBadge: "Priority",
-      listTitle: "Recent Deliverables",
+      listTitle: "Recent Cases",
       listDescription:
         "Monitor updates, approvals and requests that need your attention next.",
     }),
