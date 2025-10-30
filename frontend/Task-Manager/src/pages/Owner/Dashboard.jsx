@@ -83,21 +83,78 @@ const LiveGreeting = React.memo(({ userName }) => {
 
 const COLORS = ["#8D51FF", "#00B8DB", "#7BCE00"];
 
-const createDefaultDateRange = () => {
-  const today = new Date();
-  const endDate = new Date(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate()
-  );
-  const startDate = new Date(endDate);
-  startDate.setMonth(startDate.getMonth() - 1);
+const normalizeDate = (date) =>
+  new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
-  return {
-    startDate: formatDateInputValue(startDate),
-    endDate: formatDateInputValue(endDate)
-  };
+const createRangeFromDates = (startDate, endDate) => ({
+  startDate: formatDateInputValue(startDate),
+  endDate: formatDateInputValue(endDate)
+});
+
+const createTodayRange = () => {
+  const today = normalizeDate(new Date());
+  return createRangeFromDates(today, today);
 };
+
+const createThisWeekRange = () => {
+  const today = normalizeDate(new Date());
+  const startOfWeek = new Date(today);
+  const day = startOfWeek.getDay();
+  const diffToMonday = (day + 6) % 7;
+  startOfWeek.setDate(startOfWeek.getDate() - diffToMonday);
+
+  return createRangeFromDates(startOfWeek, today);
+};
+
+const createLast7DaysRange = () => {
+  const today = normalizeDate(new Date());
+  const startDate = new Date(today);
+  startDate.setDate(startDate.getDate() - 6);
+
+  return createRangeFromDates(startDate, today);
+};
+
+const createLast30DaysRange = () => {
+  const today = normalizeDate(new Date());
+  const startDate = new Date(today);
+  startDate.setDate(startDate.getDate() - 29);
+
+  return createRangeFromDates(startDate, today);
+};
+
+const createThisMonthRange = () => {
+  const today = normalizeDate(new Date());
+  const startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+
+  return createRangeFromDates(startDate, today);
+};
+
+const createLastMonthRange = () => {
+  const today = normalizeDate(new Date());
+  const startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+
+  return createRangeFromDates(startDate, endDate);
+};
+
+const createYearToDateRange = () => {
+  const today = normalizeDate(new Date());
+  const startDate = new Date(today.getFullYear(), 0, 1);
+
+  return createRangeFromDates(startDate, today);
+};
+
+const PRESET_RANGES = [
+  { label: "Today", rangeFactory: createTodayRange },
+  { label: "This Week", rangeFactory: createThisWeekRange },
+  { label: "Last 7 Days", rangeFactory: createLast7DaysRange },
+  { label: "Last 30 Days", rangeFactory: createLast30DaysRange },
+  { label: "This Month", rangeFactory: createThisMonthRange },
+  { label: "Last Month", rangeFactory: createLastMonthRange },
+  { label: "Year to Date", rangeFactory: createYearToDateRange }
+];
+
+const createDefaultDateRange = () => createLast30DaysRange();
 
 const Dashboard = () => {
   useUserAuth();
@@ -253,6 +310,21 @@ const Dashboard = () => {
     }));
   }, []);
 
+  const applyDateRange = useCallback((range) => {
+    setPendingDateRange(range);
+
+    setActiveDateRange((previous) => {
+      if (
+        previous.startDate === range.startDate &&
+        previous.endDate === range.endDate
+      ) {
+        return previous;
+      }
+
+      return range;
+    });
+  }, []);
+
   const handleDateFilterSubmit = useCallback(
     (event) => {
       event.preventDefault();
@@ -261,29 +333,31 @@ const Dashboard = () => {
         return;
       }
 
-      if (
-        pendingDateRange.startDate === activeDateRange.startDate &&
-        pendingDateRange.endDate === activeDateRange.endDate
-      ) {
-        return;
-      }
-
-      setActiveDateRange({ ...pendingDateRange });
+      applyDateRange({ ...pendingDateRange });
     },
-    [activeDateRange, isRangeValid, pendingDateRange]
+    [applyDateRange, isRangeValid, pendingDateRange]
   );
 
-  const handlePresetRange = useCallback(() => {
-    const presetRange = createDefaultDateRange();
-    setPendingDateRange(presetRange);
+  const handlePresetRange = useCallback(
+    (rangeFactory) => {
+      const presetRange = rangeFactory();
+      applyDateRange(presetRange);
+    },
+    [applyDateRange]
+  );
 
-    if (
-      presetRange.startDate !== activeDateRange.startDate ||
-      presetRange.endDate !== activeDateRange.endDate
-    ) {
-      setActiveDateRange(presetRange);
-    }
-  }, [activeDateRange]);
+  const activePresetLabel = useMemo(() => {
+    const foundPreset = PRESET_RANGES.find((preset) => {
+      const presetRange = preset.rangeFactory();
+
+      return (
+        presetRange.startDate === activeDateRange.startDate &&
+        presetRange.endDate === activeDateRange.endDate
+      );
+    });
+
+    return foundPreset?.label || "";
+  }, [activeDateRange.endDate, activeDateRange.startDate]);
 
   const infoCards = useMemo(
     () => [
@@ -471,16 +545,9 @@ const Dashboard = () => {
                   <p className="text-xs font-semibold uppercase tracking-[0.42em] text-white/70">Welcome Back</p>
                   <LiveGreeting userName={user?.name || "User"} />
                 </div>
-
-                <div className="rounded-3xl border border-white/40 bg-white/15 px-4 py-4 backdrop-blur sm:px-6">
-                  <p className="text-xs uppercase tracking-[0.28em] text-white/70">Today&apos;s Focus</p>
-                  <p className="mt-2 text-base font-medium">
-                    Align priorities, unblock your team and watch progress accelerate.
-                  </p>
-                </div>
               </div>
 
-              <div className="rounded-3xl border border-white/40 bg-white/10 px-4 py-4 text-sm backdrop-blur-sm sm:px-6 lg:max-w-[360px] lg:self-stretch">
+              <div className="rounded-3xl border border-white/40 bg-white/10 px-4 py-4 text-sm backdrop-blur-sm sm:px-6 lg:min-w-[380px] lg:max-w-[460px] lg:self-stretch">
                 <div className="flex flex-col gap-1">
                   <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/70">
                     Date Range
@@ -535,13 +602,24 @@ const Dashboard = () => {
                     >
                       Apply
                     </button>
-                    <button
-                      type="button"
-                      onClick={handlePresetRange}
-                      className="inline-flex items-center justify-center rounded-xl border border-white/40 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
-                    >
-                      Last 30 Days
-                    </button>
+                    {PRESET_RANGES.map(({ label, rangeFactory }) => {
+                      const isActive = label === activePresetLabel;
+
+                      return (
+                        <button
+                          key={label}
+                          type="button"
+                          onClick={() => handlePresetRange(rangeFactory)}
+                          className={`inline-flex items-center justify-center rounded-xl border px-4 py-2 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${
+                            isActive
+                              ? "border-white bg-white text-primary shadow"
+                              : "border-white/40 bg-white/10 text-white hover:bg-white/20"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
                   </div>
                 </form>
                 </div>
