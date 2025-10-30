@@ -1,14 +1,19 @@
-import React, { useCallback, useContext, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { LuLogOut, LuMoonStar, LuSun } from "react-icons/lu";
 import NotificationBell from "../Notifications/NotificationBell";
 import logo from "../../assets/images/logo.png";
 import { useNavigate } from "react-router-dom";
 import { UserContext } from "../../context/userContext";
+import { matchesRole } from "../../utils/roleUtils";
 
 const Navbar = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const navigate = useNavigate();
-  const { clearUser } = useContext(UserContext);  
+  const { user, clearUser } = useContext(UserContext);
+  const productLabel = useMemo(
+    () => (matchesRole(user?.role, "client") ? "Case Manager" : "Task Manager"),
+    [user?.role]
+  );  
   const applyThemePreference = useCallback((shouldUseDarkTheme) => {
     const root = document.documentElement;
 
