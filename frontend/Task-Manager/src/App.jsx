@@ -1,11 +1,11 @@
 import React, { Suspense, useContext } from "react";
-import { BrowserRouter as Router, Routes, Route, Outlet, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import PrivateRoute from "./routes/PrivateRoute";
 
-import UserProvider from "./context/userContext";
-import { UserContext } from "./context/UserContext";
+import UserProvider, { UserContext } from "./context/userContext";
 import { Toaster } from "react-hot-toast";
 import { getDefaultRouteForRole } from "./utils/roleUtils";
+import LoadingOverlay from "./components/LoadingOverlay";
 const AdminDashboard = React.lazy(() => import("./pages/Admin/Dashboard"));
 const Login = React.lazy(() => import("./pages/Auth/Login"));
 const AdminTasks = React.lazy(() => import("./pages/Admin/Tasks"));
@@ -88,7 +88,7 @@ const App = () => {
 
           <Route path="/unauthorized" element={<Unauthorized />} />
 
-            {/* Default Route*/}
+          <Route path="*" element={<Root />} />
           </Routes>
         </Suspense>
       </Router>
@@ -111,13 +111,20 @@ export default App;
 const Root = () => {
   const { user, loading } = useContext(UserContext);
 
-  if (loading) return <Outlet/>;
+  if (loading) {
+    return (
+      <LoadingOverlay
+        fullScreen
+        message="Preparing your workspace..."
+      />
+    );
+  }
 
   if (!user) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" replace />;
   }
 
   const destination = getDefaultRouteForRole(user.role);
 
-  return <Navigate to={destination} />;
-};
+  return <Navigate to={destination} replace />;
+};  

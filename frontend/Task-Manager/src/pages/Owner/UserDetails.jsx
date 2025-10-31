@@ -13,7 +13,7 @@ import { FaUser } from "react-icons/fa6";
 import DashboardLayout from "../../components/layouts/DashboardLayout";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
-import { UserContext } from "../../context/UserContext";
+import { UserContext } from "../../context/userContext";
 import { getPrivilegedBasePath } from "../../utils/roleUtils";
 import TaskFormModal from "../../components/TaskFormModal";
 
