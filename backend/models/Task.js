@@ -12,6 +12,8 @@ const taskSchema = new mongoose.Schema(
     priority: { type: String, enum: ["Low", "Medium", "High"], default: "Medium" },
     status: { type: String, enum: ["Pending", "In Progress", "Completed"], default: "Pending" },
     dueDate: { type: Date, required: true },
+    matter: { type: mongoose.Schema.Types.ObjectId, ref: "Matter" },
+    caseFile: { type: mongoose.Schema.Types.ObjectId, ref: "CaseFile" },    
     assignedTo: [
       { type: mongoose.Schema.Types.ObjectId, ref: "User" }
     ],
@@ -20,7 +22,8 @@ const taskSchema = new mongoose.Schema(
     todoChecklist: [todoSchema],
     progress: { type: Number, default: 0 },
     completedAt: { type: Date, default: null },
-    reminderSentAt: { type: Date, default: null },    
+    reminderSentAt: { type: Date, default: null },
+    relatedDocuments: [{ type: mongoose.Schema.Types.ObjectId, ref: "Document" }],    
   },
   { timestamps: true }
 );

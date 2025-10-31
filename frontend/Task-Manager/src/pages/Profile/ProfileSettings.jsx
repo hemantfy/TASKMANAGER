@@ -8,7 +8,7 @@ import {
 } from "react-icons/lu";
 import toast from "react-hot-toast";
 import DashboardLayout from "../../components/layouts/DashboardLayout";
-import { UserContext } from "../../context/userContext";
+import { UserContext } from "../../context/UserContext";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { getToken } from "../../utils/tokenStorage";

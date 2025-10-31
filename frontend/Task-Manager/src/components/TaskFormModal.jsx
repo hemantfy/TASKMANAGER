@@ -23,6 +23,8 @@ const createDefaultTaskData = () => ({
   assignedTo: [],
   todoChecklist: [],
   attachments: [],
+  matter: "",
+  caseFile: "",  
 });
 
 const TaskFormModal = ({ isOpen, onClose, taskId, onSuccess }) => {
@@ -32,6 +34,10 @@ const TaskFormModal = ({ isOpen, onClose, taskId, onSuccess }) => {
   const [currentTask, setCurrentTask] = useState(null);
   const [openDeleteAlert, setOpenDeleteAlert] = useState(false);
   const [isFetchingTask, setIsFetchingTask] = useState(false);
+  const [availableMatters, setAvailableMatters] = useState([]);
+  const [availableCases, setAvailableCases] = useState([]);
+  const [isLoadingMatters, setIsLoadingMatters] = useState(false);
+  const [isLoadingCases, setIsLoadingCases] = useState(false);  
 
   const isEditing = useMemo(() => Boolean(taskId), [taskId]);
 
@@ -42,10 +48,65 @@ const TaskFormModal = ({ isOpen, onClose, taskId, onSuccess }) => {
     setLoading(false);
     setOpenDeleteAlert(false);
     setIsFetchingTask(false);
+    setAvailableCases([]);    
   }, []);
 
   const handleValueChange = (key, value) => {
     setTaskData((prevState) => ({ ...prevState, [key]: value }));
+  };
+
+  const fetchMatters = useCallback(async () => {
+    try {
+      setIsLoadingMatters(true);
+      const response = await axiosInstance.get(API_PATHS.MATTERS.GET_ALL);
+      const matters = Array.isArray(response.data?.matters)
+        ? response.data.matters
+        : [];
+      setAvailableMatters(matters);
+    } catch (requestError) {
+      console.error("Error fetching matters:", requestError);
+      const message =
+        requestError.response?.data?.message ||
+        requestError.message ||
+        "Failed to load matters.";
+      toast.error(message);
+    } finally {
+      setIsLoadingMatters(false);
+    }
+  }, []);
+
+  const fetchCasesForMatter = useCallback(async (matterId) => {
+    if (!matterId) {
+      setAvailableCases([]);
+      return;
+    }
+
+    try {
+      setIsLoadingCases(true);
+      const response = await axiosInstance.get(API_PATHS.CASES.GET_ALL, {
+        params: { matterId },
+      });
+
+      const cases = Array.isArray(response.data?.cases)
+        ? response.data.cases
+        : [];
+
+      setAvailableCases(cases);
+    } catch (requestError) {
+      console.error("Error fetching case files:", requestError);
+      const message =
+        requestError.response?.data?.message ||
+        requestError.message ||
+        "Failed to load case files.";
+      toast.error(message);
+    } finally {
+      setIsLoadingCases(false);
+    }
+  }, []);
+
+  const handleMatterSelect = (matterId) => {
+    handleValueChange("matter", matterId);
+    handleValueChange("caseFile", "");
   };
 
   const mapChecklistPayload = useCallback(
@@ -90,11 +151,15 @@ const TaskFormModal = ({ isOpen, onClose, taskId, onSuccess }) => {
 
       const todoChecklist = mapChecklistPayload(taskData.todoChecklist);
 
-      await axiosInstance.post(API_PATHS.TASKS.CREATE_TASK, {
+      const payload = {
         ...taskData,
+        matter: taskData.matter || undefined,
+        caseFile: taskData.caseFile || undefined,        
         dueDate: dueDateValue.toISOString(),
         todoChecklist,
-      });
+      };
+
+      await axiosInstance.post(API_PATHS.TASKS.CREATE_TASK, payload);
 
       toast.success("Task created successfully");
       clearData();
@@ -123,11 +188,18 @@ const TaskFormModal = ({ isOpen, onClose, taskId, onSuccess }) => {
 
       const todoChecklist = mapChecklistPayload(taskData.todoChecklist);
 
-      await axiosInstance.put(API_PATHS.TASKS.UPDATE_TASK(taskId), {
+      const payload = {
         ...taskData,
+        matter: taskData.matter || undefined,
+        caseFile: taskData.caseFile || undefined,        
         dueDate: dueDateValue.toISOString(),
         todoChecklist,
-      });
+      };
+
+      await axiosInstance.put(
+        API_PATHS.TASKS.UPDATE_TASK(taskId),
+        payload
+      );
 
       toast.success("Task updated successfully");
       onSuccess?.();
@@ -253,7 +325,12 @@ const TaskFormModal = ({ isOpen, onClose, taskId, onSuccess }) => {
           attachments: Array.isArray(taskInfo?.attachments)
             ? taskInfo.attachments
             : [],
+          matter: taskInfo.matter?._id || "",
+          caseFile: taskInfo.caseFile?._id || "",            
         });
+        if (taskInfo.matter?._id) {
+          fetchCasesForMatter(taskInfo.matter._id);
+        }        
       } catch (requestError) {
         console.error("Error fetching task:", requestError);
         const message =
@@ -268,7 +345,33 @@ const TaskFormModal = ({ isOpen, onClose, taskId, onSuccess }) => {
     };
 
     fetchTaskDetails();
-  }, [isOpen, isEditing, taskId, clearData, resetState]);
+  }, [
+    isOpen,
+    isEditing,
+    taskId,
+    clearData,
+    resetState,
+    fetchMatters,
+    fetchCasesForMatter,
+  ]);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchMatters();
+    }
+  }, [isOpen, fetchMatters]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    if (taskData.matter) {
+      fetchCasesForMatter(taskData.matter);
+    } else {
+      setAvailableCases([]);
+    }
+  }, [isOpen, taskData.matter, fetchCasesForMatter]);
 
   return (
     <>
@@ -332,6 +435,67 @@ const TaskFormModal = ({ isOpen, onClose, taskId, onSuccess }) => {
                       disabled={loading}
                     />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-300">
+                    Linked Matter
+                  </label>
+                  <select
+                    className="form-input mt-0 h-12 bg-slate-50"
+                    value={taskData.matter}
+                    onChange={({ target }) => handleMatterSelect(target.value)}
+                    disabled={loading || isLoadingMatters}
+                  >
+                    <option value="">No linked matter</option>
+                    {availableMatters.map((matter) => (
+                      <option key={matter._id} value={matter._id}>
+                        {matter.title} — {matter.clientName}
+                      </option>
+                    ))}
+                  </select>
+                  {isLoadingMatters && (
+                    <p className="text-xs text-slate-400">Loading matters...</p>
+                  )}
+                  {!isLoadingMatters && !availableMatters.length && (
+                    <p className="text-xs text-slate-400">
+                      No matters available. Create one to link this task.
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-300">
+                    Case File
+                  </label>
+                  <select
+                    className="form-input mt-0 h-12 bg-slate-50"
+                    value={taskData.caseFile}
+                    onChange={({ target }) =>
+                      handleValueChange("caseFile", target.value)
+                    }
+                    disabled={loading || !taskData.matter || isLoadingCases}
+                  >
+                    <option value="">General matter</option>
+                    {availableCases.map((caseFile) => (
+                      <option key={caseFile._id} value={caseFile._id}>
+                        {caseFile.title}
+                      </option>
+                    ))}
+                  </select>
+                  {!taskData.matter && (
+                    <p className="text-xs text-slate-400">
+                      Select a matter to link a specific case file.
+                    </p>
+                  )}
+                  {taskData.matter && !availableCases.length && !isLoadingCases && (
+                    <p className="text-xs text-slate-400">
+                      No case files found for the selected matter.
+                    </p>
+                  )}
+                  {isLoadingCases && (
+                    <p className="text-xs text-slate-400">Loading case files...</p>
+                  )}
                 </div>
 
                 <div className="space-y-2 md:col-span-2">

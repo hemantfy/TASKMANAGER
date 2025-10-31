@@ -9,7 +9,7 @@ import React, {
 } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUserAuth } from "../../hooks/useUserAuth";
-import { UserContext } from "../../context/userContext";
+import { UserContext } from "../../context/UserContext";
 import DashboardLayout from "../../components/layouts/DashboardLayout";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";

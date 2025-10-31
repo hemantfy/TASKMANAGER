@@ -48,6 +48,30 @@ export const API_PATHS = {
     GET_ALL: "/api/notices",
     DELETE: (noticeId) => `/api/notices/${noticeId}`,
   },
+
+  MATTERS: {
+    GET_ALL: "/api/matters",
+    GET_BY_ID: (matterId) => `/api/matters/${matterId}`,
+    CREATE: "/api/matters",
+    UPDATE: (matterId) => `/api/matters/${matterId}`,
+    DELETE: (matterId) => `/api/matters/${matterId}`,
+  },
+
+  CASES: {
+    GET_ALL: "/api/cases",
+    GET_BY_ID: (caseId) => `/api/cases/${caseId}`,
+    CREATE: "/api/cases",
+    UPDATE: (caseId) => `/api/cases/${caseId}`,
+    DELETE: (caseId) => `/api/cases/${caseId}`,
+  },
+
+  DOCUMENTS: {
+    GET_ALL: "/api/documents",
+    GET_BY_ID: (documentId) => `/api/documents/${documentId}`,
+    CREATE: "/api/documents",
+    UPDATE: (documentId) => `/api/documents/${documentId}`,
+    DELETE: (documentId) => `/api/documents/${documentId}`,
+  },
   
   IMAGE: {
     UPLOAD_IMAGE: "api/auth/upload-image",

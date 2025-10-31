@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
@@ -24,8 +24,8 @@ const ViewTaskDetails = () => {
     }
   };
 
-  // get Task info by ID
-  const getTaskDetailsByID = async () => {
+  // Fetch Task info by ID
+  const getTaskDetailsByID = useCallback(async () => {
     try {
       setIsLoading(true);
       setTask(null);
@@ -42,8 +42,8 @@ const ViewTaskDetails = () => {
       console.error("Error fetching users:", error);
     } finally {
       setIsLoading(false);
-    }  
-  };
+    }
+  }, [id]);
 
   // handle todo check
   const updateTodoCheckList = async (index) => {
@@ -74,6 +74,7 @@ const ViewTaskDetails = () => {
         }
       } catch (error) {
         todoChecklist[index].completed = !todoChecklist[index].completed;
+        console.error("Failed to update checklist", error);        
       }
     }
   };
@@ -91,8 +92,7 @@ const ViewTaskDetails = () => {
     if (id) {
       getTaskDetailsByID();
     }
-    return () => {};
-  }, [id]);
+  }, [getTaskDetailsByID, id]);
 
   const assignedMembers = Array.isArray(task?.assignedTo)
     ? task.assignedTo
@@ -102,6 +102,22 @@ const ViewTaskDetails = () => {
 
   const todoChecklistItems = Array.isArray(task?.todoChecklist)
     ? task.todoChecklist
+    : [];
+
+  const matterLabel = task?.matter
+    ? `${task.matter?.title || "Matter"}${
+        task.matter?.clientName ? " — " + task.matter.clientName : ""
+      }`
+    : "Not linked";
+
+  const caseLabel = task?.caseFile
+    ? task.caseFile?.title || task.caseFile?.caseNumber || "Linked case"
+    : task?.matter
+    ? "General matter"
+    : "Not linked";
+
+  const relatedDocuments = Array.isArray(task?.relatedDocuments)
+    ? task.relatedDocuments
     : [];
 
   return (
@@ -150,6 +166,11 @@ const ViewTaskDetails = () => {
                     </div>
                   </div>
 
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <InfoBox label="Matter" value={matterLabel} />
+                    <InfoBox label="Case File" value={caseLabel} />
+                  </div>
+
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.26em] text-slate-500">Todo Checklist</p>
                     <div className="mt-3 space-y-3">
@@ -193,6 +214,29 @@ const ViewTaskDetails = () => {
                 >
                   Back to Tasks
                 </Link>
+
+                {relatedDocuments.length > 0 && (
+                  <div className="space-y-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.26em] text-slate-500">
+                      Linked Documents
+                    </p>
+                    <div className="space-y-3">
+                      {relatedDocuments.map((document, index) => (
+                        <div
+                          key={document._id || `${document.title}_${index}`}
+                          className="rounded-2xl border border-white/60 bg-white/80 p-3 shadow-[0_12px_24px_rgba(15,23,42,0.08)]"
+                        >
+                          <p className="text-sm font-semibold text-slate-800">
+                            {document.title || "Document"}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {document.documentType || "Supporting material"} · v{document.version || 1}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}                
               </aside>
             </section>
           ) : (

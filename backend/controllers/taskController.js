@@ -1,21 +1,176 @@
 const Task = require("../models/Task");
 const User = require("../models/User");
+const Matter = require("../models/Matter");
+const CaseFile = require("../models/CaseFile");
+const Document = require("../models/Document");
 const { sendTaskAssignmentEmail } = require("../utils/emailService");
 const { hasPrivilegedAccess, matchesRole } = require("../utils/roleUtils");
 
 const isPrivileged = (role) => hasPrivilegedAccess(role);
+
+const normalizeObjectId = (value) => {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (value === null || value === "") {
+    return null;
+  }
+
+  if (typeof value === "object") {
+    if (value === null) {
+      return null;
+    }
+
+    if (value._id) {
+      return value._id.toString();
+    }
+
+    if (value.id) {
+      return value.id.toString();
+    }
+  }
+
+  if (typeof value === "string" || typeof value === "number") {
+    return value.toString();
+  }
+
+  return undefined;
+};
+
+const buildHttpError = (message, statusCode = 400) => {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+};
+
+const resolveMatterAndCase = async ({ matterId, caseFileId }) => {
+  const matterProvided = matterId !== undefined;
+  const caseProvided = caseFileId !== undefined;
+
+  if (!matterProvided && !caseProvided) {
+    return { matterId: undefined, caseFileId: undefined };
+  }
+
+  let normalizedMatterId = normalizeObjectId(matterId);
+  let normalizedCaseId = normalizeObjectId(caseFileId);
+  let caseFileDocument = null;
+
+  if (caseProvided) {
+    if (normalizedCaseId) {
+      caseFileDocument = await CaseFile.findById(normalizedCaseId).select("matter");
+
+      if (!caseFileDocument) {
+        throw buildHttpError("Selected case file could not be found.");
+      }
+    } else {
+      normalizedCaseId = null; // explicit clear
+    }
+  }
+
+  if (caseFileDocument) {
+    const caseMatterId = caseFileDocument.matter
+      ? caseFileDocument.matter.toString()
+      : null;
+
+    if (!caseMatterId) {
+      throw buildHttpError("Selected case file is not linked to a matter.");
+    }
+
+    if (matterProvided && normalizedMatterId && normalizedMatterId !== caseMatterId) {
+      throw buildHttpError(
+        "Selected case file does not belong to the specified matter."
+      );
+    }
+
+    normalizedMatterId = caseMatterId;
+  }
+
+  if (matterProvided) {
+    if (normalizedMatterId) {
+      const matterExists = await Matter.exists({ _id: normalizedMatterId });
+      if (!matterExists) {
+        throw buildHttpError("Selected matter could not be found.");
+      }
+    } else {
+      normalizedMatterId = null; // explicit clear
+    }
+  }
+
+  return {
+    matterId: matterProvided ? normalizedMatterId : normalizedMatterId ?? undefined,
+    caseFileId: caseProvided ? normalizedCaseId : normalizedCaseId ?? undefined,
+  };
+};
+
+const validateRelatedDocuments = async (documentIds, matterId, caseFileId) => {
+  if (!Array.isArray(documentIds) || documentIds.length === 0) {
+    return [];
+  }
+
+  const normalizedIds = [
+    ...new Set(
+      documentIds
+        .map((documentId) => normalizeObjectId(documentId))
+        .filter((documentId) => documentId)
+    ),
+  ];
+
+  if (!normalizedIds.length) {
+    return [];
+  }
+
+  const documents = await Document.find({
+    _id: { $in: normalizedIds },
+  }).select("_id matter caseFile");
+
+  if (!documents.length) {
+    throw buildHttpError("Linked documents could not be found.");
+  }
+
+  const filteredDocuments = documents.filter((document) => {
+    const documentMatterId = document.matter?.toString();
+    const documentCaseId = document.caseFile?.toString();
+
+    if (matterId && documentMatterId && matterId !== documentMatterId) {
+      return false;
+    }
+
+    if (caseFileId && documentCaseId && caseFileId !== documentCaseId) {
+      return false;
+    }
+
+    return true;
+  });
+
+  if (filteredDocuments.length !== documents.length) {
+    throw buildHttpError(
+      "Some linked documents do not belong to the selected matter or case file."
+    );
+  }
+
+  return filteredDocuments.map((document) => document._id);
+};
 
 // @desc    Get all tasks (Admin: all, User: only assigned tasks)
 // @route   GET /api/tasks/
 // @access  Private
 const getTasks = async (req, res) => {
   try {
-    const { status, scope } = req.query;
+    const { status, scope, matter: matterId, caseFile: caseFileId } = req.query;
     let filter = {};
 
-if (status) {
-  filter.status = status;
-}
+    if (status) {
+      filter.status = status;
+    }
+
+    if (matterId) {
+      filter.matter = matterId;
+    }
+
+    if (caseFileId) {
+      filter.caseFile = caseFileId;
+    }
 
     const normalizedScope = typeof scope === "string" ? scope.toLowerCase() : "";
     const shouldLimitToCurrentUser =
@@ -25,10 +180,11 @@ if (status) {
       ? { assignedTo: req.user._id }
       : {};
 
-    const tasks = await Task.find({ ...filter, ...assignedFilter }).populate(
-      "assignedTo",
-      "name email profileImageUrl"
-    );
+    const tasks = await Task.find({ ...filter, ...assignedFilter })
+      .populate("assignedTo", "name email profileImageUrl")
+      .populate("matter", "title clientName matterNumber status")
+      .populate("caseFile", "title caseNumber status")
+      .populate("relatedDocuments", "title documentType version");
 
     // Add completed todoChecklist count to each task
     const tasksWithChecklistCounts = await Promise.all(
@@ -82,16 +238,21 @@ if (status) {
 // @access  Private
 const getTaskById = async (req, res) => {
     try {
-        const task = await Task.findById(req.params.id).populate(
-            "assignedTo",
-            "name email profileImageUrl"
-          );
+        const task = await Task.findById(req.params.id)
+          .populate("assignedTo", "name email profileImageUrl")
+          .populate("matter", "title clientName matterNumber status")
+          .populate("caseFile", "title caseNumber status")
+          .populate("relatedDocuments", "title documentType version");
           
           if (!task) return res.status(404).json({ message: "Task not found" });
           
           res.json(task);          
     } catch (error) {
-      res.status(500).json({ message: "Server error", error: error.message });
+      const statusCode = error.statusCode || 500;
+      res.status(statusCode).json({
+        message: error.statusCode ? error.message : "Server error",
+        error: error.statusCode ? undefined : error.message,
+      });
     }
 };
 
@@ -108,6 +269,9 @@ const createTask = async (req, res) => {
             assignedTo,
             attachments,
             todoChecklist,
+            matter: matterId,
+            caseFile: caseFileId,
+            relatedDocuments,            
           } = req.body;
           
           if (!Array.isArray(assignedTo)) {
@@ -130,7 +294,16 @@ const createTask = async (req, res) => {
             ...new Set(normalizedAssignees.map((id) => id.toString())),
           ];
 
-          const task = await Task.create({
+          const { matterId: resolvedMatterId, caseFileId: resolvedCaseId } =
+            await resolveMatterAndCase({ matterId, caseFileId });
+
+          const validatedDocumentIds = await validateRelatedDocuments(
+            relatedDocuments,
+            resolvedMatterId ?? undefined,
+            resolvedCaseId ?? undefined
+          );
+
+          const taskPayload = {
             title,
             description,
             priority,
@@ -139,7 +312,21 @@ const createTask = async (req, res) => {
             createdBy: req.user._id,
             todoChecklist,
             attachments,
-          });
+          };
+
+          if (resolvedMatterId !== undefined) {
+            taskPayload.matter = resolvedMatterId;
+          }
+
+          if (resolvedCaseId !== undefined) {
+            taskPayload.caseFile = resolvedCaseId;
+          }
+
+          if (validatedDocumentIds.length) {
+            taskPayload.relatedDocuments = validatedDocumentIds;
+          }
+
+          const task = await Task.create(taskPayload);
           try {
             const assignees = await User.find({
               _id: { $in: uniqueAssigneeIds },
@@ -161,7 +348,11 @@ const createTask = async (req, res) => {
 
           res.status(201).json({ message: "Task created successfully", task }); 
     } catch (error) {
-      res.status(500).json({ message: "Server error", error: error.message });
+      const statusCode = error.statusCode || 500;
+      res.status(statusCode).json({
+        message: error.statusCode ? error.message : "Server error",
+        error: error.statusCode ? undefined : error.message,
+      });
     }
 };
 
@@ -181,6 +372,8 @@ const existingAssigneeIds = Array.isArray(task.assignedTo)
 const originalDueDate = task.dueDate ? task.dueDate.getTime() : null;
 let dueDateChanged = false;
 let newlyAssignedIds = [];
+let resolvedMatterId = task.matter ? task.matter.toString() : null;
+let resolvedCaseId = task.caseFile ? task.caseFile.toString() : null;
 
 if (req.body.title !== undefined) {
   task.title = req.body.title;
@@ -203,6 +396,42 @@ if (req.body.todoChecklist !== undefined) {
 }
 if (req.body.attachments !== undefined) {
   task.attachments = req.body.attachments;
+}
+
+const hasMatterUpdate = Object.prototype.hasOwnProperty.call(req.body, "matter");
+const hasCaseUpdate = Object.prototype.hasOwnProperty.call(req.body, "caseFile");
+
+if (hasMatterUpdate || hasCaseUpdate) {
+  let nextMatterInput = hasMatterUpdate ? req.body.matter : resolvedMatterId;
+  let nextCaseInput = hasCaseUpdate ? req.body.caseFile : resolvedCaseId;
+
+  if (hasMatterUpdate && normalizeObjectId(req.body.matter) === null && !hasCaseUpdate) {
+    nextCaseInput = null;
+  }
+
+  const { matterId: nextMatterId, caseFileId: nextCaseId } = await resolveMatterAndCase({
+    matterId: nextMatterInput,
+    caseFileId: nextCaseInput,
+  });
+
+  if (nextMatterId !== undefined) {
+    resolvedMatterId = nextMatterId;
+    task.matter = nextMatterId;
+  }
+
+  if (nextCaseId !== undefined) {
+    resolvedCaseId = nextCaseId;
+    task.caseFile = nextCaseId;
+  }
+}
+
+if (Object.prototype.hasOwnProperty.call(req.body, "relatedDocuments")) {
+  const validatedDocumentIds = await validateRelatedDocuments(
+    req.body.relatedDocuments,
+    resolvedMatterId ?? undefined,
+    resolvedCaseId ?? undefined
+  );
+  task.relatedDocuments = validatedDocumentIds;
 }
 
 if (req.body.assignedTo) {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import DashboardLayout from "../../components/layouts/DashboardLayout";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
@@ -16,7 +16,7 @@ const MyTasks = () => {
 
   const navigate = useNavigate();
 
-  const getAllTasks = async () => {
+  const getAllTasks = useCallback(async () => {
     try {
       setIsLoading(true);
       setAllTasks([]);
@@ -24,7 +24,7 @@ const MyTasks = () => {
 
       const response = await axiosInstance.get(API_PATHS.TASKS.GET_ALL_TASKS, {
         params: {
-          status: filterStatus === "All" ? "" : filterStatus
+          status: filterStatus === "All" ? "" : filterStatus,
         },
       });
 
@@ -65,11 +65,11 @@ const MyTasks = () => {
 
     setTabs(statusArray);
   } catch (error) {
-      console.error("Error Fetching users:", error);
+      console.error("Error Fetching user tasks:", error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [filterStatus]);
 
   const handleClick = (taskId) => {
     navigate(`/user/task-details/${taskId}`);
@@ -77,9 +77,7 @@ const MyTasks = () => {
 
   useEffect(() => {
     getAllTasks();
-
-    return () => {};
-  }, [filterStatus]);
+  }, [getAllTasks]);
 
   return (
     <DashboardLayout activeMenu="My Tasks">
@@ -137,6 +135,8 @@ const MyTasks = () => {
                 attachmentCount={item.attachments?.length || 0}
                 completedTodoCount={item.completedTodoCount || 0}
                 todoChecklist={item.todoChecklist || []}
+                matter={item.matter}
+                caseFile={item.caseFile}                
                 onClick={() => {
                   handleClick(item._id);
                 }}

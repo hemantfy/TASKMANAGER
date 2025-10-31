@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import DashboardLayout from "../../components/layouts/DashboardLayout";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
@@ -30,7 +30,7 @@ const ClientProjects = () => {
 
   const navigate = useNavigate();
 
-  const getAllTasks = async () => {
+  const getAllTasks = useCallback(async () => {
     try {
       setIsLoading(true);
       setAllTasks([]);
@@ -82,7 +82,7 @@ const ClientProjects = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [filterStatus]);
 
   const handleClick = (taskId) => {
     navigate(`/client/task-details/${taskId}`);
@@ -90,9 +90,7 @@ const ClientProjects = () => {
 
   useEffect(() => {
     getAllTasks();
-
-    return () => {};
-  }, [filterStatus]);
+  }, [getAllTasks]);
 
   return (
     <DashboardLayout activeMenu={viewCopy.menuLabel}>
@@ -152,6 +150,8 @@ const ClientProjects = () => {
                 attachmentCount={item.attachments?.length || 0}
                 completedTodoCount={item.completedTodoCount || 0}
                 todoChecklist={item.todoChecklist || []}
+                matter={item.matter}
+                caseFile={item.caseFile}                
                 onClick={() => {
                   handleClick(item._id);
                 }}

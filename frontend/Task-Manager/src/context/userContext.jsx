@@ -1,10 +1,9 @@
-import React, { createContext, useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import axiosInstance from "../utils/axiosInstance";
 import { API_PATHS } from "../utils/apiPaths";
 import { clearToken, getToken, setToken } from "../utils/tokenStorage";
 import { normalizeRole } from "../utils/roleUtils";
-
-export const UserContext = createContext();
+import UserContext from "./UserContext";
 
 const withNormalizedRole = (userData) => {
   if (!userData || typeof userData !== "object") {
@@ -19,29 +18,41 @@ const withNormalizedRole = (userData) => {
 
 const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // New state to track loading
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user) return;
+    let isMounted = true;
 
-    const accessToken = getToken();
-    if (!accessToken) {
-      setLoading(false);
-      return;
-    }
+    const initializeUser = async () => {
+      const accessToken = getToken();
 
-    const fetchUser = async () => {
+      if (!accessToken) {
+        if (isMounted) {
+          setLoading(false);
+        }
+        return;
+      }
+
       try {
         const response = await axiosInstance.get(API_PATHS.AUTH.GET_PROFILE);
-        setUser(withNormalizedRole(response.data));
+        if (isMounted) {
+          setUser(withNormalizedRole(response.data));
+        }
       } catch (error) {
         console.error("User not authenticated", error);
+        clearToken();        
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchUser();
+    initializeUser();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const updateUser = (userData, options = {}) => {

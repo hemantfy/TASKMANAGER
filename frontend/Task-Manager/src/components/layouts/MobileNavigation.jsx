@@ -1,7 +1,7 @@
 import React, { useContext, useMemo, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { LuLogOut } from "react-icons/lu";
-import { UserContext } from "../../context/userContext";
+import { UserContext } from "../../context/UserContext";
 import {
   SIDE_MENU_DATA,
   SIDE_MENU_USER_DATA,
@@ -50,10 +50,6 @@ const MobileNavigation = () => {
       });
   }, [normalizedRole, user]);
 
-  if (!user || menuItems.length === 0) {
-    return null;
-  }
-
   const currentPath = normalizePath(location.pathname);
   const shouldEnableScroll = menuItems.length > 4;
 
@@ -101,6 +97,12 @@ const MobileNavigation = () => {
     },
     [currentPath]
   );
+
+  const hasMenuItems = Boolean(user) && menuItems.length > 0;
+
+  if (!hasMenuItems) {
+    return null;
+  }
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center lg:hidden">

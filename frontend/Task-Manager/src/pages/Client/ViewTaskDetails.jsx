@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
@@ -24,7 +24,7 @@ const ClientViewTaskDetails = () => {
     }
   };
 
-  const getTaskDetailsByID = async () => {
+  const getTaskDetailsByID = useCallback(async () => {
     try {
       setIsLoading(true);
       setTask(null);
@@ -42,7 +42,7 @@ const ClientViewTaskDetails = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [id]);
 
   const updateTodoCheckList = async (index) => {
     const todoChecklist = Array.isArray(task?.todoChecklist)
@@ -71,6 +71,7 @@ const ClientViewTaskDetails = () => {
         }
       } catch (error) {
         todoChecklist[index].completed = !todoChecklist[index].completed;
+        console.error("Failed to update checklist", error);        
       }
     }
   };
@@ -86,8 +87,7 @@ const ClientViewTaskDetails = () => {
     if (id) {
       getTaskDetailsByID();
     }
-    return () => {};
-  }, [id]);
+  }, [getTaskDetailsByID, id]);
 
   const assignedMembers = Array.isArray(task?.assignedTo)
     ? task.assignedTo
@@ -97,6 +97,22 @@ const ClientViewTaskDetails = () => {
 
   const todoChecklistItems = Array.isArray(task?.todoChecklist)
     ? task.todoChecklist
+    : [];
+
+  const matterLabel = task?.matter
+    ? `${task.matter?.title || "Matter"}${
+        task.matter?.clientName ? " — " + task.matter.clientName : ""
+      }`
+    : "Not linked";
+
+  const caseLabel = task?.caseFile
+    ? task.caseFile?.title || task.caseFile?.caseNumber || "Linked case"
+    : task?.matter
+    ? "General matter"
+    : "Not linked";
+
+  const relatedDocuments = Array.isArray(task?.relatedDocuments)
+    ? task.relatedDocuments
     : [];
 
   return (
@@ -155,6 +171,11 @@ const ClientViewTaskDetails = () => {
                     </div>
                   </div>
 
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <InfoBox label="Matter" value={matterLabel} />
+                    <InfoBox label="Case File" value={caseLabel} />
+                  </div>
+
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.26em] text-slate-500">
                       Todo Checklist
@@ -204,6 +225,29 @@ const ClientViewTaskDetails = () => {
                 >
                   Back to Projects
                 </Link>
+
+                {relatedDocuments.length > 0 && (
+                  <div className="space-y-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.26em] text-slate-500">
+                      Linked Documents
+                    </p>
+                    <div className="space-y-3">
+                      {relatedDocuments.map((document, index) => (
+                        <div
+                          key={document._id || `${document.title}_${index}`}
+                          className="rounded-2xl border border-white/60 bg-white/80 p-3 shadow-[0_12px_24px_rgba(15,23,42,0.08)]"
+                        >
+                          <p className="text-sm font-semibold text-slate-800">
+                            {document.title || "Document"}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {document.documentType || "Supporting material"} · v{document.version || 1}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}                
               </aside>
             </section>
           ) : (

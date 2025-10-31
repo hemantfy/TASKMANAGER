@@ -2,7 +2,8 @@ import React, { Suspense, useContext } from "react";
 import { BrowserRouter as Router, Routes, Route, Outlet, Navigate } from "react-router-dom";
 import PrivateRoute from "./routes/PrivateRoute";
 
-import UserProvider, { UserContext } from "./context/userContext";
+import UserProvider from "./context/userContext";
+import { UserContext } from "./context/UserContext";
 import { Toaster } from "react-hot-toast";
 import { getDefaultRouteForRole } from "./utils/roleUtils";
 const AdminDashboard = React.lazy(() => import("./pages/Admin/Dashboard"));
@@ -10,6 +11,7 @@ const Login = React.lazy(() => import("./pages/Auth/Login"));
 const AdminTasks = React.lazy(() => import("./pages/Admin/Tasks"));
 const AdminManageUsers = React.lazy(() => import("./pages/Admin/ManageUsers"));
 const AdminUserDetails = React.lazy(() => import("./pages/Admin/UserDetails"));
+const AdminMatters = React.lazy(() => import("./pages/Admin/Matters"));
 const ProfileSettings = React.lazy(() => import("./pages/Profile/ProfileSettings"));
 const SignUp = React.lazy(() => import("./pages/Auth/SignUp"));
 const Unauthorized = React.lazy(() => import("./pages/Errors/Unauthorized"));
@@ -20,6 +22,7 @@ const OwnerDashboard = React.lazy(() => import("./pages/Owner/Dashboard"));
 const OwnerTasks = React.lazy(() => import("./pages/Owner/Tasks"));
 const OwnerManageUsers = React.lazy(() => import("./pages/Owner/ManageUsers"));
 const OwnerUserDetails = React.lazy(() => import("./pages/Owner/UserDetails"));
+const OwnerMatters = React.lazy(() => import("./pages/Owner/Matters"));
 const ClientDashboard = React.lazy(() => import("./pages/Client/ClientDashboard"));
 const ClientProjects = React.lazy(() => import("./pages/Client/ClientProjects"));
 const ClientViewTaskDetails = React.lazy(() => import("./pages/Client/ViewTaskDetails"));
@@ -47,6 +50,7 @@ const App = () => {
           <Route element={<PrivateRoute allowedRoles={["admin"]} />}>
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/tasks" element={<AdminTasks />} />
+            <Route path="/admin/matters" element={<AdminMatters />} />            
             <Route path="/admin/users" element={<AdminManageUsers />} />
             <Route path="/admin/users/:userId" element={<AdminUserDetails />} />
             <Route path="/admin/profile-settings" element={<ProfileSettings />} />
@@ -56,6 +60,7 @@ const App = () => {
           <Route element={<PrivateRoute allowedRoles={["owner"]} />}>
             <Route path="/owner/dashboard" element={<OwnerDashboard />} />
             <Route path="/owner/tasks" element={<OwnerTasks />} />
+            <Route path="/owner/matters" element={<OwnerMatters />} />            
             <Route path="/owner/users" element={<OwnerManageUsers />} />
             <Route path="/owner/users/:userId" element={<OwnerUserDetails />} />
             <Route path="/owner/profile-settings" element={<ProfileSettings />} />
