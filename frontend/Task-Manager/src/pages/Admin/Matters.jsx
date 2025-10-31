@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import {
-  LuAlertCircle,
+  LuCircleAlert,
   LuBriefcase,
   LuCalendarDays,
-  LuCheckBadge,
+  LuBadgeCheck,
   LuFileText,
   LuFolder,
   LuGavel,
