@@ -3,7 +3,7 @@ import axiosInstance from "../utils/axiosInstance";
 import { API_PATHS } from "../utils/apiPaths";
 import { clearToken, getToken, setToken } from "../utils/tokenStorage";
 import { normalizeRole } from "../utils/roleUtils";
-import UserContext from "./UserContext";
+import UserContext from "./UserContext.js";
 
 const withNormalizedRole = (userData) => {
   if (!userData || typeof userData !== "object") {

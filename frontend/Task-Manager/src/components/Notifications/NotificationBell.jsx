@@ -8,7 +8,7 @@ import React, {
 import { LuBell, LuLoader } from "react-icons/lu";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
-import { UserContext } from "../../context/userContext";
+import { UserContext } from "../../context/userContext.jsx";
 import { hasPrivilegedAccess } from "../../utils/roleUtils";
 import PublishNoticeModal from "./PublishNoticeModal.jsx";
 import { formatRelativeTimeFromNow } from "../../utils/dateUtils";

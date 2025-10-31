@@ -3,7 +3,7 @@ import { LuLogOut, LuMoonStar, LuSun } from "react-icons/lu";
 import NotificationBell from "../Notifications/NotificationBell";
 import logo from "../../assets/images/logo.png";
 import { useNavigate } from "react-router-dom";
-import { UserContext } from "../../context/userContext";
+import { UserContext } from "../../context/userContext.jsx";
 import { matchesRole } from "../../utils/roleUtils";
 
 const Navbar = () => {

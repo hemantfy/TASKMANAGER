@@ -9,7 +9,7 @@ import { API_PATHS } from '../../utils/apiPaths';
 import { DEFAULT_OFFICE_LOCATIONS } from '../../utils/data';
 import { getDefaultRouteForRole, getRoleLabel, normalizeRole } from '../../utils/roleUtils';
 import uploadImage from '../../utils/uploadImage';
-import { UserContext } from '../../context/userContext';
+import { UserContext } from '../../context/userContext.jsx';
 
 const SignUp = () => {
   const [profilePic, setProfilePic] = useState(null);

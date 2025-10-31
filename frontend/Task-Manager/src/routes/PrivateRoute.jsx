@@ -1,7 +1,7 @@
 import React, { useContext, useMemo } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import LoadingOverlay from "../components/LoadingOverlay";
-import { UserContext } from "../context/UserContext";
+import { UserContext } from "../context/userContext.jsx";
 import { isRoleAllowed } from "../utils/roleUtils";
 
 const PrivateRoute = ({ allowedRoles = [] }) => {

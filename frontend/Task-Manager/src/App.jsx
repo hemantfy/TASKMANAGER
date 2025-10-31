@@ -2,7 +2,7 @@ import React, { Suspense, useContext } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import PrivateRoute from "./routes/PrivateRoute";
 
-import UserProvider, { UserContext } from "./context/userContext";
+import UserProvider, { UserContext } from "./context/userContext.jsx";
 import { Toaster } from "react-hot-toast";
 import { getDefaultRouteForRole } from "./utils/roleUtils";
 import LoadingOverlay from "./components/LoadingOverlay";

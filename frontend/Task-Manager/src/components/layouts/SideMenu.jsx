@@ -5,7 +5,7 @@ import {
   SIDE_MENU_USER_DATA,
   SIDE_MENU_CLIENT_DATA,
 } from "../../utils/data";
-import { UserContext } from "../../context/userContext";
+import { UserContext } from "../../context/userContext.jsx";
 import { FaUser } from "react-icons/fa6";
 import { LuUserCog } from "react-icons/lu";
 import {
