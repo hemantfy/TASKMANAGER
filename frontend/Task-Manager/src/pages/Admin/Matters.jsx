@@ -511,7 +511,7 @@ const Matters = () => {
           </div>
           <div className="rounded-2xl border border-white/70 bg-white/80 p-3 text-slate-600 shadow-sm dark:border-slate-800/60 dark:bg-slate-900/60 dark:text-slate-300">
             <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-              <LuAlertCircle /> Open Tasks
+              <LuCircleAlert /> Open Tasks
             </div>
             <p className="mt-1 text-base font-semibold text-slate-900 dark:text-slate-100">
               {stats.openTaskCount ?? 0}
@@ -519,7 +519,7 @@ const Matters = () => {
           </div>
           <div className="rounded-2xl border border-white/70 bg-white/80 p-3 text-slate-600 shadow-sm dark:border-slate-800/60 dark:bg-slate-900/60 dark:text-slate-300">
             <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-              <LuCheckBadge /> Closed
+              <LuBadgeCheck /> Closed
             </div>
             <p className="mt-1 text-base font-semibold text-slate-900 dark:text-slate-100">
               {stats.closedTaskCount ?? 0}
