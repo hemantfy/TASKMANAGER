@@ -242,11 +242,35 @@ const getTasks = async (req, res) => {
     const shouldLimitToCurrentUser =
       !isPrivileged(req.user.role) || normalizedScope === "my";
 
-    const assignedFilter = shouldLimitToCurrentUser
-      ? { assignedTo: req.user._id }
-      : {};
+    let accessFilter = {};
 
-    const tasks = await Task.find({ ...filter, ...assignedFilter })
+    if (shouldLimitToCurrentUser) {
+      if (matchesRole(req.user.role, "client")) {
+        const matterIds = await Matter.find({ client: req.user._id }).distinct(
+          "_id"
+        );
+
+        const caseFileIds = matterIds.length
+          ? await CaseFile.find({ matter: { $in: matterIds } }).distinct("_id")
+          : [];
+
+        const clientConditions = [{ assignedTo: req.user._id }];
+
+        if (matterIds.length) {
+          clientConditions.push({ matter: { $in: matterIds } });
+        }
+
+        if (caseFileIds.length) {
+          clientConditions.push({ caseFile: { $in: caseFileIds } });
+        }
+
+        accessFilter = { $or: clientConditions };
+      } else {
+        accessFilter = { assignedTo: req.user._id };
+      }
+    }
+
+    const tasks = await Task.find({ ...filter, ...accessFilter })
       .populate("assignedTo", "name email profileImageUrl")
       .populate({
         path: "matter",
@@ -268,9 +292,7 @@ const getTasks = async (req, res) => {
     );
 
     // Status summary counts
-    const summaryBaseFilter = shouldLimitToCurrentUser
-      ? { assignedTo: req.user._id }
-      : {};
+    const summaryBaseFilter = shouldLimitToCurrentUser ? accessFilter : {};
 
     const allTasks = await Task.countDocuments(summaryBaseFilter);
 
