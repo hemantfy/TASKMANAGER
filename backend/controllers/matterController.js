@@ -34,6 +34,11 @@ const normalizeObjectId = (value) => {
   return value.toString();
 };
 
+const normalizeOptionalString = (value) => {
+  const normalizedValue = normalizeString(value);
+  return normalizedValue || undefined;
+};
+
 const handleErrorResponse = (res, error) => {
   const statusCode = error.statusCode || 500;
   res.status(statusCode).json({
@@ -213,6 +218,15 @@ const createMatter = async (req, res) => {
       throw buildHttpError("Matter title is required.");
     }
 
+    payload.matterNumber = normalizeOptionalString(payload.matterNumber);
+    payload.practiceArea = normalizeOptionalString(payload.practiceArea);
+    payload.description = normalizeOptionalString(payload.description);
+    payload.notes = normalizeOptionalString(payload.notes);
+
+    if (payload.openedDate === "") {
+      payload.openedDate = undefined;
+    }
+
     const clientIdentifier = Object.prototype.hasOwnProperty.call(payload, "client")
       ? payload.client
       : payload.clientId;
@@ -262,6 +276,24 @@ const updateMatter = async (req, res) => {
       if (!updates.title) {
         throw buildHttpError("Matter title is required.");
       }
+    }
+
+    const optionalStringFields = [
+      "matterNumber",
+      "practiceArea",
+      "description",
+      "notes",
+      "clientName",
+    ];
+
+    optionalStringFields.forEach((field) => {
+      if (Object.prototype.hasOwnProperty.call(updates, field)) {
+        updates[field] = normalizeOptionalString(updates[field]);
+      }
+    });
+
+    if (Object.prototype.hasOwnProperty.call(updates, "openedDate") && updates.openedDate === "") {
+      updates.openedDate = undefined;
     }
 
     const hasClientUpdate =
