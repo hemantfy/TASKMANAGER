@@ -37,7 +37,8 @@ const TaskFormModal = ({ isOpen, onClose, taskId, onSuccess }) => {
   const [availableMatters, setAvailableMatters] = useState([]);
   const [availableCases, setAvailableCases] = useState([]);
   const [isLoadingMatters, setIsLoadingMatters] = useState(false);
-  const [isLoadingCases, setIsLoadingCases] = useState(false);  
+  const [isLoadingCases, setIsLoadingCases] = useState(false);
+  const [assignedUserDetails, setAssignedUserDetails] = useState([]); 
 
   const isEditing = useMemo(() => Boolean(taskId), [taskId]);
 
@@ -48,10 +49,59 @@ const TaskFormModal = ({ isOpen, onClose, taskId, onSuccess }) => {
     setLoading(false);
     setOpenDeleteAlert(false);
     setIsFetchingTask(false);
-    setAvailableCases([]);    
+    setAvailableCases([]);
+    setAssignedUserDetails([]);  
   }, []);
 
   const handleValueChange = (key, value) => {
+    if (key === "assignedTo") {
+      setTaskData((prevState) => {
+        const normalizedAssignees = Array.isArray(value)
+          ? [...new Set(value.map((assignee) => assignee?.toString()))].filter(
+              Boolean
+            )
+          : [];
+
+        const validAssigneesSet = new Set(normalizedAssignees);
+
+        const updatedChecklist = Array.isArray(prevState.todoChecklist)
+          ? prevState.todoChecklist.map((item) => {
+              const assignedValue =
+                typeof item?.assignedTo === "object"
+                  ? item.assignedTo?._id || item.assignedTo
+                  : item?.assignedTo;
+              const normalizedAssigned = assignedValue
+                ? assignedValue.toString()
+                : "";
+
+              if (normalizedAssigned && validAssigneesSet.has(normalizedAssigned)) {
+                return item;
+              }
+
+              return {
+                ...item,
+                assignedTo: normalizedAssignees[0] || "",
+              };
+            })
+          : [];
+
+        return {
+          ...prevState,
+          assignedTo: normalizedAssignees,
+          todoChecklist: updatedChecklist,
+        };
+      });
+      return;
+    }
+
+    if (key === "todoChecklist") {
+      setTaskData((prevState) => ({
+        ...prevState,
+        todoChecklist: Array.isArray(value) ? value : [],
+      }));
+      return;
+    }
+
     setTaskData((prevState) => ({ ...prevState, [key]: value }));
   };
 
@@ -113,31 +163,68 @@ const TaskFormModal = ({ isOpen, onClose, taskId, onSuccess }) => {
     (checklistItems) => {
       if (!Array.isArray(checklistItems)) return [];
 
-      return checklistItems.map((item) => {
-        const text = item?.text || item;
-        if (!text) return null;
+      const previousItems = Array.isArray(currentTask?.todoChecklist)
+        ? currentTask.todoChecklist
+        : [];
 
-        if (!isEditing) {
-          return { text, completed: false };
-        }
+     return checklistItems
+        .map((item) => {
+          const text =
+            typeof item === "string"
+              ? item.trim()
+              : typeof item?.text === "string"
+              ? item.text.trim()
+              : "";
 
-        const previousItems = Array.isArray(currentTask?.todoChecklist)
-          ? currentTask.todoChecklist
-          : [];
-        const matchedItem = previousItems.find((prevItem) => {
-          const prevText = prevItem?.text || prevItem;
-          return prevText === text;
-        });
+          if (!text) return null;
 
-        return { text, completed: Boolean(matchedItem?.completed) };
-      }).filter(Boolean);
+          const assignedValue =
+            item && typeof item === "object"
+              ? item.assignedTo?._id || item.assignedTo || ""
+              : "";
+          const assignedTo = assignedValue ? assignedValue.toString() : "";
+
+          if (!assignedTo) {
+            return null;
+          }
+
+          const matchedItem = previousItems.find((prevItem) => {
+            if (!prevItem) return false;
+            if (item?._id && prevItem?._id) {
+              return prevItem._id.toString() === item._id.toString();
+            }
+            return (prevItem?.text || "") === text;
+          });
+
+          const completed = isEditing
+            ? Boolean(item?.completed ?? matchedItem?.completed ?? false)
+            : false;
+
+          const payloadItem = {
+            text,
+            assignedTo,
+            completed,
+          };
+
+          if (item?._id) {
+            payloadItem._id = item._id;
+          }
+
+          return payloadItem;
+        })
+        .filter(Boolean);
     },
     [currentTask?.todoChecklist, isEditing]
   );
 
+  const handleAssignedUserDetailsUpdate = useCallback((details) => {
+    setAssignedUserDetails(Array.isArray(details) ? details.filter(Boolean) : []);
+  }, []);
+  
   const clearData = useCallback(() => {
     setTaskData(createDefaultTaskData());
     setError("");
+    setAssignedUserDetails([]);    
   }, []);
 
   const handleCreateTask = async () => {
@@ -264,6 +351,21 @@ const TaskFormModal = ({ isOpen, onClose, taskId, onSuccess }) => {
       return;
     }
 
+    const hasUnassignedTodo = taskData.todoChecklist.some((item) => {
+      if (!item) return true;
+      if (typeof item === "string") return true;
+      const assignedValue =
+        typeof item.assignedTo === "object"
+          ? item.assignedTo?._id || item.assignedTo
+          : item.assignedTo;
+      return !assignedValue;
+    });
+
+    if (hasUnassignedTodo) {
+      setError("Assign each todo item to a team member.");
+      return;
+    }
+
     if (isEditing) {
       handleUpdateTask();
       return;
@@ -299,7 +401,7 @@ const TaskFormModal = ({ isOpen, onClose, taskId, onSuccess }) => {
 
         setCurrentTask(taskInfo);
 
-        const assignedTo = Array.isArray(taskInfo?.assignedTo)
+        const assignedMembers = Array.isArray(taskInfo?.assignedTo)
           ? taskInfo.assignedTo
           : taskInfo?.assignedTo
           ? [taskInfo.assignedTo]
@@ -309,6 +411,27 @@ const TaskFormModal = ({ isOpen, onClose, taskId, onSuccess }) => {
           ? taskInfo.todoChecklist
           : [];
 
+        const normalizedChecklist = todoChecklist
+          .map((item) => {
+            const text = typeof item?.text === "string" ? item.text.trim() : "";
+            if (!text) {
+              return null;
+            }
+
+            const assignedValue =
+              item?.assignedTo?._id || item?.assignedTo || "";
+
+            return {
+              _id: item?._id,
+              text,
+              assignedTo: assignedValue ? assignedValue.toString() : "",
+              completed: Boolean(item?.completed),
+            };
+          })
+          .filter(Boolean);
+
+        setAssignedUserDetails(assignedMembers.filter(Boolean));
+
         setTaskData({
           title: taskInfo.title || "",
           description: taskInfo.description || "",
@@ -316,12 +439,11 @@ const TaskFormModal = ({ isOpen, onClose, taskId, onSuccess }) => {
           dueDate: taskInfo.dueDate
             ? formatDateInputValue(taskInfo.dueDate)
             : "",
-          assignedTo: assignedTo
+          assignedTo: assignedMembers
             .map((item) => item?._id || item)
-            .filter(Boolean),
-          todoChecklist: todoChecklist
-            .map((item) => item?.text || item)
-            .filter(Boolean),
+            .filter(Boolean)
+            .map((value) => value.toString()),
+          todoChecklist: normalizedChecklist,
           attachments: Array.isArray(taskInfo?.attachments)
             ? taskInfo.attachments
             : [],
@@ -545,6 +667,7 @@ const TaskFormModal = ({ isOpen, onClose, taskId, onSuccess }) => {
                     <SelectUsers
                       selectedUsers={taskData.assignedTo}
                       setSelectedUsers={(value) => handleValueChange("assignedTo", value)}
+                      onSelectedUsersDetails={handleAssignedUserDetailsUpdate}                      
                     />
                   </div>
                 </div>
@@ -566,6 +689,8 @@ const TaskFormModal = ({ isOpen, onClose, taskId, onSuccess }) => {
                   <TodoListInput
                     todoList={taskData.todoChecklist}
                     setTodoList={(value) => handleValueChange("todoChecklist", value)}
+                    assignedUsers={assignedUserDetails}
+                    disabled={loading || !taskData.assignedTo.length}                    
                   />
                 </div>
 

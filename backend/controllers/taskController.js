@@ -152,6 +152,72 @@ const validateRelatedDocuments = async (documentIds, matterId, caseFileId) => {
   return filteredDocuments.map((document) => document._id);
 };
 
+const sanitizeTodoChecklist = ({
+  checklistInput,
+  validAssigneeIds = [],
+  previousChecklist = [],
+}) => {
+  if (!Array.isArray(checklistInput) || checklistInput.length === 0) {
+    return [];
+  }
+
+  const validAssigneeSet = new Set(
+    validAssigneeIds.map((assigneeId) => assigneeId.toString())
+  );
+
+  return checklistInput
+    .map((item) => {
+      const text =
+        typeof item === "string"
+          ? item.trim()
+          : typeof item?.text === "string"
+          ? item.text.trim()
+          : "";
+
+      if (!text) {
+        return null;
+      }
+
+      const assignedValue =
+        item && typeof item === "object"
+          ? item.assignedTo?._id || item.assignedTo || ""
+          : "";
+
+      const assignedTo = assignedValue ? assignedValue.toString() : "";
+
+      if (!assignedTo || !validAssigneeSet.has(assignedTo)) {
+        throw buildHttpError(
+          "Each checklist item must be assigned to a selected member."
+        );
+      }
+
+      const previousMatch = previousChecklist.find((previousItem) => {
+        if (!previousItem) return false;
+        if (item?._id && previousItem?._id) {
+          return previousItem._id.toString() === item._id.toString();
+        }
+        return previousItem.text === text;
+      });
+
+      const completed = Boolean(
+        item?.completed ?? previousMatch?.completed ?? false
+      );
+
+      const sanitizedItem = {
+        text,
+        assignedTo,
+        completed,
+      };
+
+      if (item?._id) {
+        sanitizedItem._id = item._id;
+      }
+
+      return sanitizedItem;
+    })
+    .filter(Boolean);
+};
+
 // @desc    Get all tasks (Admin: all, User: only assigned tasks)
 // @route   GET /api/tasks/
 // @access  Private
@@ -244,7 +310,8 @@ const getTaskById = async (req, res) => {
     try {
         const task = await Task.findById(req.params.id)
           .populate("assignedTo", "name email profileImageUrl")
-          .populate({
+          .populate("todoChecklist.assignedTo", "name email profileImageUrl")
+          .populate({                      
             path: "matter",
             select: "title clientName matterNumber status client",
             populate: { path: "client", select: "name email" },
@@ -311,6 +378,11 @@ const createTask = async (req, res) => {
             resolvedCaseId ?? undefined
           );
 
+          const sanitizedTodoChecklist = sanitizeTodoChecklist({
+            checklistInput: todoChecklist,
+            validAssigneeIds: uniqueAssigneeIds,
+          });
+
           const taskPayload = {
             title,
             description,
@@ -318,7 +390,7 @@ const createTask = async (req, res) => {
             dueDate,
             assignedTo: uniqueAssigneeIds,
             createdBy: req.user._id,
-            todoChecklist,
+            todoChecklist: sanitizedTodoChecklist,
             attachments,
           };
 
@@ -399,9 +471,6 @@ if (req.body.dueDate) {
     task.dueDate = incomingDueDate;
   }
 }
-if (req.body.todoChecklist !== undefined) {
-  task.todoChecklist = req.body.todoChecklist;
-}
 if (req.body.attachments !== undefined) {
   task.attachments = req.body.attachments;
 }
@@ -464,6 +533,27 @@ if (req.body.assignedTo) {
   );
 
   task.assignedTo = normalizedAssignees;
+}
+
+const hasTodoChecklistUpdate = Object.prototype.hasOwnProperty.call(
+  req.body,
+  "todoChecklist"
+);
+
+if (hasTodoChecklistUpdate) {
+  const currentAssigneeIds = Array.isArray(task.assignedTo)
+    ? task.assignedTo
+        .map((assignee) => normalizeObjectId(assignee))
+        .filter(Boolean)
+    : [];
+
+  const sanitizedTodoChecklist = sanitizeTodoChecklist({
+    checklistInput: req.body.todoChecklist,
+    validAssigneeIds: currentAssigneeIds,
+    previousChecklist: task.todoChecklist,
+  });
+
+  task.todoChecklist = sanitizedTodoChecklist;
 }
 
 if (dueDateChanged) {
@@ -571,39 +661,71 @@ res.json({ message: "Task status updated", task });
 const updateTaskChecklist = async (req, res) => {
     try {
       const { todoChecklist } = req.body;
-const task = await Task.findById(req.params.id);
 
-if (!task) return res.status(404).json({ message: "Task not found" });
+      if (!Array.isArray(todoChecklist)) {
+        return res
+          .status(400)
+          .json({ message: "Invalid checklist payload" });
+      }
 
-const assignedUsers = Array.isArray(task.assignedTo)
-  ? task.assignedTo
-  : task.assignedTo
-  ? [task.assignedTo]
-  : [];
+      const task = await Task.findById(req.params.id);
 
-const isAssigned = assignedUsers.some((user) => {
-  if (!user) return false;
-  const userId = user._id ? user._id.toString() : user.toString();
-  return userId === req.user._id.toString();
-});
+      if (!task) return res.status(404).json({ message: "Task not found" });
 
-if (!isAssigned && !isPrivileged(req.user.role)) {
-  return res
-    .status(403)
-    .json({ message: "Not authorized to update checklist" });
-}
+      const assignedUsers = Array.isArray(task.assignedTo)
+        ? task.assignedTo
+        : task.assignedTo
+        ? [task.assignedTo]
+        : [];
 
-task.todoChecklist = todoChecklist; // Replace with updated checklist
+      const requesterId = req.user._id.toString();
+      const canManageAll = isPrivileged(req.user.role);
 
-const previousStatus = task.status;
+      const isAssigned = assignedUsers.some((user) => {
+        if (!user) return false;
+        const userId = normalizeObjectId(user);
+        return userId === requesterId;
+      });
 
-// Auto-update progress based on checklist completion
-const completedCount = task.todoChecklist.filter(
-  (item) => item.completed
-).length;
-const totalItems = task.todoChecklist.length;
-task.progress =
-  totalItems > 0 ? Math.round((completedCount / totalItems) * 100) : 0;
+      if (!isAssigned && !canManageAll) {
+        return res
+          .status(403)
+          .json({ message: "Not authorized to update checklist" });
+      }
+
+      const checklistUpdates = new Map(
+        todoChecklist
+          .filter((item) => item && item._id)
+          .map((item) => [item._id.toString(), Boolean(item.completed)])
+      );
+
+      task.todoChecklist.forEach((item, index) => {
+        const itemId = item?._id ? item._id.toString() : null;
+
+        if (!itemId || !checklistUpdates.has(itemId)) {
+          return;
+        }
+
+        const assigneeId = normalizeObjectId(item.assignedTo);
+        const isAuthorized = canManageAll || assigneeId === requesterId;
+
+        if (!isAuthorized) {
+          return;
+        }
+
+        const nextCompleted = checklistUpdates.get(itemId);
+        task.todoChecklist[index].completed = nextCompleted;
+      });
+
+      const previousStatus = task.status;
+
+      // Auto-update progress based on checklist completion
+      const completedCount = task.todoChecklist.filter(
+        (item) => item.completed
+      ).length;
+      const totalItems = task.todoChecklist.length;
+      task.progress =
+        totalItems > 0 ? Math.round((completedCount / totalItems) * 100) : 0;
 
   // Auto-mark task as completed if all items are checked
 if (task.progress === 100) {
@@ -619,10 +741,9 @@ if (task.progress === 100) {
 }
 
 await task.save();
-const updatedTask = await Task.findById(req.params.id).populate(
-  "assignedTo",
-  "name email profileImageUrl"
-);
+const updatedTask = await Task.findById(req.params.id)
+  .populate("assignedTo", "name email profileImageUrl")
+  .populate("todoChecklist.assignedTo", "name email profileImageUrl");
 
 res.json({ message: "Task checklist updated", task: updatedTask });
     } catch (error) {

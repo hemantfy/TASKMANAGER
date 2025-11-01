@@ -7,7 +7,11 @@ import { FaUser } from "react-icons/fa6";
 import AvatarGroup from "../AvatarGroup";
 import { getRoleLabel, normalizeRole } from "../../utils/roleUtils";
 
-const SelectUsers = ({ selectedUsers, setSelectedUsers }) => {
+const SelectUsers = ({
+  selectedUsers,
+  setSelectedUsers,
+  onSelectedUsersDetails = () => {},
+}) => {
   const [allUsers, setAllUsers] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tempSelectedUsers, setTempSelectedUsers] = useState([]);
@@ -52,7 +56,12 @@ const SelectUsers = ({ selectedUsers, setSelectedUsers }) => {
   };
 
   const handleAssign = () => {
+    const details = tempSelectedUsers
+      .map((userId) => allUsers.find((user) => user._id === userId))
+      .filter(Boolean);
+
     setSelectedUsers(tempSelectedUsers);
+    onSelectedUsersDetails(details);    
     setIsModalOpen(false);
   };
 
@@ -83,7 +92,14 @@ const SelectUsers = ({ selectedUsers, setSelectedUsers }) => {
     }
     return () => {};
   }, [selectedUsers]);
-  
+
+  useEffect(() => {
+    const details = selectedUsers
+      .map((userId) => allUsers.find((user) => user._id === userId))
+      .filter(Boolean);
+    onSelectedUsersDetails(details);
+  }, [allUsers, onSelectedUsersDetails, selectedUsers]);
+    
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">

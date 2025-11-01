@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
@@ -7,11 +7,15 @@ import AvatarGroup from "../../components/AvatarGroup";
 import { LuSquareArrowOutUpRight } from "react-icons/lu";
 import LoadingOverlay from "../../components/LoadingOverlay";
 import { formatDateLabel } from "../../utils/dateUtils";
+import toast from "react-hot-toast";
+import { UserContext } from "../../context/userContext.jsx";
+import { hasPrivilegedAccess } from "../../utils/roleUtils";
 
 const ViewTaskDetails = () => {
   const { id } = useParams();
   const [task, setTask] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { user } = useContext(UserContext);
 
   const getStatusTagColor = (status) => {
     switch (status) {
@@ -46,36 +50,77 @@ const ViewTaskDetails = () => {
   }, [id]);
 
   // handle todo check
-  const updateTodoCheckList = async (index) => {
-    const todoChecklist = Array.isArray(task?.todoChecklist)
-      ? [...task.todoChecklist]
-      : null;
-    const taskId = id;
-  
-    if (todoChecklist && todoChecklist[index]) {
-      todoChecklist[index].completed = !todoChecklist[index].completed;
-  
-      try {
-        const response = await axiosInstance.put(
-          API_PATHS.TASKS.UPDATE_TODO_CHECKLIST(taskId),
-          {
-            todoChecklist: todoChecklist.map((item) => ({
-              _id: item?._id,
-              text: item?.text,
-              completed: !!item?.completed
-            }))
-          }
-        );
-        if (response.status === 200) {
-          setTask(response.data?.task || task);
-        } else {
-          // Optionally revert the toggle if the API call fails.
-          todoChecklist[index].completed = !todoChecklist[index].completed;
+  const updateTodoCheckList = async (todoId) => {
+    if (!task) {
+      return;
+    }
+
+    const todoChecklist = Array.isArray(task.todoChecklist)
+      ? task.todoChecklist.map((item) => ({ ...item }))
+      : [];
+
+    const itemIndex = todoChecklist.findIndex((item) => {
+      const itemId = item?._id || item?.id;
+      return itemId && itemId.toString() === todoId;
+    });
+
+    if (itemIndex === -1) {
+      return;
+    }
+
+    const currentItem = todoChecklist[itemIndex];
+    const assignedValue =
+      currentItem?.assignedTo?._id || currentItem?.assignedTo || "";
+    const assignedId = assignedValue ? assignedValue.toString() : "";
+    const userId = user?._id ? user._id.toString() : "";
+    const isPrivilegedUser = hasPrivilegedAccess(user?.role);
+    const isAssignedToUser = assignedId && userId && assignedId === userId;
+
+    if (!isPrivilegedUser && !isAssignedToUser) {
+      toast.error("Only the assigned member can complete this item.");
+      return;
+    }
+
+    const previousChecklist = todoChecklist.map((item) => ({ ...item }));
+    const updatedChecklist = todoChecklist.map((item, index) =>
+      index === itemIndex ? { ...item, completed: !item.completed } : item
+    );
+
+    setTask((prevTask) =>
+      prevTask ? { ...prevTask, todoChecklist: updatedChecklist } : prevTask
+    );
+
+    try {
+      const response = await axiosInstance.put(
+        API_PATHS.TASKS.UPDATE_TODO_CHECKLIST(id),
+        {
+          todoChecklist: updatedChecklist.map((item) => ({
+            _id: item?._id,
+            completed: !!item?.completed,
+          })),
         }
-      } catch (error) {
-        todoChecklist[index].completed = !todoChecklist[index].completed;
-        console.error("Failed to update checklist", error);        
+      );
+
+      if (response.status === 200) {
+        setTask((prevTask) =>
+          response.data?.task ||
+          (prevTask
+            ? { ...prevTask, todoChecklist: updatedChecklist }
+            : prevTask)
+        );
+      } else {
+        setTask((prevTask) =>
+          prevTask
+            ? { ...prevTask, todoChecklist: previousChecklist }
+            : prevTask
+        );       
       }
+    } catch (error) {
+      console.error("Failed to update checklist", error);
+      setTask((prevTask) =>
+        prevTask ? { ...prevTask, todoChecklist: previousChecklist } : prevTask
+      );
+      toast.error("Failed to update checklist");      
     }
   };
   
@@ -103,6 +148,9 @@ const ViewTaskDetails = () => {
   const todoChecklistItems = Array.isArray(task?.todoChecklist)
     ? task.todoChecklist
     : [];
+
+  const normalizedUserId = user?._id ? user._id.toString() : "";
+  const isPrivilegedUser = hasPrivilegedAccess(user?.role);
 
   const matterClientLabel =
     task?.matter?.client?.name || task?.matter?.clientName || "";    
@@ -176,14 +224,47 @@ const ViewTaskDetails = () => {
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.26em] text-slate-500">Todo Checklist</p>
                     <div className="mt-3 space-y-3">
-                      {todoChecklistItems?.map?.((item, index) => (
-                        <TodoCheckList
-                          key={`todo_${index}`}
-                          text={item.text}
-                          isChecked={item?.completed}
-                          onChange={() => updateTodoCheckList(index)}
-                        />
-                      ))}
+                      {todoChecklistItems?.map?.((item, index) => {
+                        const todoIdValue = item?._id || item?.id || null;
+                        const todoId = todoIdValue
+                          ? todoIdValue.toString()
+                          : null;
+                        const assignedValue =
+                          item?.assignedTo?._id || item?.assignedTo || "";
+                        const assignedId = assignedValue
+                          ? assignedValue.toString()
+                          : "";
+
+                        const assigneeDetails =
+                          (typeof item?.assignedTo === "object" &&
+                            item?.assignedTo !== null
+                            ? item.assignedTo
+                            : null) ||
+                          assignedMembers.find((member) => {
+                            const memberId = member?._id || member?.id || member;
+                            return memberId && memberId.toString() === assignedId;
+                          });
+
+                        const assigneeName = assigneeDetails?.name || "";
+                        const canToggle =
+                          isPrivilegedUser ||
+                          (assignedId && assignedId === normalizedUserId);
+
+                        return (
+                          <TodoCheckList
+                            key={`todo_${todoId || index}`}
+                            text={item.text}
+                            isChecked={item?.completed}
+                            onChange={() => {
+                              if (canToggle && todoId) {
+                                updateTodoCheckList(todoId);
+                              }
+                            }}
+                            disabled={!canToggle || !todoId}
+                            assigneeName={assigneeName}
+                          />
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -263,16 +344,29 @@ const InfoBox = ({ label, value }) => {
   );
 };
 
-const TodoCheckList = ({ text, isChecked, onChange }) => {
+const TodoCheckList = ({ text, isChecked, onChange, disabled, assigneeName }) => {
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-white/60 bg-white/80 px-4 py-3 shadow-[0_12px_24px_rgba(15,23,42,0.08)]">
+    <div className="flex items-start gap-3 rounded-2xl border border-white/60 bg-white/80 px-4 py-3 shadow-[0_12px_24px_rgba(15,23,42,0.08)]">
       <input
         type="checkbox"
         checked={isChecked}
         onChange={onChange}
-        className="h-5 w-5 cursor-pointer rounded-full border border-slate-300 text-primary focus:ring-0"
+        disabled={disabled}
+        className="mt-1 h-5 w-5 cursor-pointer rounded-full border border-slate-300 text-primary focus:ring-0 disabled:cursor-not-allowed disabled:opacity-50"
       />
-      <p className="text-sm text-slate-700">{text}</p>
+      <div className="space-y-1">
+        <p className="text-sm text-slate-700">{text}</p>
+        {assigneeName && (
+          <p className="text-xs text-slate-500">Assigned to {assigneeName}</p>
+        )}
+        {disabled && (
+          <p className="text-[11px] text-slate-400">
+            {assigneeName
+              ? `Only ${assigneeName} can mark this item complete.`
+              : "Only the assigned member can mark this item complete."}
+          </p>
+        )}
+      </div>
     </div>
   );
 };
