@@ -1,20 +1,22 @@
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
-import { API_PATHS } from "../../utils/apiPaths";
+import { API_PATHS, BASE_URL } from "../../utils/apiPaths";
 import DashboardLayout from "../../components/layouts/DashboardLayout";
 import AvatarGroup from "../../components/AvatarGroup";
-import { LuSquareArrowOutUpRight } from "react-icons/lu";
+import { LuSquareArrowOutUpRight, LuUpload } from "react-icons/lu";
 import LoadingOverlay from "../../components/LoadingOverlay";
 import { formatDateLabel } from "../../utils/dateUtils";
 import toast from "react-hot-toast";
 import { UserContext } from "../../context/userContext.jsx";
 import { hasPrivilegedAccess } from "../../utils/roleUtils";
+import TaskDocumentModal from "../../components/TaskDocumentModal";
 
 const ClientViewTaskDetails = () => {
   const { id } = useParams();
   const [task, setTask] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
   const { user } = useContext(UserContext);  
 
   const getStatusTagColor = (status) => {
@@ -26,6 +28,26 @@ const ClientViewTaskDetails = () => {
       default:
         return "bg-gradient-to-r from-purple-500 via-pink-500 to-rose-500 text-white";
     }
+  };
+
+  const resolveDocumentUrl = (fileUrl) => {
+    if (!fileUrl) {
+      return "";
+    }
+
+    if (/^https?:\/\//i.test(fileUrl)) {
+      return fileUrl;
+    }
+
+    const baseUrl =
+      (typeof import.meta !== "undefined" && import.meta?.env?.VITE_API_BASE_URL) ||
+      BASE_URL ||
+      "";
+
+    const normalizedBase = baseUrl.replace(/\/?$/, "");
+    const normalizedPath = fileUrl.startsWith("/") ? fileUrl.slice(1) : fileUrl;
+
+    return `${normalizedBase}/${normalizedPath}`;
   };
 
   const getTaskDetailsByID = useCallback(async () => {
@@ -129,6 +151,74 @@ const ClientViewTaskDetails = () => {
     window.open(link, "_blank");
   };
 
+  const handleDocumentUploadSuccess = useCallback((document) => {
+    if (!document || (!document._id && !document.id)) {
+      return;
+    }
+
+    const documentId =
+      typeof document._id === "object" && document._id !== null
+        ? document._id.toString()
+        : typeof document._id === "string"
+        ? document._id
+        : typeof document.id === "string"
+        ? document.id
+        : "";
+
+    if (!documentId) {
+      return;
+    }
+
+    const normalizedDocument = {
+      _id: documentId,
+      title: document.title || "Document",
+      documentType: document.documentType || "",
+      version: document.version,
+      fileUrl: document.fileUrl || "",
+    };
+
+    setTask((prevTask) => {
+      if (!prevTask) {
+        return prevTask;
+      }
+
+      const existingDocuments = Array.isArray(prevTask.relatedDocuments)
+        ? prevTask.relatedDocuments.map((item) => item)
+        : [];
+
+      const alreadyExists = existingDocuments.some((item) => {
+        const itemId =
+          typeof item === "object" && item !== null
+            ? item._id || item.id
+            : item;
+        return itemId && itemId.toString() === documentId;
+      });
+
+      if (alreadyExists) {
+        return {
+          ...prevTask,
+          relatedDocuments: existingDocuments.map((item) => {
+            const itemId =
+              typeof item === "object" && item !== null
+                ? item._id || item.id
+                : item;
+
+            if (itemId && itemId.toString() === documentId) {
+              return normalizedDocument;
+            }
+
+            return item;
+          }),
+        };
+      }
+
+      return {
+        ...prevTask,
+        relatedDocuments: [...existingDocuments, normalizedDocument],
+      };
+    });
+  }, []);
+
   useEffect(() => {
     if (id) {
       getTaskDetailsByID();
@@ -147,6 +237,33 @@ const ClientViewTaskDetails = () => {
 
   const normalizedUserId = user?._id ? user._id.toString() : "";
   const isPrivilegedUser = hasPrivilegedAccess(user?.role);
+
+  const matterClientIdRaw = task?.matter?.client
+    ? typeof task.matter.client === "object"
+      ? task.matter.client._id || task.matter.client.id || task.matter.client
+      : task.matter.client
+    : null;
+  const normalizedMatterClientId = matterClientIdRaw
+    ? matterClientIdRaw.toString()
+    : "";
+
+  const isAssignedMember = assignedMembers.some((member) => {
+    if (!member) {
+      return false;
+    }
+
+    const memberId =
+      typeof member === "object" && member !== null
+        ? member._id || member.id
+        : member;
+
+    return memberId && normalizedUserId && memberId.toString() === normalizedUserId;
+  });
+
+  const isTaskClient =
+    normalizedMatterClientId && normalizedMatterClientId === normalizedUserId;
+
+  const canUploadDocument = isPrivilegedUser || isAssignedMember || isTaskClient;
 
       const matterClientLabel =
     task?.matter?.client?.name || task?.matter?.clientName || ""
@@ -310,25 +427,50 @@ const ClientViewTaskDetails = () => {
                   Back to Projects
                 </Link>
 
+                {canUploadDocument && (
+                  <button
+                    type="button"
+                    onClick={() => setIsDocumentModalOpen(true)}
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white shadow-sm shadow-primary/20 transition hover:-translate-y-0.5 hover:bg-primary/90"
+                  >
+                    <LuUpload className="text-sm" /> Upload Document
+                  </button>
+                )}
+
                 {relatedDocuments.length > 0 && (
                   <div className="space-y-3">
                     <p className="text-xs font-semibold uppercase tracking-[0.26em] text-slate-500">
                       Linked Documents
                     </p>
                     <div className="space-y-3">
-                      {relatedDocuments.map((document, index) => (
-                        <div
-                          key={document._id || `${document.title}_${index}`}
-                          className="rounded-2xl border border-white/60 bg-white/80 p-3 shadow-[0_12px_24px_rgba(15,23,42,0.08)]"
-                        >
-                          <p className="text-sm font-semibold text-slate-800">
-                            {document.title || "Document"}
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            {document.documentType || "Supporting material"} · v{document.version || 1}
-                          </p>
-                        </div>
-                      ))}
+                      {relatedDocuments.map((document, index) => {
+                        const documentId = document?._id || `${document.title || "document"}_${index}`;
+                        const documentUrl = resolveDocumentUrl(document?.fileUrl || "");
+
+                        return (
+                          <div
+                            key={documentId}
+                            className="space-y-2 rounded-2xl border border-white/60 bg-white/80 p-3 shadow-[0_12px_24px_rgba(15,23,42,0.08)]"
+                          >
+                            <p className="text-sm font-semibold text-slate-800">
+                              {document?.title || "Document"}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              {(document?.documentType || "Supporting material").trim() || "Supporting material"} · v{document?.version || 1}
+                            </p>
+                            {documentUrl && (
+                              <a
+                                href={documentUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary transition hover:text-primary/80"
+                              >
+                                <LuSquareArrowOutUpRight className="text-sm" /> View Document
+                              </a>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}                
@@ -341,6 +483,12 @@ const ClientViewTaskDetails = () => {
           )}
         </>
       )}
+      <TaskDocumentModal
+        isOpen={isDocumentModalOpen}
+        onClose={() => setIsDocumentModalOpen(false)}
+        taskId={id}
+        onSuccess={handleDocumentUploadSuccess}
+      />      
     </DashboardLayout>
   );
 };

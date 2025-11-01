@@ -1,3 +1,6 @@
+const fs = require("fs");
+const path = require("path");
+
 const Task = require("../models/Task");
 const User = require("../models/User");
 const Matter = require("../models/Matter");
@@ -152,6 +155,16 @@ const validateRelatedDocuments = async (documentIds, matterId, caseFileId) => {
   return filteredDocuments.map((document) => document._id);
 };
 
+const deleteFileQuietly = (filePath) => {
+  if (!filePath) {
+    return;
+  }
+
+  fs.promises
+    .unlink(filePath)
+    .catch(() => {});
+};
+
 const sanitizeTodoChecklist = ({
   checklistInput,
   validAssigneeIds = [],
@@ -278,7 +291,7 @@ const getTasks = async (req, res) => {
         populate: { path: "client", select: "name email" },
       })
       .populate("caseFile", "title caseNumber status")
-      .populate("relatedDocuments", "title documentType version");
+      .populate("relatedDocuments", "title documentType version fileUrl");
 
     // Add completed todoChecklist count to each task
     const tasksWithChecklistCounts = await Promise.all(
@@ -339,7 +352,7 @@ const getTaskById = async (req, res) => {
             populate: { path: "client", select: "name email" },
           })
           .populate("caseFile", "title caseNumber status")
-          .populate("relatedDocuments", "title documentType version");
+          .populate("relatedDocuments", "title documentType version fileUrl");
           
           if (!task) return res.status(404).json({ message: "Task not found" });
           
@@ -429,6 +442,13 @@ const createTask = async (req, res) => {
           }
 
           const task = await Task.create(taskPayload);
+
+          if (Array.isArray(taskPayload.relatedDocuments) && taskPayload.relatedDocuments.length) {
+            await Document.updateMany(
+              { _id: { $in: taskPayload.relatedDocuments } },
+              { $addToSet: { relatedTasks: task._id } }
+            );
+          }          
           try {
             const assignees = await User.find({
               _id: { $in: uniqueAssigneeIds },
@@ -583,6 +603,23 @@ if (dueDateChanged) {
 }
 
 const updatedTask = await task.save();
+
+if (Object.prototype.hasOwnProperty.call(req.body, "relatedDocuments")) {
+  await Document.updateMany(
+    { relatedTasks: updatedTask._id, _id: { $nin: updatedTask.relatedDocuments } },
+    { $pull: { relatedTasks: updatedTask._id } }
+  );
+
+  if (
+    Array.isArray(updatedTask.relatedDocuments) &&
+    updatedTask.relatedDocuments.length
+  ) {
+    await Document.updateMany(
+      { _id: { $in: updatedTask.relatedDocuments } },
+      { $addToSet: { relatedTasks: updatedTask._id } }
+    );
+  }
+}
 
 if (newlyAssignedIds.length) {
   try {
@@ -1297,6 +1334,165 @@ res.status(200).json({
     }
 };
 
+
+const uploadTaskDocument = async (req, res) => {
+  const { id: taskId } = req.params;
+  const uploadedFile = req.file;
+  const title = typeof req.body?.title === "string" ? req.body.title.trim() : "";
+  const documentType =
+    typeof req.body?.documentType === "string"
+      ? req.body.documentType.trim()
+      : "";
+  const description =
+    typeof req.body?.description === "string"
+      ? req.body.description.trim()
+      : "";
+
+  if (!uploadedFile) {
+    return res.status(400).json({ message: "A document file is required." });
+  }
+
+  if (!title) {
+    deleteFileQuietly(uploadedFile.path);
+    return res.status(400).json({ message: "Document title is required." });
+  }
+
+  try {
+    const task = await Task.findById(taskId)
+      .populate({ path: "matter", select: "client" })
+      .populate({ path: "caseFile", select: "matter" });
+
+    if (!task) {
+      deleteFileQuietly(uploadedFile.path);
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    const requesterId = req.user?._id ? req.user._id.toString() : "";
+    const isPrivilegedUser = hasPrivilegedAccess(req.user?.role);
+    const isAssignedMember = Array.isArray(task.assignedTo)
+      ? task.assignedTo.some((assignee) => {
+          const assigneeId = normalizeObjectId(assignee);
+          return assigneeId && requesterId && assigneeId === requesterId;
+        })
+      : false;
+
+    let matterId = null;
+    let matterClientId = null;
+    let caseFileId = null;
+
+    if (task.matter) {
+      matterId =
+        typeof task.matter === "object" && task.matter !== null && task.matter._id
+          ? task.matter._id.toString()
+          : task.matter.toString();
+
+      if (
+        typeof task.matter === "object" &&
+        task.matter !== null &&
+        task.matter.client
+      ) {
+        matterClientId = task.matter.client.toString();
+      }
+    }
+
+    if (task.caseFile) {
+      caseFileId =
+        typeof task.caseFile === "object" &&
+        task.caseFile !== null &&
+        task.caseFile._id
+          ? task.caseFile._id.toString()
+          : task.caseFile.toString();
+
+      if (
+        !matterId &&
+        typeof task.caseFile === "object" &&
+        task.caseFile !== null &&
+        task.caseFile.matter
+      ) {
+        matterId = task.caseFile.matter.toString();
+      }
+    }
+
+    if (!matterId && caseFileId) {
+      const caseFileRecord = await CaseFile.findById(caseFileId).select("matter");
+      if (caseFileRecord?.matter) {
+        matterId = caseFileRecord.matter.toString();
+      }
+    }
+
+    if (!matterClientId && matterId) {
+      const matterRecord = await Matter.findById(matterId).select("client");
+      matterClientId = matterRecord?.client
+        ? matterRecord.client.toString()
+        : null;
+    }
+
+    const isTaskClient = requesterId && matterClientId === requesterId;
+
+    if (!isPrivilegedUser && !isAssignedMember && !isTaskClient) {
+      deleteFileQuietly(uploadedFile.path);
+      return res.status(403).json({
+        message: "You do not have permission to upload documents for this task.",
+      });
+    }
+
+    if (!matterId) {
+      deleteFileQuietly(uploadedFile.path);
+      return res.status(400).json({
+        message: "Task must be linked to a matter before uploading documents.",
+      });
+    }
+
+    const documentPayload = {
+      title,
+      documentType,
+      description,
+      matter: matterId,
+      caseFile: caseFileId ?? null,
+      uploadedBy: req.user._id,
+      relatedTasks: [task._id],
+      storagePath: uploadedFile.path,
+      fileUrl: `/uploads/documents/${path.basename(uploadedFile.path)}`,
+    };
+
+    const document = await Document.create(documentPayload);
+
+    if (
+      !Array.isArray(task.relatedDocuments) ||
+      !task.relatedDocuments.some(
+        (documentId) =>
+          documentId && documentId.toString() === document._id.toString()
+      )
+    ) {
+      task.relatedDocuments = Array.isArray(task.relatedDocuments)
+        ? [...task.relatedDocuments, document._id]
+        : [document._id];
+      await task.save();
+    }
+
+    await Document.updateOne(
+      { _id: document._id },
+      { $addToSet: { relatedTasks: task._id } }
+    );
+
+    const sanitizedDocument = await Document.findById(document._id).select(
+      "title documentType version fileUrl _id"
+    );
+
+    res.status(201).json({
+      message: "Document uploaded successfully.",
+      document: sanitizedDocument,
+    });
+  } catch (error) {
+    deleteFileQuietly(uploadedFile?.path);
+    const statusCode = error.statusCode || 500;
+    res.status(statusCode).json({
+      message: error.statusCode ? error.message : "Server error",
+      error: error.statusCode ? undefined : error.message,
+    });
+  }
+};
+
 module.exports = {
     getTasks,
     getTaskById,
@@ -1307,5 +1503,6 @@ module.exports = {
     updateTaskChecklist,
     getNotifications,
     getDashboardData,
+    uploadTaskDocument,
     getUserDashboardData,
   };

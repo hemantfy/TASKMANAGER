@@ -1,18 +1,18 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { LuCalendarDays, LuTrash2 } from "react-icons/lu";
+import { LuCalendarDays, LuExternalLink, LuFileText, LuTrash2, LuUpload } from "react-icons/lu";
 import toast from "react-hot-toast";
 
 import Modal from "./Modal";
 import SelectDropdown from "./inputs/SelectDropdown";
 import SelectUsers from "./inputs/SelectUsers";
 import TodoListInput from "./inputs/TodoListInput";
-import AddAttachmentsInput from "./inputs/AddAttachmentsInput";
+import TaskDocumentModal from "./TaskDocumentModal";
 import DeleteAlert from "./DeleteAlert";
 import LoadingOverlay from "./LoadingOverlay";
 
 import { PRIORITY_DATA } from "../utils/data";
 import axiosInstance from "../utils/axiosInstance";
-import { API_PATHS } from "../utils/apiPaths";
+import { API_PATHS, BASE_URL } from "../utils/apiPaths";
 import { formatDateInputValue } from "../utils/dateUtils";
 
 const createDefaultTaskData = () => ({
@@ -23,9 +23,30 @@ const createDefaultTaskData = () => ({
   assignedTo: [],
   todoChecklist: [],
   attachments: [],
+  relatedDocuments: [],  
   matter: "",
   caseFile: "",  
 });
+
+const resolveDocumentUrl = (fileUrl) => {
+  if (!fileUrl) {
+    return "";
+  }
+
+  if (/^https?:\/\//i.test(fileUrl)) {
+    return fileUrl;
+  }
+
+  const baseUrl =
+    (typeof import.meta !== "undefined" && import.meta?.env?.VITE_API_BASE_URL) ||
+    BASE_URL ||
+    "";
+
+  const normalizedBase = baseUrl.replace(/\/?$/, "");
+  const normalizedPath = fileUrl.startsWith("/") ? fileUrl.slice(1) : fileUrl;
+
+  return `${normalizedBase}/${normalizedPath}`;
+};
 
 const TaskFormModal = ({ isOpen, onClose, taskId, onSuccess }) => {
   const [taskData, setTaskData] = useState(createDefaultTaskData());
@@ -38,7 +59,9 @@ const TaskFormModal = ({ isOpen, onClose, taskId, onSuccess }) => {
   const [availableCases, setAvailableCases] = useState([]);
   const [isLoadingMatters, setIsLoadingMatters] = useState(false);
   const [isLoadingCases, setIsLoadingCases] = useState(false);
-  const [assignedUserDetails, setAssignedUserDetails] = useState([]); 
+  const [assignedUserDetails, setAssignedUserDetails] = useState([]);
+  const [taskDocuments, setTaskDocuments] = useState([]);
+  const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false); 
 
   const isEditing = useMemo(() => Boolean(taskId), [taskId]);
 
@@ -50,7 +73,9 @@ const TaskFormModal = ({ isOpen, onClose, taskId, onSuccess }) => {
     setOpenDeleteAlert(false);
     setIsFetchingTask(false);
     setAvailableCases([]);
-    setAssignedUserDetails([]);  
+    setAssignedUserDetails([]);
+    setTaskDocuments([]);
+    setIsDocumentModalOpen(false);  
   }, []);
 
   const handleValueChange = (key, value) => {
@@ -94,16 +119,34 @@ const TaskFormModal = ({ isOpen, onClose, taskId, onSuccess }) => {
       return;
     }
 
-    if (key === "todoChecklist") {
-      setTaskData((prevState) => ({
-        ...prevState,
-        todoChecklist: Array.isArray(value) ? value : [],
-      }));
-      return;
-    }
+  if (key === "todoChecklist") {
+    setTaskData((prevState) => ({
+      ...prevState,
+      todoChecklist: Array.isArray(value) ? value : [],
+    }));
+    return;
+  }
 
-    setTaskData((prevState) => ({ ...prevState, [key]: value }));
-  };
+  if (key === "relatedDocuments") {
+    setTaskData((prevState) => ({
+      ...prevState,
+      relatedDocuments: Array.isArray(value) ? value : [],
+    }));
+    return;
+  }
+
+  if (key === "caseFile") {
+    setTaskData((prevState) => ({
+      ...prevState,
+      caseFile: value,
+      relatedDocuments: [],
+    }));
+    setTaskDocuments([]);
+    return;
+  }
+
+  setTaskData((prevState) => ({ ...prevState, [key]: value }));
+};
 
   const fetchMatters = useCallback(async () => {
     try {
@@ -157,6 +200,8 @@ const TaskFormModal = ({ isOpen, onClose, taskId, onSuccess }) => {
   const handleMatterSelect = (matterId) => {
     handleValueChange("matter", matterId);
     handleValueChange("caseFile", "");
+    handleValueChange("relatedDocuments", []);
+    setTaskDocuments([]);
   };
 
   const mapChecklistPayload = useCallback(
@@ -220,11 +265,93 @@ const TaskFormModal = ({ isOpen, onClose, taskId, onSuccess }) => {
   const handleAssignedUserDetailsUpdate = useCallback((details) => {
     setAssignedUserDetails(Array.isArray(details) ? details.filter(Boolean) : []);
   }, []);
-  
+
+  const handleDocumentUploadSuccess = useCallback((document) => {
+    if (!document || (!document._id && !document.id)) {
+      return;
+    }
+
+    const documentId =
+      typeof document._id === "object" && document._id !== null
+        ? document._id.toString()
+        : typeof document._id === "string"
+        ? document._id
+        : typeof document.id === "string"
+        ? document.id
+        : "";
+
+    if (!documentId) {
+      return;
+    }
+
+    const normalizedDocument = {
+      _id: documentId,
+      title: document.title || "Document",
+      documentType: document.documentType || "",
+      version: document.version,
+      fileUrl: document.fileUrl || "",
+    };
+
+    setTaskData((prevState) => {
+      const currentDocuments = Array.isArray(prevState.relatedDocuments)
+        ? prevState.relatedDocuments.map((value) => value?.toString?.() || "")
+        : [];
+
+      if (currentDocuments.includes(documentId)) {
+        return prevState;
+      }
+
+      return {
+        ...prevState,
+        relatedDocuments: [...currentDocuments, documentId],
+      };
+    });
+
+    setTaskDocuments((prevDocuments) => {
+      const existingIndex = prevDocuments.findIndex(
+        (item) => item && item._id === documentId
+      );
+
+      if (existingIndex !== -1) {
+        const nextDocuments = [...prevDocuments];
+        nextDocuments[existingIndex] = normalizedDocument;
+        return nextDocuments;
+      }
+
+      return [...prevDocuments, normalizedDocument];
+    });
+  }, []);
+
+  const handleRemoveDocument = useCallback((documentId) => {
+    if (!documentId) {
+      return;
+    }
+
+    const normalizedId = documentId.toString();
+
+    setTaskData((prevState) => {
+      const currentDocuments = Array.isArray(prevState.relatedDocuments)
+        ? prevState.relatedDocuments
+            .map((value) => value?.toString?.() || "")
+            .filter(Boolean)
+        : [];
+
+      return {
+        ...prevState,
+        relatedDocuments: currentDocuments.filter((id) => id !== normalizedId),
+      };
+    });
+
+    setTaskDocuments((prevDocuments) =>
+      prevDocuments.filter((document) => document?._id !== normalizedId)
+    );
+  }, []);
+
   const clearData = useCallback(() => {
     setTaskData(createDefaultTaskData());
     setError("");
-    setAssignedUserDetails([]);    
+    setAssignedUserDetails([]);
+    setTaskDocuments([]);
   }, []);
 
   const handleCreateTask = async () => {
@@ -430,6 +557,39 @@ const TaskFormModal = ({ isOpen, onClose, taskId, onSuccess }) => {
           })
           .filter(Boolean);
 
+        const relatedDocuments = Array.isArray(taskInfo?.relatedDocuments)
+          ? taskInfo.relatedDocuments
+          : [];
+
+        const normalizedDocuments = relatedDocuments
+          .map((document) => {
+            if (!document) {
+              return null;
+            }
+
+            const documentId =
+              typeof document._id === "object" && document._id !== null
+                ? document._id.toString()
+                : typeof document._id === "string"
+                ? document._id
+                : typeof document.id === "string"
+                ? document.id
+                : null;
+
+            if (!documentId) {
+              return null;
+            }
+
+            return {
+              _id: documentId,
+              title: document.title || "Document",
+              documentType: document.documentType || "",
+              version: document.version,
+              fileUrl: document.fileUrl || "",
+            };
+          })
+          .filter(Boolean);
+
         setAssignedUserDetails(assignedMembers.filter(Boolean));
 
         setTaskData({
@@ -447,9 +607,13 @@ const TaskFormModal = ({ isOpen, onClose, taskId, onSuccess }) => {
           attachments: Array.isArray(taskInfo?.attachments)
             ? taskInfo.attachments
             : [],
+          relatedDocuments: normalizedDocuments
+            .map((document) => document?._id)
+            .filter(Boolean),            
           matter: taskInfo.matter?._id || "",
           caseFile: taskInfo.caseFile?._id || "",            
         });
+        setTaskDocuments(normalizedDocuments);        
         if (taskInfo.matter?._id) {
           fetchCasesForMatter(taskInfo.matter._id);
         }        
@@ -695,21 +859,86 @@ const TaskFormModal = ({ isOpen, onClose, taskId, onSuccess }) => {
                 </div>
 
                 <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4 transition-colors duration-300 dark:border-slate-700/70 dark:bg-slate-900/60">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-slate-700 transition-colors duration-300 dark:text-slate-100">
-                      Add Attachments
-                    </p>
-                    <span className="text-xs font-medium uppercase tracking-[0.12em] text-slate-400 transition-colors duration-300 dark:text-slate-500">
-                      Link
-                    </span>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-700 transition-colors duration-300 dark:text-slate-100">
+                        Task Documents
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500 transition-colors duration-300 dark:text-slate-400">
+                        Upload evidence, briefs and working files. Uploaded documents are accessible to assignees and the client.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-white shadow-sm shadow-primary/20 transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+                      onClick={() => setIsDocumentModalOpen(true)}
+                      disabled={!isEditing || loading}
+                    >
+                      <LuUpload className="text-sm" /> Upload
+                    </button>
                   </div>
-                  <p className="mt-1 text-xs text-slate-500 transition-colors duration-300 dark:text-slate-400">
-                    Share helpful references, documents or design assets with the team.
-                  </p>
-                  <AddAttachmentsInput
-                    attachments={taskData.attachments}
-                    setAttachments={(value) => handleValueChange("attachments", value)}
-                  />
+
+                  {taskDocuments.length > 0 ? (
+                    <div className="mt-4 space-y-3">
+                      {taskDocuments.map((document) => {
+                        const documentId = document?._id || "";
+                        const documentUrl = resolveDocumentUrl(document?.fileUrl);
+
+                        return (
+                          <div
+                            key={documentId}
+                            className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-[0_12px_24px_rgba(15,23,42,0.08)] transition dark:border-slate-700/70 dark:bg-slate-900/60"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                                <LuFileText />
+                              </span>
+                              <div className="flex-1">
+                                <p className="text-sm font-semibold text-slate-700 transition dark:text-slate-100">
+                                  {document?.title || "Document"}
+                                </p>
+                                <p className="text-xs text-slate-500 transition dark:text-slate-400">
+                                  {(document?.documentType || "File").trim() || "File"}
+                                  {" "}· v{document?.version || 1}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2">
+                              {documentUrl && (
+                                <a
+                                  href={documentUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 rounded-full border border-primary/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-primary transition hover:border-primary hover:bg-primary/10"
+                                >
+                                  <LuExternalLink className="text-sm" /> View
+                                </a>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveDocument(documentId)}
+                                disabled={loading}
+                                className="inline-flex items-center gap-1 rounded-full border border-rose-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-rose-500 transition hover:border-rose-200 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                <LuTrash2 className="text-sm" /> Remove
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="mt-4 text-xs text-slate-500 transition-colors duration-300 dark:text-slate-400">
+                      No documents uploaded yet.
+                    </p>
+                  )}
+
+                  {!isEditing && (
+                    <p className="mt-4 text-xs text-slate-400">
+                      Save this task before uploading documents.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -735,6 +964,13 @@ const TaskFormModal = ({ isOpen, onClose, taskId, onSuccess }) => {
           )}
         </div>
       </Modal>
+
+      <TaskDocumentModal
+        isOpen={isDocumentModalOpen}
+        onClose={() => setIsDocumentModalOpen(false)}
+        taskId={taskId}
+        onSuccess={handleDocumentUploadSuccess}
+      />
 
       <Modal
         isOpen={openDeleteAlert}
