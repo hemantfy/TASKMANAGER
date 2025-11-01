@@ -1,4 +1,10 @@
-import { LuLayoutDashboard, LuUsers, LuClipboardCheck, LuFolderTree } from "react-icons/lu";
+import {
+  LuClipboardCheck,
+  LuFileStack,
+  LuFolderTree,
+  LuLayoutDashboard,
+  LuUsers,
+} from "react-icons/lu";
 
 export const SIDE_MENU_DATA = [
   {
@@ -25,6 +31,12 @@ export const SIDE_MENU_DATA = [
     icon: LuUsers,
     path: "/admin/users",
   },
+  {
+    id: "05",
+    label: "Documents",
+    icon: LuFileStack,
+    path: "/admin/documents",
+  },  
 ];
 
 export const SIDE_MENU_USER_DATA = [
