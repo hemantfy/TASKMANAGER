@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Matter = require("../models/Matter");
 const CaseFile = require("../models/CaseFile");
 const Document = require("../models/Document");
@@ -103,26 +104,35 @@ const getMatters = async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    const matterIds = matters.map((matter) => matter._id);
+    const matterIds = matters
+      .map((matter) => matter?._id)
+      .filter((id) => id && mongoose.Types.ObjectId.isValid(id.toString()));
 
-    const [caseCounts, documentCounts, openTaskCounts, closedTaskCounts] = await Promise.all([
-      CaseFile.aggregate([
-        { $match: { matter: { $in: matterIds } } },
-        { $group: { _id: "$matter", count: { $sum: 1 } } },
-      ]),
-      Document.aggregate([
-        { $match: { matter: { $in: matterIds } } },
-        { $group: { _id: "$matter", count: { $sum: 1 } } },
-      ]),
-      Task.aggregate([
-        { $match: { matter: { $in: matterIds }, status: { $ne: "Completed" } } },
-        { $group: { _id: "$matter", count: { $sum: 1 } } },
-      ]),
-      Task.aggregate([
-        { $match: { matter: { $in: matterIds }, status: "Completed" } },
-        { $group: { _id: "$matter", count: { $sum: 1 } } },
-      ]),
-    ]);
+    let caseCounts = [];
+    let documentCounts = [];
+    let openTaskCounts = [];
+    let closedTaskCounts = [];
+
+    if (matterIds.length) {
+      [caseCounts, documentCounts, openTaskCounts, closedTaskCounts] = await Promise.all([
+        CaseFile.aggregate([
+          { $match: { matter: { $in: matterIds } } },
+          { $group: { _id: "$matter", count: { $sum: 1 } } },
+        ]),
+        Document.aggregate([
+          { $match: { matter: { $in: matterIds } } },
+          { $group: { _id: "$matter", count: { $sum: 1 } } },
+        ]),
+        Task.aggregate([
+          { $match: { matter: { $in: matterIds }, status: { $ne: "Completed" } } },
+          { $group: { _id: "$matter", count: { $sum: 1 } } },
+        ]),
+        Task.aggregate([
+          { $match: { matter: { $in: matterIds }, status: "Completed" } },
+          { $group: { _id: "$matter", count: { $sum: 1 } } },
+        ]),
+      ]);
+    }
 
     const countMap = (entries = []) => {
       const map = new Map();
@@ -138,14 +148,14 @@ const getMatters = async (req, res) => {
     const closedTasksCountMap = countMap(closedTaskCounts);
 
     const response = matters.map((matter) => {
-      const matterId = matter._id.toString();
+      const matterId = matter?._id ? matter._id.toString() : undefined;
       return {
         ...matter,
         stats: {
-          caseCount: casesCountMap.get(matterId) || 0,
-          documentCount: documentsCountMap.get(matterId) || 0,
-          openTaskCount: openTasksCountMap.get(matterId) || 0,
-          closedTaskCount: closedTasksCountMap.get(matterId) || 0,
+          caseCount: (matterId && casesCountMap.get(matterId)) || 0,
+          documentCount: (matterId && documentsCountMap.get(matterId)) || 0,
+          openTaskCount: (matterId && openTasksCountMap.get(matterId)) || 0,
+          closedTaskCount: (matterId && closedTasksCountMap.get(matterId)) || 0,
         },
       };
     });

@@ -410,7 +410,14 @@ const Dashboard = () => {
       return [];
     }
 
-    return [...dashboardData.leaderboard].sort((a, b) => {
+    const internalTeamMembers = dashboardData.leaderboard.filter((entry) => {
+      const normalizedRole =
+        typeof entry?.role === "string" ? entry.role.trim().toLowerCase() : "";
+
+      return normalizedRole !== "client";
+    });
+
+    return [...internalTeamMembers].sort((a, b) => {
       if (a?.rank && b?.rank) {
         return a.rank - b.rank;
       }
