@@ -4,22 +4,68 @@ import { getToken } from "./tokenStorage";
 
 const ABSOLUTE_URL_REGEX = /^https?:\/\//i;
 
+const isNonEmptyString = (value) => typeof value === "string" && value.trim() !== "";
+
 const normalizeBaseUrl = (url) => {
-  if (!url) {
+  if (!isNonEmptyString(url)) {
     return "";
   }
 
-  return url.replace(/\/?$/, "");
+  return url.trim().replace(/\/?$/, "");
+};
+
+const getEnvValue = (key) => {
+  const fromImportMeta = typeof import.meta !== "undefined" ? import.meta?.env?.[key] : undefined;
+
+  if (isNonEmptyString(fromImportMeta)) {
+    return fromImportMeta;
+  }
+
+  const fromProcess =
+    typeof globalThis !== "undefined" && globalThis.process && globalThis.process.env
+      ? globalThis.process.env[key]
+      : undefined;
+
+  return fromProcess;
+};
+
+const deriveLocalBaseUrl = () => {
+  if (typeof window === "undefined" || typeof window.location === "undefined") {
+    return "";
+  }
+
+  const { protocol, hostname } = window.location;
+  const normalizedHost = hostname?.trim().toLowerCase();
+
+  const isLocalHost =
+    normalizedHost === "localhost" ||
+    normalizedHost === "127.0.0.1" ||
+    normalizedHost === "0.0.0.0" ||
+    normalizedHost?.endsWith(".local");
+
+  if (!isLocalHost) {
+    return "";
+  }
+
+  const configuredPort = getEnvValue("VITE_BACKEND_PORT");
+  const parsedPort = Number.parseInt(configuredPort, 10);
+  const port = Number.isFinite(parsedPort) && parsedPort > 0 ? parsedPort : 5000;
+
+  return `${protocol}//${hostname}:${port}`;
 };
 
 const resolveBaseUrl = () => {
-  const envBaseUrl =
-    (typeof import.meta !== "undefined" && import.meta?.env?.VITE_API_BASE_URL) ||
-    (typeof globalThis !== "undefined" ? globalThis?.process?.env?.VITE_API_BASE_URL : undefined);
+  const envBaseUrl = normalizeBaseUrl(getEnvValue("VITE_API_BASE_URL"));
+  if (envBaseUrl) {
+    return envBaseUrl;
+  }
 
-  const baseUrlCandidate = envBaseUrl || BASE_URL;
+  const localBaseUrl = normalizeBaseUrl(deriveLocalBaseUrl());
+  if (localBaseUrl) {
+    return localBaseUrl;
+  }
 
-  return normalizeBaseUrl(baseUrlCandidate);
+  return normalizeBaseUrl(BASE_URL);
 };
 
 const mergeUrl = (url, baseUrl) => {
