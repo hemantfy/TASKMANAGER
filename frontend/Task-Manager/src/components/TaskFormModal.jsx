@@ -448,11 +448,18 @@ const TaskFormModal = ({ isOpen, onClose, taskId, onSuccess }) => {
                     disabled={loading || isLoadingMatters}
                   >
                     <option value="">No linked matter</option>
-                    {availableMatters.map((matter) => (
-                      <option key={matter._id} value={matter._id}>
-                        {matter.title} — {matter.clientName}
-                      </option>
-                    ))}
+                    {availableMatters.map((matter) => {
+                      const clientLabel =
+                        matter?.client?.name || matter.clientName || "";
+                      const matterTitle = matter.title || "";
+
+                      return (
+                        <option key={matter._id} value={matter._id}>
+                          {matterTitle}
+                          {clientLabel ? ` — ${clientLabel}` : ""}
+                        </option>
+                      );
+                    })}
                   </select>
                   {isLoadingMatters && (
                     <p className="text-xs text-slate-400">Loading matters...</p>

@@ -51,6 +51,7 @@ export const API_PATHS = {
 
   MATTERS: {
     GET_ALL: "/api/matters",
+    GET_CLIENTS: "/api/matters/clients",    
     GET_BY_ID: (matterId) => `/api/matters/${matterId}`,
     CREATE: "/api/matters",
     UPDATE: (matterId) => `/api/matters/${matterId}`,

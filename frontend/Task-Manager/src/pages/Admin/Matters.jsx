@@ -27,7 +27,7 @@ const CASE_STATUSES = ["Pre-Filing", "Active", "Discovery", "Trial", "Closed"];
 
 const createDefaultMatterForm = () => ({
   title: "",
-  clientName: "",
+  client: "",
   matterNumber: "",
   practiceArea: "",
   status: "Active",
@@ -81,6 +81,8 @@ const Matters = () => {
   const [documentForm, setDocumentForm] = useState(createDefaultDocumentForm("", ""));
   const [activeDocument, setActiveDocument] = useState(null);
   const [isDocumentSubmitting, setIsDocumentSubmitting] = useState(false);
+  const [clientOptions, setClientOptions] = useState([]);
+  const [isClientListLoading, setIsClientListLoading] = useState(false);
 
   const fetchMatters = async () => {
     try {
@@ -126,8 +128,30 @@ const Matters = () => {
     }
   };
 
+  const fetchClientOptions = async () => {
+    try {
+      setIsClientListLoading(true);
+      const response = await axiosInstance.get(API_PATHS.MATTERS.GET_CLIENTS);
+      const clients = Array.isArray(response.data?.clients)
+        ? response.data.clients
+        : [];
+
+      setClientOptions(clients);
+    } catch (error) {
+      console.error("Failed to fetch clients", error);
+      const message =
+        error.response?.data?.message ||
+        error.message ||
+        "Unable to load clients. Please try again later.";
+      toast.error(message);
+    } finally {
+      setIsClientListLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchMatters();
+    fetchClientOptions();    
     return () => {};
   }, []);
 
@@ -138,11 +162,15 @@ const Matters = () => {
   }, [selectedMatterId]);
 
   const openMatterModal = (matter = null) => {
+    if (!clientOptions.length && !isClientListLoading) {
+      fetchClientOptions();
+    }
+
     if (matter) {
       setActiveMatter(matter);
       setMatterForm({
         title: matter.title || "",
-        clientName: matter.clientName || "",
+        client: matter.client?._id || "",
         matterNumber: matter.matterNumber || "",
         practiceArea: matter.practiceArea || "",
         status: matter.status || "Active",
@@ -151,6 +179,27 @@ const Matters = () => {
           : "",
         notes: matter.notes || "",
       });
+
+      if (matter.client?._id) {
+        setClientOptions((prev) => {
+          const exists = prev.some(
+            (client) => client._id === matter.client._id
+          );
+
+          if (exists) {
+            return prev;
+          }
+
+          return [
+            ...prev,
+            {
+              _id: matter.client._id,
+              name: matter.client.name || "",
+              email: matter.client.email || "",
+            },
+          ];
+        });
+      }      
     } else {
       setActiveMatter(null);
       setMatterForm(createDefaultMatterForm());
@@ -168,8 +217,8 @@ const Matters = () => {
       return;
     }
 
-    if (!matterForm.clientName.trim()) {
-      toast.error("Client name is required.");
+    if (!matterForm.client) {
+      toast.error("Select a client for this matter.");
       return;
     }
 
@@ -177,8 +226,13 @@ const Matters = () => {
       setIsMatterSubmitting(true);
       const payload = {
         ...matterForm,
+        client: matterForm.client || undefined,        
         openedDate: matterForm.openedDate || undefined,
       };
+
+      if (!payload.client) {
+        delete payload.client;
+      }
 
       let nextSelectedId = selectedMatterId;
 
@@ -460,6 +514,7 @@ const Matters = () => {
   const renderMatterCard = (matter) => {
     const isActive = selectedMatterId === matter._id;
     const stats = matter.stats || {};
+    const clientLabel = matter?.client?.name || matter.clientName || "";
 
     return (
       <button
@@ -484,7 +539,7 @@ const Matters = () => {
           {matter.title}
         </h3>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-300">
-          {matter.clientName}
+          {clientLabel}
         </p>
         {matter.matterNumber && (
           <p className="mt-2 text-xs font-medium text-slate-400">
@@ -772,7 +827,9 @@ const Matters = () => {
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Client</p>
                       <h3 className="mt-1 text-2xl font-semibold text-slate-900 dark:text-slate-100">
-                        {matterDetails.matter?.clientName || ""}
+                        {matterDetails.matter?.client?.name ||
+                          matterDetails.matter?.clientName ||
+                          ""}
                       </h3>
                       <p className="mt-3 text-sm text-slate-500 dark:text-slate-300">
                         {matterDetails.matter?.description || "No description provided."}
@@ -871,16 +928,31 @@ const Matters = () => {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Client Name</label>
-              <input
+              <label className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Client</label>
+              <select
                 className="form-input mt-0 h-11 bg-slate-50"
-                value={matterForm.clientName}
+                value={matterForm.client}
                 onChange={({ target }) =>
-                  setMatterForm((prev) => ({ ...prev, clientName: target.value }))
+                  setMatterForm((prev) => ({ ...prev, client: target.value }))
                 }
-                disabled={isMatterSubmitting}
+                disabled={isMatterSubmitting || isClientListLoading}
                 required
-              />
+              >
+                <option value="">Select a client</option>
+                {clientOptions.map((client) => (
+                  <option key={client._id} value={client._id}>
+                    {client.name} {client.email ? `(${client.email})` : ""}
+                  </option>
+                ))}
+              </select>
+              {isClientListLoading && (
+                <p className="text-xs text-slate-400">Loading clients...</p>
+              )}
+              {!isClientListLoading && !clientOptions.length && (
+                <p className="text-xs text-slate-400">
+                  No clients found. Add a client account to continue.
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Matter Number</label>

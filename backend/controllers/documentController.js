@@ -185,7 +185,11 @@ const getDocuments = async (req, res) => {
     const filter = buildDocumentFilters({ matterId, caseFileId, type, search });
 
     const documents = await Document.find(filter)
-      .populate("matter", "title clientName matterNumber")
+      .populate({
+        path: "matter",
+        select: "title clientName matterNumber status client",
+        populate: { path: "client", select: "name email" },
+      })
       .populate("caseFile", "title caseNumber status")
       .populate("uploadedBy", "name email")
       .sort({ createdAt: -1 });
@@ -199,7 +203,11 @@ const getDocuments = async (req, res) => {
 const getDocumentById = async (req, res) => {
   try {
     const document = await Document.findById(req.params.id)
-      .populate("matter", "title clientName matterNumber")
+      .populate({
+        path: "matter",
+        select: "title clientName matterNumber status client",
+        populate: { path: "client", select: "name email" },
+      })
       .populate("caseFile", "title caseNumber status")
       .populate("uploadedBy", "name email")
       .populate("relatedTasks", "title status dueDate");
@@ -253,7 +261,11 @@ const createDocument = async (req, res) => {
 
     const document = await Document.create(payload);
     const populatedDocument = await Document.findById(document._id)
-      .populate("matter", "title clientName matterNumber")
+      .populate({
+        path: "matter",
+        select: "title clientName matterNumber status client",
+        populate: { path: "client", select: "name email" },
+      })
       .populate("caseFile", "title caseNumber status")
       .populate("uploadedBy", "name email");
 
@@ -345,7 +357,11 @@ const updateDocument = async (req, res) => {
     await document.save();
 
     const populatedDocument = await Document.findById(document._id)
-      .populate("matter", "title clientName matterNumber")
+      .populate({
+        path: "matter",
+        select: "title clientName matterNumber status client",
+        populate: { path: "client", select: "name email" },
+      })
       .populate("caseFile", "title caseNumber status")
       .populate("uploadedBy", "name email")
       .populate("relatedTasks", "title status dueDate");

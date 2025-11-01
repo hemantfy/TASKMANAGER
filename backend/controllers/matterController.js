@@ -2,9 +2,36 @@ const Matter = require("../models/Matter");
 const CaseFile = require("../models/CaseFile");
 const Document = require("../models/Document");
 const Task = require("../models/Task");
+const User = require("../models/User");
 
 const normalizeString = (value) =>
   typeof value === "string" ? value.trim() : "";
+
+const normalizeObjectId = (value) => {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (value === null || value === "") {
+    return null;
+  }
+
+  if (typeof value === "object") {
+    if (value === null) {
+      return null;
+    }
+
+    if (value._id) {
+      return value._id.toString();
+    }
+
+    if (value.id) {
+      return value.id.toString();
+    }
+  }
+
+  return value.toString();
+};
 
 const handleErrorResponse = (res, error) => {
   const statusCode = error.statusCode || 500;
@@ -18,6 +45,35 @@ const buildHttpError = (message, statusCode = 400) => {
   const error = new Error(message);
   error.statusCode = statusCode;
   return error;
+};
+
+const resolveClient = async (clientIdentifier, { required = true } = {}) => {
+  const normalizedClientId = normalizeObjectId(clientIdentifier);
+
+  if (!normalizedClientId) {
+    if (required) {
+      throw buildHttpError("Client selection is required.");
+    }
+
+    return { clientId: null, clientName: null, clientDocument: null };
+  }
+
+  const clientDocument = await User.findOne({
+    _id: normalizedClientId,
+    role: "client",
+  })
+    .select("name email")
+    .lean();
+
+  if (!clientDocument) {
+    throw buildHttpError("Selected client account could not be found.");
+  }
+
+  return {
+    clientId: clientDocument._id,
+    clientName: clientDocument.name,
+    clientDocument,
+  };
 };
 
 const getMatters = async (req, res) => {
@@ -43,6 +99,7 @@ const getMatters = async (req, res) => {
     const matters = await Matter.find(filter)
       .populate("leadAttorney", "name email")
       .populate("teamMembers", "name email")
+      .populate("client", "name email")      
       .sort({ createdAt: -1 })
       .lean();
 
@@ -103,7 +160,8 @@ const getMatterById = async (req, res) => {
   try {
     const matter = await Matter.findById(req.params.id)
       .populate("leadAttorney", "name email role")
-      .populate("teamMembers", "name email role");
+      .populate("teamMembers", "name email role")
+      .populate("client", "name email");
 
     if (!matter) {
       return res.status(404).json({ message: "Matter not found" });
@@ -140,15 +198,19 @@ const createMatter = async (req, res) => {
     const payload = { ...req.body };
 
     payload.title = normalizeString(payload.title);
-    payload.clientName = normalizeString(payload.clientName);
 
     if (!payload.title) {
       throw buildHttpError("Matter title is required.");
     }
 
-    if (!payload.clientName) {
-      throw buildHttpError("Client name is required.");
-    }
+    const clientIdentifier = Object.prototype.hasOwnProperty.call(payload, "client")
+      ? payload.client
+      : payload.clientId;
+
+    const { clientId, clientName } = await resolveClient(clientIdentifier);
+    payload.client = clientId;
+    payload.clientName = clientName;
+    delete payload.clientId;
 
     if (payload.matterNumber) {
       const existingMatter = await Matter.findOne({
@@ -163,7 +225,8 @@ const createMatter = async (req, res) => {
     const matter = await Matter.create(payload);
     const populatedMatter = await Matter.findById(matter._id)
       .populate("leadAttorney", "name email")
-      .populate("teamMembers", "name email");
+      .populate("teamMembers", "name email")
+      .populate("client", "name email");
 
     res.status(201).json({
       message: "Matter created successfully",
@@ -191,12 +254,34 @@ const updateMatter = async (req, res) => {
       }
     }
 
-    if (updates.clientName !== undefined) {
-      updates.clientName = normalizeString(updates.clientName);
-      if (!updates.clientName) {
-        throw buildHttpError("Client name is required.");
+    const hasClientUpdate =
+      Object.prototype.hasOwnProperty.call(updates, "client") ||
+      Object.prototype.hasOwnProperty.call(updates, "clientId");
+
+    if (hasClientUpdate) {
+      const clientIdentifier = Object.prototype.hasOwnProperty.call(
+        updates,
+        "client"
+      )
+        ? updates.client
+        : updates.clientId;
+
+      const { clientId, clientName } = await resolveClient(clientIdentifier);
+      updates.client = clientId;
+      updates.clientName = clientName;
+    } else if (!matter.client) {
+      if (updates.clientName !== undefined) {
+        updates.clientName = normalizeString(updates.clientName);
+
+        if (!updates.clientName) {
+          throw buildHttpError("Client name is required.");
+        }
       }
+    } else {
+      delete updates.clientName;      
     }
+
+    delete updates.clientId;
 
     if (
       updates.matterNumber &&
@@ -217,7 +302,8 @@ const updateMatter = async (req, res) => {
 
     const populatedMatter = await Matter.findById(matter._id)
       .populate("leadAttorney", "name email")
-      .populate("teamMembers", "name email");
+      .populate("teamMembers", "name email")
+      .populate("client", "name email");
 
     res.json({
       message: "Matter updated successfully",
@@ -263,10 +349,24 @@ const deleteMatter = async (req, res) => {
   }
 };
 
+const getMatterClients = async (req, res) => {
+  try {
+    const clients = await User.find({ role: "client" })
+      .select("name email")
+      .sort({ name: 1, email: 1 })
+      .lean();
+
+    res.json({ clients });
+  } catch (error) {
+    handleErrorResponse(res, error);
+  }
+};
+
 module.exports = {
   getMatters,
   getMatterById,
   createMatter,
   updateMatter,
   deleteMatter,
+  getMatterClients,
 };

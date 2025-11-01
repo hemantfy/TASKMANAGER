@@ -182,7 +182,11 @@ const getTasks = async (req, res) => {
 
     const tasks = await Task.find({ ...filter, ...assignedFilter })
       .populate("assignedTo", "name email profileImageUrl")
-      .populate("matter", "title clientName matterNumber status")
+      .populate({
+        path: "matter",
+        select: "title clientName matterNumber status client",
+        populate: { path: "client", select: "name email" },
+      })
       .populate("caseFile", "title caseNumber status")
       .populate("relatedDocuments", "title documentType version");
 
@@ -240,7 +244,11 @@ const getTaskById = async (req, res) => {
     try {
         const task = await Task.findById(req.params.id)
           .populate("assignedTo", "name email profileImageUrl")
-          .populate("matter", "title clientName matterNumber status")
+          .populate({
+            path: "matter",
+            select: "title clientName matterNumber status client",
+            populate: { path: "client", select: "name email" },
+          })
           .populate("caseFile", "title caseNumber status")
           .populate("relatedDocuments", "title documentType version");
           

@@ -6,11 +6,13 @@ const {
   createMatter,
   updateMatter,
   deleteMatter,
+  getMatterClients,  
 } = require("../controllers/matterController");
 
 const router = express.Router();
 
 router.get("/", protect, getMatters);
+router.get("/clients", protect, adminOnly, getMatterClients);
 router.get("/:id", protect, getMatterById);
 router.post("/", protect, adminOnly, createMatter);
 router.put("/:id", protect, adminOnly, updateMatter);

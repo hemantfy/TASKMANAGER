@@ -53,7 +53,10 @@ const matterLabel = (() => {
   }
 
   const matterTitle = matter.title || matter.name || "";
-  const clientName = matter.clientName || "";
+  const clientName =
+    (matter.client && (matter.client.name || matter.client.fullName)) ||
+    matter.clientName ||
+    "";
 
   if (matterTitle && clientName) {
     return `${matterTitle} — ${clientName}`;

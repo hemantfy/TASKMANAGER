@@ -104,9 +104,11 @@ const ViewTaskDetails = () => {
     ? task.todoChecklist
     : [];
 
+  const matterClientLabel =
+    task?.matter?.client?.name || task?.matter?.clientName || "";    
   const matterLabel = task?.matter
     ? `${task.matter?.title || "Matter"}${
-        task.matter?.clientName ? " — " + task.matter.clientName : ""
+        matterClientLabel ? " — " + matterClientLabel : ""
       }`
     : "Not linked";
 

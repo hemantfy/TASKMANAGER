@@ -22,7 +22,8 @@ const deadlineSchema = new mongoose.Schema(
 const matterSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true },
-    clientName: { type: String, required: true, trim: true },
+    client: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    clientName: { type: String, trim: true },
     matterNumber: { type: String, trim: true, unique: true, sparse: true },
     practiceArea: { type: String, trim: true },
     description: { type: String },

@@ -53,7 +53,11 @@ const getCases = async (req, res) => {
 
     const cases = await CaseFile.find(filter)
       .populate("leadCounsel", "name email")
-      .populate("matter", "title clientName matterNumber")
+      .populate({
+        path: "matter",
+        select: "title clientName matterNumber status client",
+        populate: { path: "client", select: "name email" },
+      })
       .sort({ createdAt: -1 });
 
     res.json({ cases });
@@ -66,7 +70,11 @@ const getCaseById = async (req, res) => {
   try {
     const caseFile = await CaseFile.findById(req.params.id)
       .populate("leadCounsel", "name email")
-      .populate("matter", "title clientName matterNumber");
+      .populate({
+        path: "matter",
+        select: "title clientName matterNumber status client",
+        populate: { path: "client", select: "name email" },
+      });
 
     if (!caseFile) {
       return res.status(404).json({ message: "Case file not found" });
@@ -78,7 +86,11 @@ const getCaseById = async (req, res) => {
         .sort({ createdAt: -1 }),
       Task.find({ caseFile: caseFile._id })
         .select("title status dueDate matter")
-        .populate("matter", "title clientName")
+        .populate({
+          path: "matter",
+          select: "title clientName client",
+          populate: { path: "client", select: "name email" },
+        })
         .lean(),
     ]);
 
@@ -110,7 +122,11 @@ const createCase = async (req, res) => {
     const caseFile = await CaseFile.create(payload);
     const populatedCase = await CaseFile.findById(caseFile._id)
       .populate("leadCounsel", "name email")
-      .populate("matter", "title clientName matterNumber");
+      .populate({
+        path: "matter",
+        select: "title clientName matterNumber status client",
+        populate: { path: "client", select: "name email" },
+      });
 
     res.status(201).json({
       message: "Case file created successfully",
@@ -159,7 +175,11 @@ const updateCase = async (req, res) => {
 
     const populatedCase = await CaseFile.findById(caseFile._id)
       .populate("leadCounsel", "name email")
-      .populate("matter", "title clientName matterNumber");
+      .populate({
+        path: "matter",
+        select: "title clientName matterNumber status client",
+        populate: { path: "client", select: "name email" },
+      });
 
     res.json({
       message: "Case file updated successfully",
