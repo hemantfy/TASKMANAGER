@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const { normalizeRole, PRIVILEGED_ROLES } = require("../utils/roleUtils");
+const { getJwtSecret } = require("../utils/jwtSecret");
 
 // Middleware to protect routes
 const protect = async (req, res, next) => {
@@ -9,7 +10,7 @@ const protect = async (req, res, next) => {
 
     if (token && token.startsWith("Bearer")) {
       token = token.split(" ")[1]; // Extract token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, getJwtSecret());
       req.user = await User.findById(decoded.id).select("-password");
       
       if (req.user && typeof req.user.role === "string") {
