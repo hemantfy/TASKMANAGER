@@ -52,7 +52,7 @@ const App = () => {
           <Route element={<PrivateRoute allowedRoles={["admin"]} />}>
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/tasks" element={<AdminTasks />} />
-            <Route path="/admin/matters" element={<AdminMatters />} />
+            <Route path="/admin/matters/*" element={<AdminMatters />} />
             <Route path="/admin/documents/*" element={<AdminDocuments />} />        
             <Route path="/admin/users" element={<AdminManageUsers />} />
             <Route path="/admin/users/:userId" element={<AdminUserDetails />} />
@@ -63,7 +63,7 @@ const App = () => {
           <Route element={<PrivateRoute allowedRoles={["owner"]} />}>
             <Route path="/owner/dashboard" element={<OwnerDashboard />} />
             <Route path="/owner/tasks" element={<OwnerTasks />} />
-            <Route path="/owner/matters" element={<OwnerMatters />} />
+            <Route path="/owner/matters/*" element={<OwnerMatters />} />
             <Route path="/owner/documents/*" element={<OwnerDocuments />} />          
             <Route path="/owner/users" element={<OwnerManageUsers />} />
             <Route path="/owner/users/:userId" element={<OwnerUserDetails />} />
@@ -109,6 +109,7 @@ const App = () => {
     </UserProvider>
   );
 };
+
 
 export default App;
 
