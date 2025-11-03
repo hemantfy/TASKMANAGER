@@ -475,23 +475,56 @@ const DocumentsWorkspace = () => {
     return (
       <div
         key={documentId || Math.random()}
-        className="group relative rounded-3xl border border-white/70 bg-white/80 p-4 shadow-[0_18px_38px_rgba(15,23,42,0.08)] transition hover:-translate-y-1 hover:border-primary/40 hover:bg-white dark:border-slate-700 dark:bg-slate-900/70 dark:hover:border-indigo-400"
+        className="relative rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm transition hover:border-primary/40 hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
       >
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex flex-1 items-start gap-3">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 text-primary">
+        <div className="grid gap-y-3 gap-x-4 sm:grid-cols-[minmax(0,2.2fr)_minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-center">
+          <div className="flex items-start gap-3">
+            <span className="mt-1 flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-200">
               <LuFileText />
             </span>
-            <div className="space-y-1">
+            <div className="space-y-2">
               <h4 className="text-base font-semibold text-slate-900 dark:text-slate-100">
                 {document?.title || "Untitled Document"}
               </h4>
-              <p className="text-xs font-medium uppercase tracking-[0.25em] text-slate-400">
-                {typeLabel}
-              </p>
+              <div className="flex flex-wrap gap-2 text-xs text-slate-500 dark:text-slate-400">
+                <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium uppercase tracking-[0.22em] text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+                  {typeLabel}
+                </span>
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium uppercase tracking-[0.22em] text-slate-400">
+                  <LuLayers className="h-3 w-3" /> v{document?.version || 1}
+                </span>
+                {document?.isFinal && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100/80 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-300">
+                    <LuSparkles className="h-3 w-3" /> Final
+                  </span>
+                )}
+                {Array.isArray(document?.tags) && document.tags.length > 0 && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium uppercase tracking-[0.22em] text-slate-400">
+                    <LuFilter className="h-3 w-3" /> {document.tags.join(", ")}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
-          <div className="relative" data-share-trigger>
+          <div className="text-xs text-slate-500 dark:text-slate-400">
+            <span className="hidden sm:inline">Uploaded </span>
+            {uploadedDate || "Recently"}
+          </div>
+          <div className="text-xs text-slate-500 dark:text-slate-400">
+            {updatedAt ? (
+              <span className="inline-flex items-center gap-1">
+                <LuArrowDownWideNarrow className="h-3 w-3" /> {updatedAt}
+              </span>
+            ) : (
+              "No recent updates"
+            )}
+          </div>
+          <div className="text-xs text-slate-500 dark:text-slate-400">
+            <span className="inline-flex items-center gap-1">
+              <LuCircleDashed className="h-3 w-3" /> {uploadedBy}
+            </span>
+          </div>
+          <div className="relative flex justify-end" data-share-trigger>
             <button
               type="button"
               onClick={() =>
@@ -501,39 +534,12 @@ const DocumentsWorkspace = () => {
                   name: document?.title || "Document",
                 })
               }
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white/70 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-primary/40 hover:bg-primary/10 hover:text-primary dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:text-indigo-300"
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-primary/40 hover:text-primary dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
             >
               <LuShare2 className="h-4 w-4" /> Share
             </button>
             {renderShareMenu(documentId, "document", document?.title || "Document")}
           </div>
-        </div>
-
-        <div className="mt-4 flex flex-wrap gap-3 text-xs text-slate-500 dark:text-slate-400">
-          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.24em] text-slate-500 dark:bg-slate-800 dark:text-slate-300">
-            <LuLayers className="h-3 w-3" /> v{document?.version || 1}
-          </span>
-          {document?.isFinal && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-300">
-              <LuSparkles className="h-3 w-3" /> Final
-            </span>
-          )}
-          <span className="inline-flex items-center gap-2">
-            <LuCircleDashed className="h-3 w-3" /> Uploaded {uploadedDate || "Recently"}
-          </span>
-          {updatedAt && (
-            <span className="inline-flex items-center gap-2">
-              <LuArrowDownWideNarrow className="h-3 w-3" /> Updated {updatedAt}
-            </span>
-          )}
-          <span className="inline-flex items-center gap-2">
-            <LuFolderTree className="h-3 w-3" /> {uploadedBy}
-          </span>
-          {Array.isArray(document?.tags) && document.tags.length > 0 && (
-            <span className="inline-flex items-center gap-2">
-              <LuFilter className="h-3 w-3" /> {document.tags.join(", ")}
-            </span>
-          )}
         </div>
       </div>
     );
@@ -547,19 +553,17 @@ const DocumentsWorkspace = () => {
     return (
       <div
         key={caseId || title}
-        className="relative rounded-3xl border border-white/60 bg-white/80 p-4 shadow-[0_12px_30px_rgba(15,23,42,0.08)] transition hover:border-primary/40 hover:bg-white dark:border-slate-700 dark:bg-slate-900/60 dark:hover:border-indigo-400"
+        className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
       >
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50/80 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/70">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-200">
               <LuFolder />
             </span>
             <div>
-              <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                {title}
-              </h4>
+              <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{title}</h4>
               <p className="text-xs text-slate-500 dark:text-slate-400">{caseNumber}</p>
-              <p className="mt-1 text-xs font-medium uppercase tracking-[0.3em] text-slate-400">
+              <p className="text-xs font-medium uppercase tracking-[0.22em] text-slate-400">
                 {caseEntry.documents.length} document{caseEntry.documents.length === 1 ? "" : "s"}
               </p>
             </div>
@@ -567,10 +571,8 @@ const DocumentsWorkspace = () => {
           <div className="relative" data-share-trigger>
             <button
               type="button"
-              onClick={() =>
-                toggleShareMenu({ id: caseId, type: "case", name: title })
-              }
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white/70 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-primary/40 hover:bg-primary/10 hover:text-primary dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:text-indigo-300"
+              onClick={() => toggleShareMenu({ id: caseId, type: "case", name: title })}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-primary/40 hover:text-primary dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
             >
               <LuShare2 className="h-4 w-4" /> Share
             </button>
@@ -578,11 +580,11 @@ const DocumentsWorkspace = () => {
           </div>
         </div>
 
-        <div className="mt-4 space-y-3">
+        <div className="space-y-3 p-4">
           {caseEntry.documents.length > 0 ? (
             caseEntry.documents.map((document) => renderDocumentCard(document))
           ) : (
-            <div className="flex items-center gap-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-5 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-400">
+            <div className="flex items-center gap-3 rounded-lg border border-dashed border-slate-200 bg-slate-50/60 px-4 py-4 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-400">
               <LuCircleDashed className="h-4 w-4" />
               <span>No documents have been added to this case folder yet.</span>
             </div>
@@ -604,61 +606,53 @@ const DocumentsWorkspace = () => {
     return (
       <div
         key={matterId || title}
-        className="space-y-4 rounded-[32px] border border-white/60 bg-gradient-to-br from-white/90 via-white/60 to-white/70 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.08)] transition hover:border-primary/40 hover:shadow-[0_28px_60px_rgba(59,130,246,0.25)] dark:border-slate-700 dark:from-slate-900/80 dark:via-slate-900/60 dark:to-slate-900/70"
+        className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
       >
-        <div className="flex flex-col gap-4 border-b border-slate-100 pb-4 dark:border-slate-800">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200">
-                <LuFolderTree />
-              </span>
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                  {title}
-                </h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">{clientName}</p>
-                <p className="text-xs font-medium uppercase tracking-[0.28em] text-slate-400">
-                  {totalDocuments} document{totalDocuments === 1 ? "" : "s"} • {folder.cases.length} case folder{folder.cases.length === 1 ? "" : "s"}
-                </p>
-              </div>
-            </div>
-            <div className="relative" data-share-trigger>
-              <button
-                type="button"
-                onClick={() =>
-                  toggleShareMenu({ id: matterId, type: "matter", name: title })
-                }
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-slate-600 transition hover:border-primary/40 hover:bg-primary/10 hover:text-primary dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:text-indigo-300"
-              >
-                <LuShare2 className="h-4 w-4" /> Share
-              </button>
-              {renderShareMenu(matterId, "matter", title)}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50/80 px-6 py-4 dark:border-slate-800 dark:bg-slate-900/70">
+          <div className="flex items-center gap-3">
+            <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-200">
+              <LuFolderTree />
+            </span>
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{title}</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{clientName}</p>
+              <p className="text-xs font-medium uppercase tracking-[0.22em] text-slate-400">
+                {totalDocuments} document{totalDocuments === 1 ? "" : "s"} • {folder.cases.length} case folder{folder.cases.length === 1 ? "" : "s"}
+              </p>
             </div>
           </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            {folder.documents.length > 0 ? (
-              folder.documents.map((document) => renderDocumentCard(document))
-            ) : (
-              <div className="flex items-center gap-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-5 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-400">
-                <LuCircleDashed className="h-4 w-4" />
-                <span>No documents filed directly under this matter yet.</span>
-              </div>
-            )}
+          <div className="relative" data-share-trigger>
+            <button
+              type="button"
+              onClick={() => toggleShareMenu({ id: matterId, type: "matter", name: title })}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-slate-600 transition hover:border-primary/40 hover:text-primary dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+            >
+              <LuShare2 className="h-4 w-4" /> Share
+            </button>
+            {renderShareMenu(matterId, "matter", title)}
           </div>
         </div>
 
+        <div className="space-y-3 border-b border-slate-200 px-6 py-5 dark:border-slate-800">
+          {folder.documents.length > 0 ? (
+            folder.documents.map((document) => renderDocumentCard(document))
+          ) : (
+            <div className="flex items-center gap-3 rounded-lg border border-dashed border-slate-200 bg-slate-50/60 px-4 py-4 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-400">
+              <LuCircleDashed className="h-4 w-4" />
+              <span>No documents filed directly under this matter yet.</span>
+            </div>
+          )}
+        </div>
+
         {folder.cases.length > 0 ? (
-          <div className="space-y-4">
-            <h4 className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
-              Case subfolders
-            </h4>
-            <div className="space-y-4">
+          <div className="space-y-3 px-6 py-5">
+            <h4 className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">Case subfolders</h4>
+            <div className="space-y-3">
               {folder.cases.map((caseEntry) => renderCaseFolder(caseEntry))}
             </div>
           </div>
         ) : (
-          <div className="flex items-center gap-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-5 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-400">
+          <div className="flex items-center gap-3 px-6 py-5 text-sm text-slate-500 dark:text-slate-400">
             <LuCircleDashed className="h-4 w-4" />
             <span>No case folders have been created for this matter yet.</span>
           </div>
