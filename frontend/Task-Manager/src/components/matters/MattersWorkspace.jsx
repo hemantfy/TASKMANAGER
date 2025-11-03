@@ -3,6 +3,7 @@ import {
   LuArrowLeft,
   LuBriefcase,
   LuFolderTree,
+  LuPlus,  
   LuRefreshCw,
   LuUser,
   LuUsers,
@@ -16,6 +17,7 @@ import LoadingOverlay from "../LoadingOverlay";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { formatDateLabel, formatMediumDateTime } from "../../utils/dateUtils";
+import MatterFormModal from "./MatterFormModal";
 
 const trimSlashes = (value, { keepLeading = false } = {}) => {
   if (typeof value !== "string") {
@@ -109,6 +111,7 @@ const MattersWorkspace = ({ basePath = "" }) => {
   const [cases, setCases] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isMatterFormOpen, setIsMatterFormOpen] = useState(false);
 
   const baseRoute = useMemo(() => {
     if (basePath) {
@@ -186,6 +189,16 @@ const MattersWorkspace = ({ basePath = "" }) => {
       setIsRefreshing(false);
     }
   };
+
+  const handleMatterCreated = useCallback(async () => {
+    try {
+      await fetchWorkspaceData();
+    } catch {
+      // Error already surfaced in fetchWorkspaceData
+    } finally {
+      setIsMatterFormOpen(false);
+    }
+  }, [fetchWorkspaceData]);
 
   const matterLookup = useMemo(() => {
     const lookup = new Map();
@@ -676,20 +689,36 @@ const MattersWorkspace = ({ basePath = "" }) => {
             Browse matters, inspect case files, and review key information.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={handleRefresh}
-          disabled={isRefreshing}
-          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white/80 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-primary/40 hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300"
-        >
-          <LuRefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
-          {isRefreshing ? "Refreshing" : "Refresh"}
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setIsMatterFormOpen(true)}
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/40"
+          >
+            <LuPlus className="h-4 w-4" />
+            New Matter
+          </button>
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white/80 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-primary/40 hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300"
+          >
+            <LuRefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+            {isRefreshing ? "Refreshing" : "Refresh"}
+          </button>
+        </div>
       </div>
 
       {!isMatterView && renderMatterList()}
       {isMatterView && !isCaseView && renderMatterDetail()}
-      {isCaseView && renderCaseDetail()}
+      {isCaseView && renderCaseDetail()}.
+
+      <MatterFormModal
+        isOpen={isMatterFormOpen}
+        onClose={() => setIsMatterFormOpen(false)}
+        onSuccess={handleMatterCreated}
+      />      
     </div>
   );
 };
