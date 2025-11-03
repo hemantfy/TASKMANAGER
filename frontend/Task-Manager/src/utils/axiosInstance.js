@@ -15,18 +15,28 @@ const normalizeBaseUrl = (url) => {
 };
 
 const getEnvValue = (key) => {
-  const fromImportMeta = typeof import.meta !== "undefined" ? import.meta?.env?.[key] : undefined;
-
-  if (isNonEmptyString(fromImportMeta)) {
-    return fromImportMeta;
+  if (typeof key !== "string" || key.length === 0) {
+    return undefined;
   }
 
-  const fromProcess =
-    typeof globalThis !== "undefined" && globalThis.process && globalThis.process.env
-      ? globalThis.process.env[key]
-      : undefined;
+  if (typeof import.meta !== "undefined") {
+    const meta = import.meta;
+    if (meta && typeof meta.env === "object" && meta.env !== null) {
+      const value = meta.env[key];
+      if (isNonEmptyString(value)) {
+        return value;
+      }
+    }
+  }
 
-  return fromProcess;
+  if (typeof process !== "undefined" && process && typeof process.env === "object") {
+    const value = process.env[key];
+    if (isNonEmptyString(value)) {
+      return value;
+    }
+  }
+
+  return undefined;
 };
 
 const deriveLocalBaseUrl = () => {
@@ -34,14 +44,15 @@ const deriveLocalBaseUrl = () => {
     return "";
   }
 
-  const { protocol, hostname } = window.location;
-  const normalizedHost = hostname?.trim().toLowerCase();
+  const protocol = window.location.protocol;
+  const hostname = window.location.hostname;
+  const normalizedHost = typeof hostname === "string" ? hostname.trim().toLowerCase() : "";
 
   const isLocalHost =
     normalizedHost === "localhost" ||
     normalizedHost === "127.0.0.1" ||
     normalizedHost === "0.0.0.0" ||
-    normalizedHost?.endsWith(".local");
+    (normalizedHost.endsWith && normalizedHost.endsWith(".local"));
 
   if (!isLocalHost) {
     return "";
@@ -54,15 +65,29 @@ const deriveLocalBaseUrl = () => {
   return `${protocol}//${hostname}:${port}`;
 };
 
+const shouldUseLocalApi = () => {
+  const rawPreference = getEnvValue("VITE_USE_LOCAL_API");
+
+  if (!isNonEmptyString(rawPreference)) {
+    return false;
+  }
+
+  const normalizedPreference = rawPreference.trim().toLowerCase();
+
+  return ["1", "true", "yes", "on"].includes(normalizedPreference);
+};
+
 const resolveBaseUrl = () => {
   const envBaseUrl = normalizeBaseUrl(getEnvValue("VITE_API_BASE_URL"));
   if (envBaseUrl) {
     return envBaseUrl;
   }
 
-  const localBaseUrl = normalizeBaseUrl(deriveLocalBaseUrl());
-  if (localBaseUrl) {
-    return localBaseUrl;
+  if (shouldUseLocalApi()) {
+    const localBaseUrl = normalizeBaseUrl(deriveLocalBaseUrl());
+    if (localBaseUrl) {
+      return localBaseUrl;
+    }
   }
 
   return normalizeBaseUrl(BASE_URL);
@@ -86,9 +111,18 @@ const mergeUrl = (url, baseUrl) => {
 const initialBaseUrl = resolveBaseUrl();
 
 const resolveTimeout = () => {
-  const envTimeout =
-    (typeof import.meta !== "undefined" && import.meta?.env?.VITE_API_TIMEOUT) ||
-    (typeof globalThis !== "undefined" ? globalThis?.process?.env?.VITE_API_TIMEOUT : undefined);
+  let envTimeout;
+
+  if (typeof import.meta !== "undefined") {
+    const meta = import.meta;
+    if (meta && meta.env && typeof meta.env === "object") {
+      envTimeout = meta.env.VITE_API_TIMEOUT;
+    }
+  }
+
+  if (!envTimeout && typeof process !== "undefined" && process && process.env) {
+    envTimeout = process.env.VITE_API_TIMEOUT;
+  }
 
   const parsedTimeout = Number.parseInt(envTimeout, 10);
 
@@ -140,7 +174,7 @@ axiosInstance.interceptors.response.use(
     // Handle common errors globally
     if (error.response) {
       if (error.response.status === 401) {
-        const requestUrl = error.config?.url || "";
+        const requestUrl = error.config && error.config.url ? error.config.url : "";
         const isAuthRequest = [API_PATHS.AUTH.LOGIN].some((path) => requestUrl.endsWith(path));
         const isAlreadyOnLoginPage = window.location.pathname === "/login";
 
