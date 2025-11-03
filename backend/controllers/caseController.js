@@ -1,7 +1,11 @@
+const fs = require("fs");
+const path = require("path");
+
 const CaseFile = require("../models/CaseFile");
 const Matter = require("../models/Matter");
 const Document = require("../models/Document");
 const Task = require("../models/Task");
+const { hasPrivilegedAccess } = require("../utils/roleUtils");
 
 const buildHttpError = (message, statusCode = 400) => {
   const error = new Error(message);
@@ -36,6 +40,16 @@ const normalizeObjectId = (value) => {
   }
 
   return value.toString();
+};
+
+const deleteFileQuietly = (filePath) => {
+  if (!filePath) {
+    return;
+  }
+
+  fs.promises
+    .unlink(filePath)
+    .catch(() => {});
 };
 
 const getCases = async (req, res) => {
@@ -224,10 +238,110 @@ const deleteCase = async (req, res) => {
   }
 };
 
+const uploadCaseDocument = async (req, res) => {
+  const { id: caseId } = req.params;
+  const uploadedFile = req.file;
+  const title = typeof req.body?.title === "string" ? req.body.title.trim() : "";
+  const documentType =
+    typeof req.body?.documentType === "string"
+      ? req.body.documentType.trim()
+      : "";
+  const description =
+    typeof req.body?.description === "string"
+      ? req.body.description.trim()
+      : "";
+
+  if (!uploadedFile) {
+    return res.status(400).json({ message: "A document file is required." });
+  }
+
+  if (!title) {
+    deleteFileQuietly(uploadedFile.path);
+    return res.status(400).json({ message: "Document title is required." });
+  }
+
+  try {
+    const caseFile = await CaseFile.findById(caseId)
+      .populate({
+        path: "matter",
+        select: "client leadAttorney teamMembers",
+      })
+      .populate("leadCounsel", "_id");
+
+    if (!caseFile) {
+      deleteFileQuietly(uploadedFile.path);
+      return res.status(404).json({ message: "Case file not found" });
+    }
+
+    const requesterId = req.user?._id ? req.user._id.toString() : "";
+    const isPrivilegedUser = hasPrivilegedAccess(req.user?.role);
+    const leadCounselId = normalizeObjectId(caseFile.leadCounsel);
+    const matterLeadAttorneyId = normalizeObjectId(caseFile.matter?.leadAttorney);
+    const matterClientId = normalizeObjectId(caseFile.matter?.client);
+    const matterTeamMemberIds = Array.isArray(caseFile.matter?.teamMembers)
+      ? caseFile.matter.teamMembers
+          .map((member) => normalizeObjectId(member))
+          .filter((memberId) => memberId)
+      : [];
+
+    const isAuthorized =
+      isPrivilegedUser ||
+      (requesterId && leadCounselId && requesterId === leadCounselId) ||
+      (requesterId && matterLeadAttorneyId && requesterId === matterLeadAttorneyId) ||
+      (requesterId && matterClientId && requesterId === matterClientId) ||
+      (requesterId && matterTeamMemberIds.includes(requesterId));
+
+    if (!isAuthorized) {
+      deleteFileQuietly(uploadedFile.path);
+      return res.status(403).json({
+        message: "You do not have permission to upload documents for this case file.",
+      });
+    }
+
+    const matterId = normalizeObjectId(caseFile.matter);
+
+    if (!matterId) {
+      deleteFileQuietly(uploadedFile.path);
+      return res.status(400).json({
+        message: "Case file must be linked to a matter before uploading documents.",
+      });
+    }
+
+    const documentPayload = {
+      title,
+      documentType,
+      description,
+      matter: matterId,
+      caseFile: caseFile._id,
+      uploadedBy: req.user._id,
+      storagePath: uploadedFile.path,
+      fileUrl: `/uploads/documents/${path.basename(uploadedFile.path)}`,
+    };
+
+    const document = await Document.create(documentPayload);
+    const sanitizedDocument = await Document.findById(document._id).select(
+      "title documentType version fileUrl _id"
+    );
+
+    res.status(201).json({
+      message: "Document uploaded successfully.",
+      document: sanitizedDocument,
+    });
+  } catch (error) {
+    deleteFileQuietly(uploadedFile?.path);
+    const statusCode = error.statusCode || 500;
+    res.status(statusCode).json({
+      message: error.statusCode ? error.message : "Server error",
+      error: error.statusCode ? undefined : error.message,
+    });
+  }
+};
+
 module.exports = {
   getCases,
   getCaseById,
   createCase,
   updateCase,
   deleteCase,
+  uploadCaseDocument,  
 };

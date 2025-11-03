@@ -65,6 +65,7 @@ export const API_PATHS = {
     CREATE: "/api/cases",
     UPDATE: (caseId) => `/api/cases/${caseId}`,
     DELETE: (caseId) => `/api/cases/${caseId}`,
+    UPLOAD_DOCUMENT: (caseId) => `/api/cases/${caseId}/documents`,    
   },
 
   DOCUMENTS: {

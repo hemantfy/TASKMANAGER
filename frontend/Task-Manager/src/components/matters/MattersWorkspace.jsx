@@ -5,6 +5,7 @@ import {
   LuFolderTree,
   LuPlus,  
   LuRefreshCw,
+  LuUpload,  
   LuUser,
   LuUsers,
   LuCalendarDays,
@@ -19,6 +20,7 @@ import { API_PATHS } from "../../utils/apiPaths";
 import { formatDateLabel, formatMediumDateTime } from "../../utils/dateUtils";
 import MatterFormModal from "./MatterFormModal";
 import CaseFormModal from "./CaseFormModal";
+import CaseDocumentModal from "./CaseDocumentModal";
 
 const trimSlashes = (value, { keepLeading = false } = {}) => {
   if (typeof value !== "string") {
@@ -114,6 +116,7 @@ const MattersWorkspace = ({ basePath = "" }) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isMatterFormOpen, setIsMatterFormOpen] = useState(false);
   const [isCaseFormOpen, setIsCaseFormOpen] = useState(false);
+  const [isCaseDocumentModalOpen, setIsCaseDocumentModalOpen] = useState(false);  
 
   const baseRoute = useMemo(() => {
     if (basePath) {
@@ -218,6 +221,14 @@ const MattersWorkspace = ({ basePath = "" }) => {
     },
     [baseRoute, fetchWorkspaceData, matterId, navigate]
   );
+
+  const handleCaseDocumentUploaded = useCallback(async () => {
+    try {
+      await fetchWorkspaceData();
+    } catch {
+      // Error already surfaced in fetchWorkspaceData
+    }
+  }, [fetchWorkspaceData]);
 
   const matterLookup = useMemo(() => {
     const lookup = new Map();
@@ -710,21 +721,39 @@ const MattersWorkspace = ({ basePath = "" }) => {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {isMatterView ? (
-            <button
-              type="button"
-              onClick={() => {
-                if (!selectedMatter) {
-                  return;
-                }
+           isCaseView ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (!selectedCase) {
+                    return;
+                  }
 
-                setIsCaseFormOpen(true);
-              }}
-              disabled={!selectedMatter}
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <LuPlus className="h-4 w-4" />
-              New Case
-            </button>
+                  setIsCaseDocumentModalOpen(true);
+                }}
+                disabled={!selectedCase}
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <LuUpload className="h-4 w-4" />
+                Upload Document
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  if (!selectedMatter) {
+                    return;
+                  }
+
+                  setIsCaseFormOpen(true);
+                }}
+                disabled={!selectedMatter}
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <LuPlus className="h-4 w-4" />
+                New Case
+              </button>
+            )
           ) : (
             <button
               type="button"
@@ -749,7 +778,7 @@ const MattersWorkspace = ({ basePath = "" }) => {
 
       {!isMatterView && renderMatterList()}
       {isMatterView && !isCaseView && renderMatterDetail()}
-      {isCaseView && renderCaseDetail()}.
+      {isCaseView && renderCaseDetail()}
 
       <CaseFormModal
         isOpen={isCaseFormOpen}
@@ -758,6 +787,14 @@ const MattersWorkspace = ({ basePath = "" }) => {
         matterId={selectedMatter?.matter?._id}
         matterTitle={selectedMatter?.matter?.title}
       />
+      <CaseDocumentModal
+        isOpen={isCaseDocumentModalOpen}
+        onClose={() => setIsCaseDocumentModalOpen(false)}
+        caseId={selectedCase?.caseFile?._id}
+        caseTitle={selectedCase?.caseFile?.title}
+        matterTitle={selectedMatter?.matter?.title}
+        onSuccess={handleCaseDocumentUploaded}
+      />      
       <MatterFormModal
         isOpen={isMatterFormOpen}
         onClose={() => setIsMatterFormOpen(false)}
