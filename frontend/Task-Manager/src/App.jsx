@@ -19,6 +19,8 @@ const Unauthorized = React.lazy(() => import("./pages/Errors/Unauthorized"));
 const UserDashboard = React.lazy(() => import("./pages/User/UserDashboard"));
 const MyTasks = React.lazy(() => import("./pages/User/MyTasks"));
 const ViewTaskDetails = React.lazy(() => import("./pages/User/ViewTaskDetails"));
+const UserMatters = React.lazy(() => import("./pages/User/Matters"));
+const UserDocuments = React.lazy(() => import("./pages/User/Documents"));
 const OwnerDashboard = React.lazy(() => import("./pages/Owner/Dashboard"));
 const OwnerTasks = React.lazy(() => import("./pages/Owner/Tasks"));
 const OwnerManageUsers = React.lazy(() => import("./pages/Owner/ManageUsers"));
@@ -75,6 +77,8 @@ const App = () => {
             <Route path="/user/dashboard" element={<UserDashboard />} />
             <Route path="/user/tasks" element={<MyTasks />} />
             <Route path="/user/task-details/:id" element={<ViewTaskDetails />} />
+            <Route path="/user/matters/*" element={<UserMatters />} />
+            <Route path="/user/documents/*" element={<UserDocuments />} />            
             <Route path="/user/profile-settings" element={<ProfileSettings />} />
           </Route>
 

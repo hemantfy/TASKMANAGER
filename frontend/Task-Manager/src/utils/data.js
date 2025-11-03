@@ -52,6 +52,18 @@ export const SIDE_MENU_USER_DATA = [
     icon: LuClipboardCheck,
     path: "/user/tasks",
   },
+  {
+    id: "03",
+    label: "Matters",
+    icon: LuFolderTree,
+    path: "/user/matters",
+  },
+  {
+    id: "04",
+    label: "Documents",
+    icon: LuFileStack,
+    path: "/user/documents",
+  },  
 ];
 
 export const SIDE_MENU_CLIENT_DATA = [
