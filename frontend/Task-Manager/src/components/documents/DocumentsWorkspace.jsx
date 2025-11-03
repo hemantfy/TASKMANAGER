@@ -5,6 +5,7 @@ import {
   LuFolder,
   LuFolderTree,
   LuRefreshCw,
+  LuSearch,  
 } from "react-icons/lu";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -94,6 +95,10 @@ const DocumentsWorkspace = ({ basePath = "" }) => {
   const [documents, setDocuments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const hasSearchQuery = normalizedSearchQuery.length > 0;  
 
   const baseRoute = useMemo(() => {
     if (basePath) {
@@ -279,6 +284,48 @@ const DocumentsWorkspace = ({ basePath = "" }) => {
     });
   }, [cases, documents, matterLookup, matters]);
 
+  const filteredMatterFolders = useMemo(() => {
+    if (!normalizedSearchQuery) {
+      return matterFolders;
+    }
+
+    const lowerQuery = normalizedSearchQuery;
+
+    return matterFolders.filter((folder) => {
+      const matterTitle = (folder.matter?.title || "").toLowerCase();
+      const matterNumber = (folder.matter?.matterNumber || "").toLowerCase();
+      const clientName = (
+        folder.matter?.client?.name || folder.matter?.clientName || ""
+      ).toLowerCase();
+
+      if (
+        matterTitle.includes(lowerQuery) ||
+        matterNumber.includes(lowerQuery) ||
+        clientName.includes(lowerQuery)
+      ) {
+        return true;
+      }
+
+      const caseMatch = folder.cases.some((caseEntry) =>
+        (caseEntry.caseFile?.title || "").toLowerCase().includes(lowerQuery)
+      );
+
+      if (caseMatch) {
+        return true;
+      }
+
+      return folder.documents.some((document) => {
+        const title = (document?.title || "").toLowerCase();
+        const fileName = (
+          document?.fileName ||
+          document?.name ||
+          ""
+        ).toLowerCase();
+        return title.includes(lowerQuery) || fileName.includes(lowerQuery);
+      });
+    });
+  }, [matterFolders, normalizedSearchQuery]);
+  
   const selectedMatter = useMemo(() => {
     if (!matterId) {
       return null;
@@ -299,6 +346,26 @@ const DocumentsWorkspace = ({ basePath = "" }) => {
       }) || null
     );
   }, [caseId, selectedMatter]);
+
+  const filteredMatterCases = useMemo(() => {
+    if (!selectedMatter) {
+      return [];
+    }
+
+    const caseEntries = selectedMatter.cases || [];
+
+    if (!normalizedSearchQuery) {
+      return caseEntries;
+    }
+
+    const lowerQuery = normalizedSearchQuery;
+
+    return caseEntries.filter((caseEntry) => {
+      const title = (caseEntry.caseFile?.title || "").toLowerCase();
+      const status = (caseEntry.caseFile?.status || "").toLowerCase();
+      return title.includes(lowerQuery) || status.includes(lowerQuery);
+    });
+  }, [normalizedSearchQuery, selectedMatter]);
 
   useEffect(() => {
     if (!isLoading && matterId && !selectedMatter) {
@@ -355,18 +422,54 @@ const DocumentsWorkspace = ({ basePath = "" }) => {
     return [];
   }, [caseId, matterId, selectedCase, selectedMatter]);
 
+  const filteredVisibleDocuments = useMemo(() => {
+    const documentsToFilter = Array.isArray(visibleDocuments)
+      ? visibleDocuments
+      : [];
+
+    if (!normalizedSearchQuery) {
+      return documentsToFilter;
+    }
+
+    const lowerQuery = normalizedSearchQuery;
+
+    return documentsToFilter.filter((document) => {
+      const title = (document?.title || "").toLowerCase();
+      const fileName = (
+        document?.fileName ||
+        document?.name ||
+        document?.originalName ||
+        ""
+      ).toLowerCase();
+      const versionLabel = document?.version ? `v${document.version}` : "";
+      const versionText = versionLabel.toLowerCase();
+
+      return (
+        title.includes(lowerQuery) ||
+        fileName.includes(lowerQuery) ||
+        versionText.includes(lowerQuery)
+      );
+    });
+  }, [normalizedSearchQuery, visibleDocuments]);
+
   const renderDocumentList = () => {
-    if (!visibleDocuments || visibleDocuments.length === 0) {
+    if (!filteredVisibleDocuments || filteredVisibleDocuments.length === 0) {
+      const hasAnyDocuments = Array.isArray(visibleDocuments)
+        ? visibleDocuments.length > 0
+        : false;
+
       return (
         <p className="rounded-2xl border border-dashed border-slate-300 p-6 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-          No documents available in this folder yet.
+          {hasSearchQuery && hasAnyDocuments
+            ? "No documents match your search."
+            : "No documents available in this folder yet."}
         </p>
       );
     }
 
     return (
       <ul className="space-y-3">
-        {visibleDocuments.map((document) => {
+        {filteredVisibleDocuments.map((document) => {
           const documentId = document?._id || document?.id || document?.uuid;
           const documentUrl = resolveDocumentUrl(document?.fileUrl);
           const updatedLabel = formatMediumDateTime(document?.updatedAt, "Recently updated");
@@ -409,13 +512,17 @@ const DocumentsWorkspace = ({ basePath = "" }) => {
 
   const renderMatterList = () => (
     <div className="rounded-[30px] border border-white/60 bg-white/80 p-6 shadow-[0_18px_36px_rgba(15,23,42,0.08)] dark:border-slate-700 dark:bg-slate-900/70">
-      {matterFolders.length === 0 ? (
+      {filteredMatterFolders.length === 0 ? (
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          No matter folders are available yet.
+          {matterFolders.length === 0
+            ? "No matter folders are available yet."
+            : hasSearchQuery
+              ? "No folders match your search."
+              : "No matter folders are available yet."}
         </p>
       ) : (
         <ul className="space-y-3">
-          {matterFolders.map((folder) => (
+          {filteredMatterFolders.map((folder) => (
             <li key={folder.matter?._id || Math.random()}>
               <button
                 type="button"
@@ -443,6 +550,8 @@ const DocumentsWorkspace = ({ basePath = "" }) => {
     }
 
     const caseEntries = selectedMatter.cases || [];
+    const displayCases = filteredMatterCases;
+    const hasCaseEntries = caseEntries.length > 0;
 
     return (
       <div className="space-y-6">
@@ -472,13 +581,15 @@ const DocumentsWorkspace = ({ basePath = "" }) => {
           <h3 className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
             Subfolders
           </h3>
-          {caseEntries.length === 0 ? (
+          {displayCases.length === 0 ? (
             <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
-              No case subfolders are available for this matter.
+              {hasCaseEntries && hasSearchQuery
+                ? "No subfolders match your search."
+                : "No case subfolders are available for this matter."}
             </p>
           ) : (
             <ul className="mt-4 space-y-3">
-              {caseEntries
+              {displayCases
                 .slice()
                 .sort((a, b) => {
                   const titleA = a.caseFile?.title || "";
@@ -587,15 +698,30 @@ const DocumentsWorkspace = ({ basePath = "" }) => {
             Documents
           </h1>
         </div>
-        <button
-          type="button"
-          onClick={handleRefresh}
-          disabled={isRefreshing}
-          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white/80 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-primary/40 hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300"
-        >
-          <LuRefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
-          {isRefreshing ? "Refreshing" : "Refresh"}
-        </button>
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3">
+          <div className="relative w-full md:w-64">
+            <LuSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search documents"
+              aria-label="Search documents"
+              className="w-full rounded-xl border border-slate-200 bg-white/80 py-2 pl-9 pr-3 text-sm text-slate-600 transition focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white/80 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-primary/40 hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300"
+            >
+              <LuRefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+              {isRefreshing ? "Refreshing" : "Refresh"}
+            </button>
+          </div>
+        </div>
       </div>
 
       {!isMatterView && renderMatterList()}

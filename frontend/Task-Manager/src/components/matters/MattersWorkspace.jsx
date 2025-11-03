@@ -10,6 +10,7 @@ import {
   LuUsers,
   LuCalendarDays,
   LuTag,
+  LuSearch,  
 } from "react-icons/lu";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -116,7 +117,11 @@ const MattersWorkspace = ({ basePath = "" }) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isMatterFormOpen, setIsMatterFormOpen] = useState(false);
   const [isCaseFormOpen, setIsCaseFormOpen] = useState(false);
-  const [isCaseDocumentModalOpen, setIsCaseDocumentModalOpen] = useState(false);  
+  const [isCaseDocumentModalOpen, setIsCaseDocumentModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const hasSearchQuery = normalizedSearchQuery.length > 0;  
 
   const baseRoute = useMemo(() => {
     if (basePath) {
@@ -282,6 +287,44 @@ const MattersWorkspace = ({ basePath = "" }) => {
     });
   }, [cases, matterLookup, matters]);
 
+  const filteredMatterFolders = useMemo(() => {
+    if (!normalizedSearchQuery) {
+      return matterFolders;
+    }
+
+    const lowerQuery = normalizedSearchQuery;
+
+    return matterFolders.filter((folder) => {
+      const matterTitle = (folder.matter?.title || "").toLowerCase();
+      const matterNumber = (folder.matter?.matterNumber || "").toLowerCase();
+      const clientName = (
+        folder.matter?.client?.name || folder.matter?.clientName || ""
+      ).toLowerCase();
+
+      if (
+        matterTitle.includes(lowerQuery) ||
+        matterNumber.includes(lowerQuery) ||
+        clientName.includes(lowerQuery)
+      ) {
+        return true;
+      }
+
+      return folder.cases.some((caseEntry) => {
+        const title = (caseEntry.caseFile?.title || "").toLowerCase();
+        const status = (caseEntry.caseFile?.status || "").toLowerCase();
+        const leadCounsel = (
+          caseEntry.caseFile?.leadCounsel?.name || ""
+        ).toLowerCase();
+
+        return (
+          title.includes(lowerQuery) ||
+          status.includes(lowerQuery) ||
+          leadCounsel.includes(lowerQuery)
+        );
+      });
+    });
+  }, [matterFolders, normalizedSearchQuery]);
+
   const selectedMatter = useMemo(() => {
     if (!matterId) {
       return null;
@@ -302,6 +345,34 @@ const MattersWorkspace = ({ basePath = "" }) => {
       }) || null
     );
   }, [caseId, selectedMatter]);
+
+  const filteredMatterCases = useMemo(() => {
+    if (!selectedMatter) {
+      return [];
+    }
+
+    const caseEntries = selectedMatter.cases || [];
+
+    if (!normalizedSearchQuery) {
+      return caseEntries;
+    }
+
+    const lowerQuery = normalizedSearchQuery;
+
+    return caseEntries.filter((caseEntry) => {
+      const title = (caseEntry.caseFile?.title || "").toLowerCase();
+      const status = (caseEntry.caseFile?.status || "").toLowerCase();
+      const leadCounsel = (
+        caseEntry.caseFile?.leadCounsel?.name || ""
+      ).toLowerCase();
+
+      return (
+        title.includes(lowerQuery) ||
+        status.includes(lowerQuery) ||
+        leadCounsel.includes(lowerQuery)
+      );
+    });
+  }, [normalizedSearchQuery, selectedMatter]);
 
   useEffect(() => {
     if (!isLoading && matterId && !selectedMatter) {
@@ -348,13 +419,17 @@ const MattersWorkspace = ({ basePath = "" }) => {
 
   const renderMatterList = () => (
     <div className="rounded-[30px] border border-white/60 bg-white/80 p-6 shadow-[0_18px_36px_rgba(15,23,42,0.08)] dark:border-slate-700 dark:bg-slate-900/70">
-      {matterFolders.length === 0 ? (
+      {filteredMatterFolders.length === 0 ? (
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          No matters have been created yet.
+          {matterFolders.length === 0
+            ? "No matters have been created yet."
+            : hasSearchQuery
+              ? "No matters match your search."
+              : "No matters have been created yet."}
         </p>
       ) : (
         <ul className="space-y-3">
-          {matterFolders.map((folder) => {
+          {filteredMatterFolders.map((folder) => {
             const stats = folder.matter?.stats || {};
             const caseCount = stats.caseCount ?? folder.cases.length;
             const clientLabel = folder.matter?.client?.name || folder.matter?.clientName || "Unassigned client";
@@ -395,6 +470,8 @@ const MattersWorkspace = ({ basePath = "" }) => {
     }
 
     const caseEntries = selectedMatter.cases || [];
+    const displayCases = filteredMatterCases;
+    const hasCaseEntries = caseEntries.length > 0;    
     const stats = selectedMatter.matter?.stats || {};
     const tags = Array.isArray(selectedMatter.matter?.tags)
       ? selectedMatter.matter.tags.filter((tag) => tag)
@@ -529,13 +606,15 @@ const MattersWorkspace = ({ basePath = "" }) => {
           <h3 className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
             Case Files
           </h3>
-          {caseEntries.length === 0 ? (
+          {displayCases.length === 0 ? (
             <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
-              No case files have been created for this matter yet.
+              {hasCaseEntries && hasSearchQuery
+                ? "No case files match your search."
+                : "No case files have been created for this matter yet."}
             </p>
           ) : (
             <ul className="mt-4 space-y-3">
-              {caseEntries
+              {displayCases
                 .slice()
                 .sort((a, b) => {
                   const titleA = a.caseFile?.title || "";
@@ -719,9 +798,21 @@ const MattersWorkspace = ({ basePath = "" }) => {
             Browse matters, inspect case files, and review key information.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          {isMatterView ? (
-           isCaseView ? (
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3">
+          <div className="relative w-full md:w-72">
+            <LuSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search matters"
+              aria-label="Search matters"
+              className="w-full rounded-xl border border-slate-200 bg-white/80 py-2 pl-9 pr-3 text-sm text-slate-600 transition focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            {isMatterView ? (
+             isCaseView ? (
               <button
                 type="button"
                 onClick={() => {
@@ -764,15 +855,16 @@ const MattersWorkspace = ({ basePath = "" }) => {
               New Matter
             </button>
           )}
-          <button
-            type="button"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white/80 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-primary/40 hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300"
-          >
-            <LuRefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
-            {isRefreshing ? "Refreshing" : "Refresh"}
-          </button>
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white/80 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-primary/40 hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300"
+            >
+              <LuRefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+              {isRefreshing ? "Refreshing" : "Refresh"}
+            </button>
+          </div>
         </div>
       </div>
 
