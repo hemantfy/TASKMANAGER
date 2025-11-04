@@ -11,8 +11,8 @@ import LoadingOverlay from "../../components/LoadingOverlay";
 const ClientProjects = () => {
   const viewCopy = useMemo(
     () => ({
-      menuLabel: "Projects",
-      heroBadge: "Client Board",
+      activeMenu: "",
+      heroBadge: "Matter Room",
       heroTitle: "Matter Progress",
       heroDescription:
         "Track every case in motion with a clear view of milestones, owners, and next steps.",
@@ -279,7 +279,7 @@ const ClientProjects = () => {
   }, [getAllTasks]);
 
   return (
-    <DashboardLayout activeMenu={viewCopy.menuLabel}>
+    <DashboardLayout activeMenu={viewCopy.activeMenu}>
       <section className="relative overflow-hidden rounded-[32px] border border-white/60 bg-gradient-to-br from-slate-900 via-indigo-700 to-sky-600 px-4 py-7 text-white shadow-[0_20px_45px_rgba(30,64,175,0.35)] sm:px-6 sm:py-8">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.18),_transparent_65%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,_rgba(56,189,248,0.2),_transparent_60%)]" />

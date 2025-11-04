@@ -4,6 +4,7 @@ import {
   LuFolderTree,
   LuLayoutDashboard,
   LuUsers,
+  LuHouse,  
 } from "react-icons/lu";
 
 export const SIDE_MENU_DATA = [
@@ -69,9 +70,9 @@ export const SIDE_MENU_USER_DATA = [
 export const SIDE_MENU_CLIENT_DATA = [
   {
     id: "01",
-    label: "Projects",
-    icon: LuClipboardCheck,
-    path: "/client/projects",
+    label: "Home",
+    icon: LuHouse,
+    path: "/client/home",
   },
 ];
 

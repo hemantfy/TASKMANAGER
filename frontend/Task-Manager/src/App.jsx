@@ -27,6 +27,7 @@ const OwnerManageUsers = React.lazy(() => import("./pages/Owner/ManageUsers"));
 const OwnerUserDetails = React.lazy(() => import("./pages/Owner/UserDetails"));
 const OwnerMatters = React.lazy(() => import("./pages/Owner/Matters"));
 const OwnerDocuments = React.lazy(() => import("./pages/Owner/Documents"));
+const ClientHome = React.lazy(() => import("./pages/Client/Home"));
 const ClientProjects = React.lazy(() => import("./pages/Client/ClientProjects"));
 const ClientViewTaskDetails = React.lazy(() => import("./pages/Client/ViewTaskDetails"));
 
@@ -81,7 +82,8 @@ const App = () => {
               {/* Client Routes */}
               <Route element={<PrivateRoute allowedRoles={["client"]} />}>
                 <Route path="/client">
-                  <Route index element={<Navigate to="projects" replace />} />
+                  <Route index element={<Navigate to="home" replace />} />
+                  <Route path="home" element={<ClientHome />} />
                   <Route path="projects" element={<ClientProjects />} />
                   <Route path="task-details/:id" element={<ClientViewTaskDetails />} />
                   <Route path="profile-settings" element={<ProfileSettings />} />

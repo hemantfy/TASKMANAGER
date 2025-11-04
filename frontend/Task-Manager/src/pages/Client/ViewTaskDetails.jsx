@@ -284,7 +284,7 @@ const ClientViewTaskDetails = () => {
     : [];
 
   return (
-    <DashboardLayout activeMenu="Projects">
+    <DashboardLayout activeMenu="">
       {isLoading ? (
         <LoadingOverlay message="Loading project details..." className="py-24" />
       ) : (
@@ -424,7 +424,7 @@ const ClientViewTaskDetails = () => {
                   to="/client/projects"
                   className="inline-flex items-center justify-center gap-2 rounded-full border border-white/60 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600 transition hover:-translate-y-0.5 hover:bg-gradient-to-r hover:from-slate-900 hover:to-indigo-600 hover:text-white"
                 >
-                  Back to Projects
+                  Back to Matters
                 </Link>
 
                 {canUploadDocument && (
