@@ -9,7 +9,8 @@ import LoadingOverlay from "./components/LoadingOverlay";
 const AdminDashboard = React.lazy(() => import("./pages/Admin/Dashboard"));
 const Login = React.lazy(() => import("./pages/Auth/Login"));
 const AdminTasks = React.lazy(() => import("./pages/Admin/Tasks"));
-const AdminManageUsers = React.lazy(() => import("./pages/Admin/ManageUsers"));
+const AdminManageEmployees = React.lazy(() => import("./pages/Admin/ManageEmployees"));
+const AdminManageClients = React.lazy(() => import("./pages/Admin/ManageClients"));
 const AdminUserDetails = React.lazy(() => import("./pages/Admin/UserDetails"));
 const AdminMatters = React.lazy(() => import("./pages/Admin/Matters"));
 const AdminDocuments = React.lazy(() => import("./pages/Admin/Documents"));
@@ -23,7 +24,8 @@ const UserMatters = React.lazy(() => import("./pages/User/Matters"));
 const UserDocuments = React.lazy(() => import("./pages/User/Documents"));
 const OwnerDashboard = React.lazy(() => import("./pages/Owner/Dashboard"));
 const OwnerTasks = React.lazy(() => import("./pages/Owner/Tasks"));
-const OwnerManageUsers = React.lazy(() => import("./pages/Owner/ManageUsers"));
+const OwnerManageEmployees = React.lazy(() => import("./pages/Owner/ManageEmployees"));
+const OwnerManageClients = React.lazy(() => import("./pages/Owner/ManageClients"));
 const OwnerUserDetails = React.lazy(() => import("./pages/Owner/UserDetails"));
 const OwnerMatters = React.lazy(() => import("./pages/Owner/Matters"));
 const OwnerDocuments = React.lazy(() => import("./pages/Owner/Documents"));
@@ -53,7 +55,8 @@ const App = () => {
                 <Route path="/admin/tasks" element={<AdminTasks />} />
                 <Route path="/admin/matters/*" element={<AdminMatters />} />
                 <Route path="/admin/documents/*" element={<AdminDocuments />} />
-                <Route path="/admin/users" element={<AdminManageUsers />} />
+                <Route path="/admin/employees" element={<AdminManageEmployees />} />
+                <Route path="/admin/clients" element={<AdminManageClients />} />
                 <Route path="/admin/users/:userId" element={<AdminUserDetails />} />
                 <Route path="/admin/profile-settings" element={<ProfileSettings />} />
               </Route>
@@ -64,7 +67,8 @@ const App = () => {
                 <Route path="/owner/tasks" element={<OwnerTasks />} />
                 <Route path="/owner/matters/*" element={<OwnerMatters />} />
                 <Route path="/owner/documents/*" element={<OwnerDocuments />} />
-                <Route path="/owner/users" element={<OwnerManageUsers />} />
+                <Route path="/owner/employees" element={<OwnerManageEmployees />} />
+                <Route path="/owner/clients" element={<OwnerManageClients />} />
                 <Route path="/owner/users/:userId" element={<OwnerUserDetails />} />
                 <Route path="/owner/profile-settings" element={<ProfileSettings />} />
               </Route>

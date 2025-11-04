@@ -4,7 +4,8 @@ import {
   LuFolderTree,
   LuLayoutDashboard,
   LuUsers,
-  LuHouse,  
+  LuUserCheck,
+  LuHouse, 
 } from "react-icons/lu";
 
 export const SIDE_MENU_DATA = [
@@ -28,12 +29,18 @@ export const SIDE_MENU_DATA = [
   },
   {
     id: "04",    
-    label: "Directory",
+    label: "Employees",
     icon: LuUsers,
-    path: "/admin/users",
+    path: "/admin/employees",
   },
   {
     id: "05",
+    label: "Clients",
+    icon: LuUserCheck,
+    path: "/admin/clients",
+  },
+  {
+    id: "06",    
     label: "Documents",
     icon: LuFileStack,
     path: "/admin/documents",

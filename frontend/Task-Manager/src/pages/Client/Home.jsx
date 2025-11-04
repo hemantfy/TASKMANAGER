@@ -72,10 +72,14 @@ const ClientHome = () => {
         accent: "from-blue-500 via-indigo-500 to-purple-500",
         action: () => {
           if (typeof window !== "undefined") {
-            window.open("mailto:support@taskmanager.app", "_blank", "noopener,noreferrer");
+            window.open(
+              "https://www.ravalandtrivediassociates.com/contact",
+              "_blank",
+              "noopener,noreferrer"
+            );
           }
         },
-        cta: "Email support",
+        cta: "Visit contact page",
       },
     ],
     [navigate]
