@@ -84,7 +84,7 @@ export const getDefaultRouteForRole = (role) => {
   }
 
   if (matchesRole(role, "client")) {
-    return "/client/projects";
+    return "/client/home";
   }
 
   return "/user/dashboard";
