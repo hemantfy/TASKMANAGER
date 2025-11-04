@@ -196,7 +196,7 @@ const Login = () => {
           )}
 
           <button type="submit" className="auth-submit">
-            Continue to dashboard
+            Continue to Workspace
           </button>
         </form>
         

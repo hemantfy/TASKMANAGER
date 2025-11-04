@@ -69,12 +69,6 @@ export const SIDE_MENU_USER_DATA = [
 export const SIDE_MENU_CLIENT_DATA = [
   {
     id: "01",
-    label: "Dashboard",
-    icon: LuLayoutDashboard,
-    path: "/client/dashboard",
-  },
-  {
-    id: "02",
     label: "Projects",
     icon: LuClipboardCheck,
     path: "/client/projects",
