@@ -1,5 +1,5 @@
-import React, { Suspense, useContext } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import React, { Suspense, useContext, useEffect } from "react";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import PrivateRoute from "./routes/PrivateRoute";
 
 import UserProvider, { UserContext } from "./context/userContext.jsx";
@@ -114,23 +114,28 @@ const App = () => {
 
 export default App;
 
-const Root = () => {
+const RootRedirect = () => {
   const { user, loading } = useContext(UserContext);
+  const navigate = useNavigate();
 
-  if (loading) {
-    return (
-      <LoadingOverlay
-        fullScreen
-        message="Preparing your workspace..."
-      />
-    );
-  }
+  useEffect(() => {
+    if (loading) {
+      return;
+    }
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
+    if (!user) {
+      navigate("/login", { replace: true });
+      return;
+    }
 
-  const destination = getDefaultRouteForRole(user.role);
-
-  return <Navigate to={destination} replace />;
-};  
+    const destination = getDefaultRouteForRole(user.role);
+    navigate(destination, { replace: true });
+  }, [loading, navigate, user]);
+  
+  return (
+    <LoadingOverlay
+      fullScreen
+      message={loading ? "Preparing your workspace..." : "Redirecting you to your workspace..."}
+    />
+  );
+};
