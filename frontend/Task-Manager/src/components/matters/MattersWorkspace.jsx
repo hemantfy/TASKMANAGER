@@ -23,7 +23,7 @@ import { formatDateLabel, formatMediumDateTime } from "../../utils/dateUtils";
 import MatterFormModal from "./MatterFormModal";
 import CaseFormModal from "./CaseFormModal";
 import CaseDocumentModal from "./CaseDocumentModal";
-import DeleteMatterModal from "./DeleteMatterModal";
+import DeleteMatterModal from "../modals/DeleteMatterModal";
 
 const trimSlashes = (value, { keepLeading = false } = {}) => {
   if (typeof value !== "string") {
