@@ -1,5 +1,5 @@
-import React, { Suspense, useContext, useEffect } from "react";
-import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import React, { Suspense, useContext } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
 import PrivateRoute from "./routes/PrivateRoute";
 
 import UserProvider, { UserContext } from "./context/userContext.jsx";
@@ -94,7 +94,7 @@ const App = () => {
               </Route>
 
               <Route path="/unauthorized" element={<Unauthorized />} />
-              <Route path="*" element={<Root />} />
+              <Route path="*" element={<RootRedirect />} />
           </Routes>
         </Suspense>
       </div>
@@ -116,26 +116,26 @@ export default App;
 
 const RootRedirect = () => {
   const { user, loading } = useContext(UserContext);
-  const navigate = useNavigate();
 
-  useEffect(() => {
-    if (loading) {
-      return;
-    }
+  if (loading) {
+    return (
+      <LoadingOverlay fullScreen message="Preparing your workspace..." />
+    );
+  }
 
-    if (!user) {
-      navigate("/login", { replace: true });
-      return;
-    }
-
-    const destination = getDefaultRouteForRole(user.role);
-    navigate(destination, { replace: true });
-  }, [loading, navigate, user]);
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  const destination = getDefaultRouteForRole(user.role) || "/login";
   
   return (
-    <LoadingOverlay
-      fullScreen
-      message={loading ? "Preparing your workspace..." : "Redirecting you to your workspace..."}
-    />
+    <>
+      <LoadingOverlay
+        fullScreen
+        message="Redirecting you to your workspace..."
+      />
+      <Navigate to={destination} replace />
+    </>
   );
 };
