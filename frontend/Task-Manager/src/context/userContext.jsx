@@ -1,9 +1,33 @@
-import React, { useEffect, useState } from "react";
+import React, { createContext, useEffect, useMemo, useState } from "react";
 import axiosInstance from "../utils/axiosInstance";
 import { API_PATHS } from "../utils/apiPaths";
 import { clearToken, getToken, setToken } from "../utils/tokenStorage";
 import { normalizeRole } from "../utils/roleUtils";
-import UserContext from "./UserContext.js";
+
+const isDevelopment = () => {
+  try {
+    return Boolean(typeof import.meta !== "undefined" && import.meta?.env?.DEV);
+  } catch (error) {
+    return false;
+  }
+};
+
+const createGuardedAction = (actionName) => () => {
+  if (isDevelopment()) {
+    console.warn(
+      `UserContext: attempted to call ${actionName} outside of UserProvider.`,
+    );
+  }
+};
+
+const defaultContextValue = {
+  user: null,
+  loading: true,
+  updateUser: createGuardedAction("updateUser"),
+  clearUser: createGuardedAction("clearUser"),
+};
+
+const UserContext = createContext(defaultContextValue);
 
 const withNormalizedRole = (userData) => {
   if (!userData || typeof userData !== "object") {
@@ -17,8 +41,8 @@ const withNormalizedRole = (userData) => {
 };
 
 const UserProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(defaultContextValue.user);
+  const [loading, setLoading] = useState(defaultContextValue.loading);
 
   useEffect(() => {
     let isMounted = true;
@@ -69,11 +93,19 @@ const UserProvider = ({ children }) => {
     setUser(null);
     clearToken();
   };
+
+  const contextValue = useMemo(
+    () => ({
+      user,
+      loading,
+      updateUser,
+      clearUser,
+    }),
+    [user, loading],
+  );
   
   return (
-    <UserContext.Provider value={{ user, loading, updateUser, clearUser }}>
-      {children}
-    </UserContext.Provider>
+    <UserContext.Provider value={contextValue}>{children}</UserContext.Provider>
   );
 };
 
