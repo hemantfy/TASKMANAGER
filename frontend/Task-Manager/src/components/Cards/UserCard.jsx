@@ -13,13 +13,7 @@ const UserCard = ({ userInfo, onDelete, onResetPassword }) => {
   const navigate = useNavigate();
   const { user } = useContext(UserContext);
 
-  const stats = [
-    { label: "Pending", count: userInfo?.pendingTasks || 0, status: "Pending" },
-    { label: "Prog.", count: userInfo?.inProgressTasks || 0, status: "In Progress" },
-    { label: "Completed", count: userInfo?.completedTasks || 0, status: "Completed" }
-  ];
-
-    const normalizedGender = useMemo(() => {
+  const normalizedGender = useMemo(() => {
     if (typeof userInfo?.gender !== "string") {
       return "";
     }
@@ -36,6 +30,61 @@ const UserCard = ({ userInfo, onDelete, onResetPassword }) => {
     [normalizedRole]
   );
   const showRoleBadge = Boolean(roleLabel);
+
+  const stats = useMemo(() => {
+    if (normalizedRole === "client") {
+      const pendingTasks = userInfo?.pendingTasks ?? 0;
+      const totalMatters = userInfo?.totalMatters ?? 0;
+      const completedCases = userInfo?.closedMatters ?? 0;
+
+      return [
+        {
+          label: "Pending Tasks",
+          count: pendingTasks,
+          unit: pendingTasks === 1 ? "Task" : "Tasks",
+        },
+        {
+          label: "Total Matters",
+          count: totalMatters,
+          unit: totalMatters === 1 ? "Matter" : "Matters",
+        },
+        {
+          label: "Completed Cases",
+          count: completedCases,
+          unit: completedCases === 1 ? "Case" : "Cases",
+        },
+      ];
+    }
+
+    const pendingTasks = userInfo?.pendingTasks ?? 0;
+    const inProgressTasks = userInfo?.inProgressTasks ?? 0;
+    const completedTasks = userInfo?.completedTasks ?? 0;
+
+    return [
+      {
+        label: "Pending",
+        count: pendingTasks,
+        unit: pendingTasks === 1 ? "Task" : "Tasks",
+      },
+      {
+        label: "In Progress",
+        count: inProgressTasks,
+        unit: inProgressTasks === 1 ? "Task" : "Tasks",
+      },
+      {
+        label: "Completed",
+        count: completedTasks,
+        unit: completedTasks === 1 ? "Task" : "Tasks",
+      },
+    ];
+  }, [
+    normalizedRole,
+    userInfo?.pendingTasks,
+    userInfo?.inProgressTasks,
+    userInfo?.completedTasks,
+    userInfo?.totalMatters,
+    userInfo?.closedMatters,
+  ]);
 
   const handleNavigateToDetails = () => {
     if (userInfo?._id) {
@@ -113,7 +162,7 @@ const UserCard = ({ userInfo, onDelete, onResetPassword }) => {
                 </span>
                 <span className="text-2xl font-semibold text-slate-900">{item.count}</span>
                 <span className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-400">
-                  {item.count === 1 ? "Task" : "Tasks"}
+                  {item.unit}
                 </span>
               </div>
             ))}
@@ -126,7 +175,7 @@ const UserCard = ({ userInfo, onDelete, onResetPassword }) => {
               <button
                 type="button"
                 onClick={(event) => handleActionClick(event, onResetPassword)}
-                className="flex items-center gap-2 rounded-2xl border border-indigo-200 bg-indigo-50/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-indigo-600 transition hover:border-indigo-300 hover:bg-indigo-100 hover:text-indigo-700 mx-auto"
+                className="mx-auto flex items-center gap-2 rounded-2xl border border-indigo-200 bg-indigo-50/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-indigo-600 transition hover:border-indigo-300 hover:bg-indigo-100 hover:text-indigo-700"
               >
                 Change Password
               </button>
@@ -135,7 +184,7 @@ const UserCard = ({ userInfo, onDelete, onResetPassword }) => {
               <button
                 type="button"
                 onClick={(event) => handleActionClick(event, onDelete)}
-                className="flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-rose-500 transition hover:border-rose-300 hover:bg-rose-100 hover:text-rose-600 mx-auto"
+                className="mx-auto flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-rose-500 transition hover:border-rose-300 hover:bg-rose-100 hover:text-rose-600"
               >
                 <LuTrash2 className="text-base" /> Delete User
               </button>

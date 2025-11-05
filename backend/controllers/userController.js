@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const Task = require("../models/Task");
 const User = require("../models/User");
+const Matter = require("../models/Matter");
 const {
   PRIVILEGED_ROLES,
   formatUserRole,
@@ -11,6 +12,10 @@ const {
 } = require("../utils/roleUtils");
 
 const buildTaskCountsForUser = async (userId) => {
+  if (!userId) {
+    return { pendingTasks: 0, inProgressTasks: 0, completedTasks: 0 };
+  }
+
   const [pendingTasks, inProgressTasks, completedTasks] = await Promise.all([
     Task.countDocuments({ assignedTo: userId, status: "Pending" }),
     Task.countDocuments({ assignedTo: userId, status: "In Progress" }),
@@ -18,6 +23,22 @@ const buildTaskCountsForUser = async (userId) => {
   ]);
 
   return { pendingTasks, inProgressTasks, completedTasks };
+};
+
+const buildMatterCountsForClient = async (userId) => {
+  if (!userId) {
+    return { totalMatters: 0, activeMatters: 0, closedMatters: 0 };
+  }
+
+  const matchClient = { client: userId };
+
+  const [totalMatters, activeMatters, closedMatters] = await Promise.all([
+    Matter.countDocuments(matchClient),
+    Matter.countDocuments({ ...matchClient, status: { $ne: "Closed" } }),
+    Matter.countDocuments({ ...matchClient, status: "Closed" }),
+  ]);
+
+  return { totalMatters, activeMatters, closedMatters };
 };
 
 // @desc    Get all users (Admin only)
@@ -41,7 +62,17 @@ const getUsers = async (req, res) => {
     const usersWithTaskCounts = await Promise.all(
       users.map(async (user) => {
         const formattedUser = formatUserRole(user);
-        const taskCounts = await buildTaskCountsForUser(formattedUser._id);
+
+        const [taskCounts, matterCounts] = await Promise.all([
+          buildTaskCountsForUser(formattedUser._id),
+          normalizeRole(formattedUser.role) === "client"
+            ? buildMatterCountsForClient(formattedUser._id)
+            : Promise.resolve({
+                totalMatters: 0,
+                activeMatters: 0,
+                closedMatters: 0,
+              }),
+        ]);
 
         const normalizedOfficeLocation =
           typeof formattedUser.officeLocation === "string"
@@ -52,6 +83,7 @@ const getUsers = async (req, res) => {
           ...formattedUser,
           officeLocation: normalizedOfficeLocation,          
           ...taskCounts,
+          ...matterCounts,          
         };
       })
     );
