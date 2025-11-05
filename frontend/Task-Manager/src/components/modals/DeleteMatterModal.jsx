@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { LuAlertTriangle, LuRefreshCw, LuTrash2 } from "react-icons/lu";
+import { LuTriangleAlert, LuRefreshCw, LuTrash2 } from "react-icons/lu";
 import toast from "react-hot-toast";
 
 import Modal from "../Modal";
