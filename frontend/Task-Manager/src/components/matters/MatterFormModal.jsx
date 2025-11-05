@@ -22,13 +22,34 @@ const defaultFormState = {
   tags: "",
 };
 
-const MatterFormModal = ({ isOpen, onClose, onSuccess }) => {
+const formatDateForInput = (value) => {
+  if (!value) {
+    return "";
+  }
+
+  try {
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
+
+    return date.toISOString().split("T")[0];
+  } catch (error) {
+    console.error("Failed to parse date for input", error);
+    return "";
+  }
+};
+
+const MatterFormModal = ({ isOpen, onClose, onSuccess, matter }) => {
   const [formData, setFormData] = useState(defaultFormState);
   const [teamMembers, setTeamMembers] = useState([]);
   const [clients, setClients] = useState([]);
   const [users, setUsers] = useState([]);
   const [isLoadingMetadata, setIsLoadingMetadata] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isEditMode = Boolean(matter?._id);
 
   const resetForm = useCallback(() => {
     setFormData(defaultFormState);
@@ -46,6 +67,47 @@ const MatterFormModal = ({ isOpen, onClose, onSuccess }) => {
     setIsLoadingMetadata(false);
     onClose?.();
   }, [isSubmitting, onClose, resetForm]);
+
+  const applyMatterToForm = useCallback(
+    (targetMatter) => {
+      if (!targetMatter) {
+        resetForm();
+        return;
+      }
+
+      const normalizedClient =
+        targetMatter?.client?._id || targetMatter?.client || "";
+      const normalizedLeadAttorney =
+        targetMatter?.leadAttorney?._id || targetMatter?.leadAttorney || "";
+      const normalizedTeamMembers = Array.isArray(targetMatter?.teamMembers)
+        ? targetMatter.teamMembers
+            .map((member) =>
+              typeof member === "string" ? member : member?._id || ""
+            )
+            .filter(Boolean)
+        : [];
+      const normalizedTags = Array.isArray(targetMatter?.tags)
+        ? targetMatter.tags.join(", ")
+        : typeof targetMatter?.tags === "string"
+        ? targetMatter.tags
+        : "";
+
+      setFormData({
+        title: targetMatter?.title || "",
+        matterNumber: targetMatter?.matterNumber || "",
+        practiceArea: targetMatter?.practiceArea || "",
+        status: targetMatter?.status || "Active",
+        client: normalizedClient,
+        leadAttorney: normalizedLeadAttorney,
+        openedDate: formatDateForInput(targetMatter?.openedDate),
+        description: targetMatter?.description || "",
+        notes: targetMatter?.notes || "",
+        tags: normalizedTags,
+      });
+      setTeamMembers(normalizedTeamMembers);
+    },
+    [resetForm]
+  );
 
   const fetchMetadata = useCallback(async () => {
     try {
@@ -90,9 +152,14 @@ const MatterFormModal = ({ isOpen, onClose, onSuccess }) => {
       return;
     }
 
-    resetForm();
+    if (isEditMode && matter) {
+      applyMatterToForm(matter);
+    } else {
+      resetForm();
+    }
+
     fetchMetadata();
-  }, [fetchMetadata, isOpen, resetForm]);
+  }, [applyMatterToForm, fetchMetadata, isEditMode, isOpen, matter, resetForm]);
 
   const handleValueChange = (key, value) => {
     setFormData((previous) => ({
@@ -192,22 +259,39 @@ const MatterFormModal = ({ isOpen, onClose, onSuccess }) => {
 
     try {
       setIsSubmitting(true);
-      const response = await axiosInstance.post(
-        API_PATHS.MATTERS.CREATE,
-        payload
-      );
+      let response;
+
+      if (isEditMode && matter?._id) {
+        response = await axiosInstance.put(
+          API_PATHS.MATTERS.UPDATE(matter._id),
+          payload
+        );
+      } else {
+        response = await axiosInstance.post(
+          API_PATHS.MATTERS.CREATE,
+          payload
+        );
+      }
 
       const message =
-        response.data?.message || "Matter created successfully";
+        response.data?.message ||
+        (isEditMode
+          ? "Matter updated successfully"
+          : "Matter created successfully");
       toast.success(message);
-      onSuccess?.(response.data?.matter);
-      resetForm();
+      onSuccess?.(response.data?.matter || matter);
+
+      if (!isEditMode) {
+        resetForm();
+      }
     } catch (error) {
-      console.error("Failed to create matter", error);
+      console.error("Failed to submit matter", error);
       const message =
         error.response?.data?.message ||
         error.message ||
-        "Failed to create matter.";
+        (isEditMode
+          ? "Failed to update matter."
+          : "Failed to create matter.");
       toast.error(message);
     } finally {
       setIsSubmitting(false);
@@ -218,7 +302,7 @@ const MatterFormModal = ({ isOpen, onClose, onSuccess }) => {
     <Modal
       isOpen={isOpen}
       onClose={handleModalClose}
-      title="Create Matter"
+      title={isEditMode ? "Update Matter" : "Create Matter"}
       maxWidthClass="max-w-3xl"
     >
       {isLoadingMetadata ? (
@@ -416,10 +500,10 @@ const MatterFormModal = ({ isOpen, onClose, onSuccess }) => {
               {isSubmitting ? (
                 <>
                   <LuRefreshCw className="h-4 w-4 animate-spin" />
-                  Creating...
+                  {isEditMode ? "Updating..." : "Creating..."}
                 </>
               ) : (
-                "Create Matter"
+                isEditMode ? "Update Matter" : "Create Matter"
               )}
             </button>
           </div>

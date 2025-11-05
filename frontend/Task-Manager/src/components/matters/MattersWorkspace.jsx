@@ -11,7 +11,7 @@ import {
   LuCalendarDays,
   LuTag,
   LuSearch,
-  LuMoreVertical, 
+  LuEllipsisVertical, 
 } from "react-icons/lu";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -23,6 +23,7 @@ import { formatDateLabel, formatMediumDateTime } from "../../utils/dateUtils";
 import MatterFormModal from "./MatterFormModal";
 import CaseFormModal from "./CaseFormModal";
 import CaseDocumentModal from "./CaseDocumentModal";
+import DeleteMatterModal from "./DeleteMatterModal";
 
 const trimSlashes = (value, { keepLeading = false } = {}) => {
   if (typeof value !== "string") {
@@ -121,6 +122,9 @@ const MattersWorkspace = ({ basePath = "" }) => {
   const [isCaseDocumentModalOpen, setIsCaseDocumentModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [openMatterActionsId, setOpenMatterActionsId] = useState(null);
+  const [editingMatter, setEditingMatter] = useState(null);
+  const [matterPendingDelete, setMatterPendingDelete] = useState(null);
+  const [isDeleteMatterModalOpen, setIsDeleteMatterModalOpen] = useState(false);  
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const hasSearchQuery = normalizedSearchQuery.length > 0;  
@@ -202,15 +206,45 @@ const MattersWorkspace = ({ basePath = "" }) => {
     }
   };
 
-  const handleMatterCreated = useCallback(async () => {
-    try {
-      await fetchWorkspaceData();
-    } catch {
-      // Error already surfaced in fetchWorkspaceData
-    } finally {
-      setIsMatterFormOpen(false);
-    }
-  }, [fetchWorkspaceData]);
+  const handleMatterModalClose = useCallback(() => {
+    setIsMatterFormOpen(false);
+    setEditingMatter(null);
+  }, []);
+
+  const handleMatterFormSuccess = useCallback(
+    async () => {
+      try {
+        await fetchWorkspaceData();
+      } catch {
+        // Error already surfaced in fetchWorkspaceData
+      } finally {
+        handleMatterModalClose();
+      }
+    },
+    [fetchWorkspaceData, handleMatterModalClose]
+  );
+
+  const handleDeleteModalClose = useCallback(() => {
+    setIsDeleteMatterModalOpen(false);
+    setMatterPendingDelete(null);
+  }, []);
+
+  const handleMatterDeleted = useCallback(
+    async (deletedMatter) => {
+      try {
+        await fetchWorkspaceData();
+      } catch {
+        // Error already surfaced in fetchWorkspaceData
+      } finally {
+        handleDeleteModalClose();
+
+        if (deletedMatter?._id && deletedMatter._id === matterId) {
+          navigate(joinPaths(baseRoute), { replace: true });
+        }
+      }
+    },
+    [baseRoute, fetchWorkspaceData, handleDeleteModalClose, matterId, navigate]
+  );
 
   const handleCaseCreated = useCallback(
     async (createdCase) => {
@@ -519,7 +553,7 @@ const MattersWorkspace = ({ basePath = "" }) => {
                       aria-expanded={isMenuOpen}
                       aria-label="Matter options"
                     >
-                      <LuMoreVertical className="h-5 w-5" />
+                      <LuEllipsisVertical className="h-5 w-5" />
                     </button>
                     {isMenuOpen && (
                       <div
@@ -534,7 +568,8 @@ const MattersWorkspace = ({ basePath = "" }) => {
                             event.stopPropagation();
                             event.preventDefault();
                             setOpenMatterActionsId(null);
-                            toast.success("Matter update coming soon");
+                            setEditingMatter(folder.matter);
+                            setIsMatterFormOpen(true);
                           }}
                           className="flex w-full items-center px-4 py-2 text-left text-slate-600 transition hover:bg-primary/10 hover:text-primary dark:text-slate-300"
                         >
@@ -547,7 +582,8 @@ const MattersWorkspace = ({ basePath = "" }) => {
                             event.stopPropagation();
                             event.preventDefault();
                             setOpenMatterActionsId(null);
-                            toast.success("Matter delete coming soon");
+                            setMatterPendingDelete(folder.matter);
+                            setIsDeleteMatterModalOpen(true);
                           }}
                           className="flex w-full items-center px-4 py-2 text-left text-slate-600 transition hover:bg-red-50 hover:text-red-600 dark:text-slate-300 dark:hover:bg-red-500/20 dark:hover:text-red-300"
                         >
@@ -949,7 +985,10 @@ const MattersWorkspace = ({ basePath = "" }) => {
           ) : (
             <button
               type="button"
-              onClick={() => setIsMatterFormOpen(true)}
+              onClick={() => {
+                setEditingMatter(null);
+                setIsMatterFormOpen(true);
+              }}
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/40"
             >
               <LuPlus className="h-4 w-4" />
@@ -990,8 +1029,15 @@ const MattersWorkspace = ({ basePath = "" }) => {
       />      
       <MatterFormModal
         isOpen={isMatterFormOpen}
-        onClose={() => setIsMatterFormOpen(false)}
-        onSuccess={handleMatterCreated}
+        onClose={handleMatterModalClose}
+        onSuccess={handleMatterFormSuccess}
+        matter={editingMatter}
+      />
+      <DeleteMatterModal
+        isOpen={isDeleteMatterModalOpen}
+        onClose={handleDeleteModalClose}
+        matter={matterPendingDelete}
+        onDeleted={handleMatterDeleted}
       />      
     </div>
   );
