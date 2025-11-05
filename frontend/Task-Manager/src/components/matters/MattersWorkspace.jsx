@@ -3,7 +3,8 @@ import {
   LuArrowLeft,
   LuBriefcase,
   LuFolderTree,
-  LuPlus,  
+  LuPlus,
+  LuReceipt,
   LuRefreshCw,
   LuUpload,  
   LuUser,
@@ -24,6 +25,7 @@ import MatterFormModal from "./MatterFormModal";
 import CaseFormModal from "./CaseFormModal";
 import CaseDocumentModal from "./CaseDocumentModal";
 import DeleteMatterModal from "../modals/DeleteMatterModal";
+import InvoiceModal from "../modals/InvoiceModal";
 
 const trimSlashes = (value, { keepLeading = false } = {}) => {
   if (typeof value !== "string") {
@@ -120,6 +122,7 @@ const MattersWorkspace = ({ basePath = "" }) => {
   const [isMatterFormOpen, setIsMatterFormOpen] = useState(false);
   const [isCaseFormOpen, setIsCaseFormOpen] = useState(false);
   const [isCaseDocumentModalOpen, setIsCaseDocumentModalOpen] = useState(false);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [openMatterActionsId, setOpenMatterActionsId] = useState(null);
   const [editingMatter, setEditingMatter] = useState(null);
@@ -915,6 +918,21 @@ const MattersWorkspace = ({ basePath = "" }) => {
     );
   };
 
+  const isMatterView = Boolean(matterId);
+  const isCaseView = Boolean(matterId && caseId);
+
+  const handleInvoiceDrafted = useCallback((invoiceData) => {
+    console.debug("Invoice draft payload", invoiceData);
+    toast.success("Invoice draft saved.");
+    setIsInvoiceModalOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (!isMatterView) {
+      setIsInvoiceModalOpen(false);
+    }
+  }, [isMatterView]);
+
   if (isLoading) {
     return (
       <div className="relative">
@@ -922,9 +940,6 @@ const MattersWorkspace = ({ basePath = "" }) => {
       </div>
     );
   }
-
-  const isMatterView = Boolean(matterId);
-  const isCaseView = Boolean(matterId && caseId);
 
   return (
     <div className="space-y-6">
@@ -957,44 +972,61 @@ const MattersWorkspace = ({ basePath = "" }) => {
                     return;
                   }
 
-                  setIsCaseDocumentModalOpen(true);
-                }}
-                disabled={!selectedCase}
-                className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <LuUpload className="h-4 w-4" />
-                Upload Document
-              </button>
+                    setIsCaseDocumentModalOpen(true);
+                  }}
+                  disabled={!selectedCase}
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <LuUpload className="h-4 w-4" />
+                  Upload Document
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!selectedMatter) {
+                        return;
+                      }
+
+                      setIsCaseFormOpen(true);
+                    }}
+                    disabled={!selectedMatter}
+                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <LuPlus className="h-4 w-4" />
+                    New Case
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!selectedMatter) {
+                        return;
+                      }
+
+                      setIsInvoiceModalOpen(true);
+                    }}
+                    disabled={!selectedMatter}
+                    className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <LuReceipt className="h-4 w-4" />
+                    Invoice
+                  </button>
+                </>
+              )
             ) : (
               <button
                 type="button"
                 onClick={() => {
-                  if (!selectedMatter) {
-                    return;
-                  }
-
-                  setIsCaseFormOpen(true);
+                  setEditingMatter(null);
+                  setIsMatterFormOpen(true);
                 }}
-                disabled={!selectedMatter}
-                className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/40"
               >
                 <LuPlus className="h-4 w-4" />
-                New Case
+                Matter
               </button>
-            )
-          ) : (
-            <button
-              type="button"
-              onClick={() => {
-                setEditingMatter(null);
-                setIsMatterFormOpen(true);
-              }}
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/40"
-            >
-              <LuPlus className="h-4 w-4" />
-              Matter
-            </button>
-          )}
+            )}
             <button
               type="button"
               onClick={handleRefresh}
@@ -1038,7 +1070,13 @@ const MattersWorkspace = ({ basePath = "" }) => {
         onClose={handleDeleteModalClose}
         matter={matterPendingDelete}
         onDeleted={handleMatterDeleted}
-      />      
+      />
+      <InvoiceModal
+        isOpen={isInvoiceModalOpen}
+        onClose={() => setIsInvoiceModalOpen(false)}
+        matter={selectedMatter?.matter}
+        onSubmit={handleInvoiceDrafted}
+      />    
     </div>
   );
 };
