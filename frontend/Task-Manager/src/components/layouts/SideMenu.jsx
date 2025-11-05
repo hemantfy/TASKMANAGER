@@ -62,6 +62,10 @@ const SideMenu = ({ activeMenu }) => {
       return resolvePrivilegedPath("/admin/profile-settings", normalizedRole);
     }
 
+    if (normalizedRole === "client") {
+      return "/client/profile-settings";
+    }
+
     return "/user/profile-settings";
   }, [isPrivilegedUser, normalizedRole, user]);  
 
