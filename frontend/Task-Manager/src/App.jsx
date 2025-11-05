@@ -15,6 +15,7 @@ const AdminManageClients = React.lazy(() => import("./pages/Admin/ManageClients"
 const AdminUserDetails = React.lazy(() => import("./pages/Admin/UserDetails"));
 const AdminMatters = React.lazy(() => import("./pages/Admin/Matters"));
 const AdminDocuments = React.lazy(() => import("./pages/Admin/Documents"));
+const AdminInvoices = React.lazy(() => import("./pages/Admin/Invoices"));
 const ProfileSettings = React.lazy(() => import("./pages/Profile/ProfileSettings"));
 const SignUp = React.lazy(() => import("./pages/Auth/SignUp"));
 const Unauthorized = React.lazy(() => import("./pages/Errors/Unauthorized"));
@@ -30,9 +31,11 @@ const OwnerManageClients = React.lazy(() => import("./pages/Owner/ManageClients"
 const OwnerUserDetails = React.lazy(() => import("./pages/Owner/UserDetails"));
 const OwnerMatters = React.lazy(() => import("./pages/Owner/Matters"));
 const OwnerDocuments = React.lazy(() => import("./pages/Owner/Documents"));
+const OwnerInvoices = React.lazy(() => import("./pages/Owner/Invoices"));
 const ClientHome = React.lazy(() => import("./pages/Client/Home"));
 const ClientProjects = React.lazy(() => import("./pages/Client/ClientProjects"));
 const ClientViewTaskDetails = React.lazy(() => import("./pages/Client/ViewTaskDetails"));
+const ClientInvoices = React.lazy(() => import("./pages/Client/Invoices"));
 
 const App = () => {
   return (
@@ -56,6 +59,7 @@ const App = () => {
                 <Route path="/admin/tasks" element={<AdminTasks />} />
                 <Route path="/admin/matters/*" element={<AdminMatters />} />
                 <Route path="/admin/documents/*" element={<AdminDocuments />} />
+                <Route path="/admin/invoices" element={<AdminInvoices />} />                
                 <Route path="/admin/employees" element={<AdminManageEmployees />} />
                 <Route path="/admin/clients" element={<AdminManageClients />} />
                 <Route path="/admin/users/:userId" element={<AdminUserDetails />} />
@@ -68,6 +72,7 @@ const App = () => {
                 <Route path="/owner/tasks" element={<OwnerTasks />} />
                 <Route path="/owner/matters/*" element={<OwnerMatters />} />
                 <Route path="/owner/documents/*" element={<OwnerDocuments />} />
+                <Route path="/owner/invoices" element={<OwnerInvoices />} />                
                 <Route path="/owner/employees" element={<OwnerManageEmployees />} />
                 <Route path="/owner/clients" element={<OwnerManageClients />} />
                 <Route path="/owner/users/:userId" element={<OwnerUserDetails />} />
@@ -90,6 +95,7 @@ const App = () => {
                   <Route index element={<Navigate to="home" replace />} />
                   <Route path="home" element={<ClientHome />} />
                   <Route path="projects" element={<ClientProjects />} />
+                  <Route path="invoices" element={<ClientInvoices />} />                  
                   <Route path="task-details/:id" element={<ClientViewTaskDetails />} />
                   <Route path="profile-settings" element={<ProfileSettings />} />
                 </Route>

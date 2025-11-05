@@ -52,8 +52,8 @@ const ClientHome = () => {
         description: "Review statements, payment history, and upcoming retainers with clarity.",
         icon: LuReceipt,
         accent: "from-amber-500 via-orange-500 to-rose-400",
-        disabled: true,
-        cta: "Coming soon",
+        action: () => navigate("/client/invoices"),
+        cta: "View invoices",
       },
       {
         id: "calendar",
