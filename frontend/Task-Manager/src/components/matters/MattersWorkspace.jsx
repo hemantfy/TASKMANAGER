@@ -10,7 +10,8 @@ import {
   LuUsers,
   LuCalendarDays,
   LuTag,
-  LuSearch,  
+  LuSearch,
+  LuMoreVertical, 
 } from "react-icons/lu";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -119,6 +120,7 @@ const MattersWorkspace = ({ basePath = "" }) => {
   const [isCaseFormOpen, setIsCaseFormOpen] = useState(false);
   const [isCaseDocumentModalOpen, setIsCaseDocumentModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [openMatterActionsId, setOpenMatterActionsId] = useState(null);
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const hasSearchQuery = normalizedSearchQuery.length > 0;  
@@ -388,11 +390,46 @@ const MattersWorkspace = ({ basePath = "" }) => {
     }
   }, [baseRoute, caseId, isLoading, matterId, navigate, selectedCase, selectedMatter]);
 
+  useEffect(() => {
+    if (!openMatterActionsId) {
+      return undefined;
+    }
+
+    const handleDocumentClick = (event) => {
+      const { target } = event;
+
+      if (target && typeof target.closest === "function") {
+        const withinMenu = target.closest('[data-matter-actions-root="true"]');
+
+        if (withinMenu) {
+          return;
+        }
+      }
+
+      setOpenMatterActionsId(null);
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") {
+        setOpenMatterActionsId(null);
+      }
+    };
+
+    document.addEventListener("click", handleDocumentClick);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("click", handleDocumentClick);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [openMatterActionsId]);
+
   const handleOpenMatter = (targetMatterId) => {
     if (!targetMatterId) {
       return;
     }
 
+    setOpenMatterActionsId(null);    
     navigate(joinPaths(baseRoute, targetMatterId));
   };
 
@@ -433,29 +470,93 @@ const MattersWorkspace = ({ basePath = "" }) => {
             const stats = folder.matter?.stats || {};
             const caseCount = stats.caseCount ?? folder.cases.length;
             const clientLabel = folder.matter?.client?.name || folder.matter?.clientName || "Unassigned client";
+            const matterKey = folder.matter?._id || Math.random();
+            const isMenuOpen = openMatterActionsId === folder.matter?._id;
 
             return (
-              <li key={folder.matter?._id || Math.random()}>
-                <button
-                  type="button"
+              <li key={matterKey}>
+                <div
+                  role="button"
+                  tabIndex={0}
                   onClick={() => handleOpenMatter(folder.matter?._id)}
-                  className="flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/70 px-4 py-4 text-left text-base font-medium text-slate-700 transition hover:border-primary/40 hover:bg-primary/10 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:border-primary/50 dark:hover:bg-slate-800/70"
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      handleOpenMatter(folder.matter?._id);
+                    }
+                  }}
+                  className="group relative flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/70 px-4 py-4 text-left text-base font-medium text-slate-700 transition hover:border-primary/40 hover:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-primary/30 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:border-primary/50 dark:hover:bg-slate-800/70"
                 >
-                  <span className="flex flex-col items-start gap-1 text-left">
-                    <span className="flex items-center gap-3">
-                      <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20">
-                        <LuBriefcase className="h-5 w-5" />
-                      </span>
-                      <span>{folder.matter?.title || "Untitled Matter"}</span>
+                  <span className="flex min-w-0 flex-1 items-center gap-3">
+                    <span className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20">
+                      <LuBriefcase className="h-5 w-5" />
                     </span>
-                    <span className="text-xs text-slate-500 dark:text-slate-400">
-                      {clientLabel}
+                    <span className="flex min-w-0 flex-1 flex-col items-start gap-1 text-left">
+                      <span className="truncate">{folder.matter?.title || "Untitled Matter"}</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                        {clientLabel}
+                      </span>
                     </span>
                   </span>
                   <span className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
                     {caseCount} case{caseCount === 1 ? "" : "s"}
                   </span>
-                </button>
+                  <div
+                    className="relative ml-2 flex-shrink-0"
+                    data-matter-actions-root="true"
+                  >
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        event.preventDefault();
+                        setOpenMatterActionsId((previous) =>
+                          previous === folder.matter?._id ? null : folder.matter?._id
+                        );
+                      }}
+                      className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-primary/10 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/40 dark:text-slate-300"
+                      aria-haspopup="menu"
+                      aria-expanded={isMenuOpen}
+                      aria-label="Matter options"
+                    >
+                      <LuMoreVertical className="h-5 w-5" />
+                    </button>
+                    {isMenuOpen && (
+                      <div
+                        role="menu"
+                        data-matter-actions-menu="true"
+                        className="absolute right-0 z-20 mt-2 w-40 overflow-hidden rounded-xl border border-slate-200 bg-white text-sm shadow-lg dark:border-slate-700 dark:bg-slate-900"
+                      >
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            event.preventDefault();
+                            setOpenMatterActionsId(null);
+                            toast.success("Matter update coming soon");
+                          }}
+                          className="flex w-full items-center px-4 py-2 text-left text-slate-600 transition hover:bg-primary/10 hover:text-primary dark:text-slate-300"
+                        >
+                          Update
+                        </button>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            event.preventDefault();
+                            setOpenMatterActionsId(null);
+                            toast.success("Matter delete coming soon");
+                          }}
+                          className="flex w-full items-center px-4 py-2 text-left text-slate-600 transition hover:bg-red-50 hover:text-red-600 dark:text-slate-300 dark:hover:bg-red-500/20 dark:hover:text-red-300"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </li>
             );
           })}
