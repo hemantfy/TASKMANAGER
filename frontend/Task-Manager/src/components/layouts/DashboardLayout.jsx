@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
 import { UserContext } from "../../context/userContext.jsx";
+import { useLayoutContext } from "../../context/layoutContext.jsx";
 import Navbar from "./Navbar";
 import SideMenu from "./SideMenu";
 import MobileNavigation from "./MobileNavigation";
@@ -8,6 +9,7 @@ import LoadingOverlay from "../LoadingOverlay";
 
 const DashboardLayout = ({ children, activeMenu }) => {
   const { user, loading } = useContext(UserContext);
+  const { setActiveMenu, closeMobileNav } = useLayoutContext();  
   const [showBirthdayModal, setShowBirthdayModal] = useState(false);
 
   const shouldShowBirthday = useMemo(() => {
@@ -49,6 +51,14 @@ const DashboardLayout = ({ children, activeMenu }) => {
     window.localStorage.setItem(storageKey, todayKey);
     setShowBirthdayModal(true);
   }, [shouldShowBirthday, user?._id]);
+
+  useEffect(() => {
+    setActiveMenu(activeMenu || "");
+  }, [activeMenu, setActiveMenu]);
+
+  useEffect(() => {
+    closeMobileNav();
+  }, [closeMobileNav]);
 
   if (loading) {
     return (

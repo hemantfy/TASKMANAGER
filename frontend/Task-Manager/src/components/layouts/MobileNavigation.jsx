@@ -12,6 +12,7 @@ import {
   normalizeRole,
   resolvePrivilegedPath,
 } from "../../utils/roleUtils";
+import { useLayoutContext } from "../../context/layoutContext.jsx";
 
 const normalizePath = (path) => {
   if (typeof path !== "string") return "";
@@ -20,6 +21,7 @@ const normalizePath = (path) => {
 
 const MobileNavigation = () => {
   const { user, clearUser } = useContext(UserContext);
+  const { closeMobileNav } = useLayoutContext();  
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -66,6 +68,7 @@ const MobileNavigation = () => {
           }
           clearUser?.();
           navigate("/login");
+          closeMobileNav?.();          
         }
         return;
       }
@@ -73,9 +76,10 @@ const MobileNavigation = () => {
       const normalizedDestination = normalizePath(path);
       if (normalizedDestination) {
         navigate(normalizedDestination);
+        closeMobileNav?.();        
       }
     },
-    [clearUser, navigate]
+    [clearUser, closeMobileNav, navigate]
   );
 
   const isItemActive = useCallback(

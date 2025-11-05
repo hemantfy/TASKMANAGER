@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import PrivateRoute from "./routes/PrivateRoute";
 
 import UserProvider, { UserContext } from "./context/userContext.jsx";
+import LayoutProvider from "./context/layoutContext.jsx";
 import { Toaster } from "react-hot-toast";
 import { getDefaultRouteForRole } from "./utils/roleUtils";
 import LoadingOverlay from "./components/LoadingOverlay";
@@ -36,15 +37,16 @@ const ClientViewTaskDetails = React.lazy(() => import("./pages/Client/ViewTaskDe
 const App = () => {
   return (
     <UserProvider>
-      <div>
-        <Suspense
-          fallback={
-            <div className="flex min-h-screen items-center justify-center bg-slate-50 text-sm font-medium text-slate-600">
-              Loading workspace...
-            </div>
-          }
-        >
-          <Routes>
+      <LayoutProvider>
+        <div>
+          <Suspense
+            fallback={
+              <div className="flex min-h-screen items-center justify-center bg-slate-50 text-sm font-medium text-slate-600">
+                Loading workspace...
+              </div>
+            }
+          >
+            <Routes>
               <Route path="/" element={<Login />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signUp" element={<SignUp />} />
@@ -99,14 +101,15 @@ const App = () => {
         </Suspense>
       </div>
 
-      <Toaster
-        toastOptions={{
-          className: "",
-          style: {
-            fontSize: "13px",
-          },
-        }}
-      />
+        <Toaster
+          toastOptions={{
+            className: "",
+            style: {
+              fontSize: "13px",
+            },
+          }}
+        />
+      </LayoutProvider>
     </UserProvider>
   );
 };

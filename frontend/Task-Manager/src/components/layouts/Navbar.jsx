@@ -1,60 +1,19 @@
-import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useContext } from "react";
 import { LuLogOut, LuMoonStar, LuSun } from "react-icons/lu";
 import NotificationBell from "../Notifications/NotificationBell";
 import logo from "../../assets/images/logo.png";
 import { useNavigate } from "react-router-dom";
 import { UserContext } from "../../context/userContext.jsx";
-import { matchesRole } from "../../utils/roleUtils";
+import { useLayoutContext } from "../../context/layoutContext.jsx";
 
 const Navbar = () => {
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const navigate = useNavigate();
-  const { user, clearUser } = useContext(UserContext);
-  const productLabel = useMemo(
-    () => (matchesRole(user?.role, "client") ? "Case Manager" : "Task Manager"),
-    [user?.role]
-  );  
-  const applyThemePreference = useCallback((shouldUseDarkTheme) => {
-    const root = document.documentElement;
+  const { clearUser } = useContext(UserContext);
+  const { isDarkMode, toggleDarkMode, resetThemePreference } = useLayoutContext();
 
-    if (shouldUseDarkTheme) {
-      root.classList.add("dark");
-      localStorage.setItem("task-manager-theme", "dark");
-    } else {
-      root.classList.remove("dark");
-      localStorage.setItem("task-manager-theme", "light");
-    }
-  }, []);
-
-  useEffect(() => {
-    const storedPreference = localStorage.getItem("task-manager-theme");
-    const prefersDarkMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const shouldUseDarkTheme = storedPreference
-      ? storedPreference === "dark"
-      : prefersDarkMode;
-
-    setIsDarkMode(shouldUseDarkTheme);
-    applyThemePreference(shouldUseDarkTheme);
-
-    const handleSystemThemeChange = (event) => {
-      if (localStorage.getItem("task-manager-theme")) return;
-      setIsDarkMode(event.matches);
-      applyThemePreference(event.matches);
-    };
-
-    const mediaQueryList = window.matchMedia("(prefers-color-scheme: dark)");
-    mediaQueryList.addEventListener("change", handleSystemThemeChange);
-
-    return () => mediaQueryList.removeEventListener("change", handleSystemThemeChange);
-  }, [applyThemePreference]);
-
-  const handleThemeToggle = () => {
-    setIsDarkMode((previous) => {
-      const nextValue = !previous;
-      applyThemePreference(nextValue);
-      return nextValue;
-    });
-  };
+  const handleThemeToggle = useCallback(() => {
+    toggleDarkMode();
+  }, [toggleDarkMode]);
 
   const handleLogout = useCallback(() => {
     const confirmed = window.confirm("Are you sure you want to logout?");
@@ -69,9 +28,11 @@ const Navbar = () => {
       // ignore storage errors
     }
 
+    resetThemePreference?.();
+
     clearUser?.();
     navigate("/login");
-  }, [clearUser, navigate]);
+   }, [clearUser, navigate, resetThemePreference]);
 
   return (
     <header className="app-header sticky top-0 z-30 border-b border-white/30 bg-white/70 backdrop-blur-xl transition-colors duration-300 dark:border-slate-800/70 dark:bg-slate-900/70 dark:shadow-[0_20px_40px_rgba(2,6,23,0.6)]">
