@@ -1,5 +1,5 @@
 import React, { Suspense, useContext } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import PrivateRoute from "./routes/PrivateRoute";
 
 import UserProvider, { UserContext } from "./context/userContext.jsx";
@@ -37,15 +37,14 @@ const App = () => {
   return (
     <UserProvider>
       <div>
-        <Router>
-          <Suspense
-            fallback={
-              <div className="flex min-h-screen items-center justify-center bg-slate-50 text-sm font-medium text-slate-600">
-                Loading workspace...
-              </div>
-            }
-          >
-            <Routes>
+        <Suspense
+          fallback={
+            <div className="flex min-h-screen items-center justify-center bg-slate-50 text-sm font-medium text-slate-600">
+              Loading workspace...
+            </div>
+          }
+        >
+          <Routes>
               <Route path="/" element={<Login />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signUp" element={<SignUp />} />
@@ -96,9 +95,8 @@ const App = () => {
 
               <Route path="/unauthorized" element={<Unauthorized />} />
               <Route path="*" element={<Root />} />
-            </Routes>
-          </Suspense>
-        </Router>
+          </Routes>
+        </Suspense>
       </div>
 
       <Toaster
