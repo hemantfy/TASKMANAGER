@@ -6,17 +6,17 @@ import React, {
   useState,
 } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { formatDateLabel } from "../../utils/dateUtils";
+import { formatDateLabel } from "../../utils/dateUtils.js";
 import { LuArrowLeft, LuExternalLink, LuLoader } from "react-icons/lu";
 import { FaUser } from "react-icons/fa6";
 
-import DashboardLayout from "../../components/layouts/DashboardLayout";
-import axiosInstance from "../../utils/axiosInstance";
-import { API_PATHS } from "../../utils/apiPaths";
+import DashboardLayout from "../../components/layouts/DashboardLayout.jsx";
+import axiosInstance from "../../utils/axiosInstance.js";
+import { API_PATHS } from "../../utils/apiPaths.js";
 import { UserContext } from "../../context/userContext.jsx";
-import { getPrivilegedBasePath, normalizeRole } from "../../utils/roleUtils";
-import TaskFormModal from "../../components/TaskFormModal";
-import { formatCurrency } from "../../utils/invoiceUtils";
+import { getPrivilegedBasePath, normalizeRole } from "../../utils/roleUtils.js";
+import TaskFormModal from "../../components/TaskFormModal.jsx";
+import { formatCurrency } from "../../utils/invoiceUtils.js";
 
 const statusBadgeStyles = {
   Pending: "bg-amber-100 text-amber-600 border-amber-200",

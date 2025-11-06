@@ -8,15 +8,15 @@ import React, {
   useCallback,
 } from "react";
 import { useNavigate } from "react-router-dom";
-import { useUserAuth } from "../../hooks/useUserAuth";
+import { useUserAuth } from "../../hooks/useUserAuth.jsx";
 import { UserContext } from "../../context/userContext.jsx";
-import DashboardLayout from "../../components/layouts/DashboardLayout";
-import axiosInstance from "../../utils/axiosInstance";
-import { API_PATHS } from "../../utils/apiPaths";
-import { addThousandsSeparator } from "../../utils/helper";
-import { DEFAULT_OFFICE_LOCATIONS } from "../../utils/data";
-import { getPrivilegedBasePath } from "../../utils/roleUtils";
-import InfoCard from "../../components/Cards/infoCard";
+import DashboardLayout from "../../components/layouts/DashboardLayout.jsx";
+import axiosInstance from "../../utils/axiosInstance.js";
+import { API_PATHS } from "../../utils/apiPaths.js";
+import { addThousandsSeparator } from "../../utils/helper.js";
+import { DEFAULT_OFFICE_LOCATIONS } from "../../utils/data.js";
+import { getPrivilegedBasePath } from "../../utils/roleUtils.js";
+import InfoCard from "../../components/Cards/infoCard.jsx";
 import {
   LuArrowRight,
   LuBadgeCheck,
@@ -24,19 +24,19 @@ import {
   LuClock3,
   LuRefreshCcw
 } from "react-icons/lu";
-import LoadingOverlay from "../../components/LoadingOverlay";
-import useActiveNotices from "../../hooks/useActiveNotices";
+import LoadingOverlay from "../../components/LoadingOverlay.jsx";
+import useActiveNotices from "../../hooks/useActiveNotices.js";
 import {
   formatFullDateTime,
   formatDateLabel,
   formatDateInputValue
-} from "../../utils/dateUtils";
+} from "../../utils/dateUtils.js";
 
-const NoticeBoard = lazy(() => import("../../components/NoticeBoard"));
-const CustomPieChart = lazy(() => import("../../components/Charts/CustomPieChart"));
-const CustomBarChart = lazy(() => import("../../components/Charts/CustomBarChart"));
-const TaskListTable = lazy(() => import("../../components/TaskListTable"));
-const LeaderboardTable = lazy(() => import("../../components/LeaderboardTable"));
+const NoticeBoard = lazy(() => import("../../components/NoticeBoard.jsx"));
+const CustomPieChart = lazy(() => import("../../components/Charts/CustomPieChart.jsx"));
+const CustomBarChart = lazy(() => import("../../components/Charts/CustomBarChart.jsx"));
+const TaskListTable = lazy(() => import("../../components/TaskListTable.jsx"));
+const LeaderboardTable = lazy(() => import("../../components/LeaderboardTable.jsx"));
 
 const getGreetingMessage = (hour) => {
   if (hour < 12) {

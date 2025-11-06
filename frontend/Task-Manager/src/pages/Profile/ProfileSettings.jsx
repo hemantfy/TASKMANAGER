@@ -56,7 +56,7 @@ const ProfileSettings = () => {
     () => normalizeRole(user?.role),
     [user?.role]
   );
-  const isOwner = normalizedRole === "owner";
+  const isSuperAdmin = normalizedRole === "super_admin";
 
   useEffect(() => {
     setDisplayName(user?.name || "");
@@ -322,7 +322,7 @@ const ProfileSettings = () => {
             </p>
           </div>
 
-          {isOwner && (
+          {isSuperAdmin && (
             <button
               type="button"
               onClick={openDeleteAccountModal}
@@ -566,7 +566,7 @@ const ProfileSettings = () => {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">
-                  Delete Owner Account
+                  Delete Super Admin Account
                 </h3>
                 <p className="mt-1 text-sm text-slate-500">
                   This action permanently removes your profile and related
@@ -588,13 +588,13 @@ const ProfileSettings = () => {
               <form className="mt-6 space-y-4" onSubmit={handleInviteTokenSubmit}>
                 <div className="space-y-2">
                   <label
-                    htmlFor="ownerInviteToken"
+                    htmlFor="superAdminInviteToken"
                     className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500"
                   >
                     Admin Invite Token
                   </label>
                   <input
-                    id="ownerInviteToken"
+                    id="superAdminInviteToken"
                     type="text"
                     value={inviteToken}
                     onChange={(event) => setInviteToken(event.target.value)}
@@ -628,7 +628,7 @@ const ProfileSettings = () => {
                 <div className="flex items-center gap-3 rounded-2xl border border-rose-100 bg-rose-50 p-3 text-rose-600">
                   <LuTriangleAlert className="text-lg" />
                   <p className="text-sm font-medium">
-                    Deleting your owner account will remove access for this
+                    Deleting your Super Admin account will remove access for this
                     user immediately.
                   </p>
                 </div>

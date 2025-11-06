@@ -1,16 +1,16 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
-import DashboardLayout from "../../components/layouts/DashboardLayout.jsx";
-import { API_PATHS } from "../../utils/apiPaths.js";
-import axiosInstance from "../../utils/axiosInstance.js";
+import DashboardLayout from "../../components/layouts/DashboardLayout";
+import { API_PATHS } from "../../utils/apiPaths";
+import axiosInstance from "../../utils/axiosInstance";
 import { LuFileSpreadsheet, LuUsers } from "react-icons/lu";
-import UserCard from "../../components/Cards/UserCard.jsx";
+import UserCard from "../../components/Cards/UserCard";
 import toast from "react-hot-toast";
-import LoadingOverlay from "../../components/LoadingOverlay.jsx";
+import LoadingOverlay from "../../components/LoadingOverlay";
 import { UserContext } from "../../context/userContext.jsx";
-import { DEFAULT_OFFICE_LOCATIONS } from "../../utils/data.js";
-import { normalizeRole } from "../../utils/roleUtils.js";
+import { DEFAULT_OFFICE_LOCATIONS } from "../../utils/data";
+import { normalizeRole } from "../../utils/roleUtils";
 
-const ManageEmployees = () => {
+const ManageClients = () => {
   const { user: currentUser } = useContext(UserContext);
   const [allUsers, setAllUsers] = useState([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -22,7 +22,7 @@ const ManageEmployees = () => {
     confirmPassword: "",
     gender: "",
     officeLocation: "",
-    role: "member",
+    role: "client",
   });
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -43,7 +43,7 @@ const ManageEmployees = () => {
       if (Array.isArray(response.data)) {
         const sortedUsers = [...response.data].sort((userA, userB) => {
           const rolePriority = {
-            owner: 0,
+            super_admin: 0,
             admin: 1,
             member: 2,
             client: 3,            
@@ -84,7 +84,7 @@ const ManageEmployees = () => {
     event.preventDefault();
     if (isSubmitting) return;
 
-    const requestedRole = normalizeRole(formData.role) || "member";
+    const requestedRole = "client";
 
     const trimmedOfficeLocation =
       typeof formData.officeLocation === "string"
@@ -113,7 +113,7 @@ const ManageEmployees = () => {
     try {
       setIsSubmitting(true);
       await axiosInstance.post(API_PATHS.USERS.CREATE_USER, payload);
-      toast.success("Employee added successfully.");
+      toast.success("Client added successfully.");
       setShowCreateForm(false);
       setFormData({
         name: "",
@@ -146,8 +146,8 @@ const ManageEmployees = () => {
       typeof user === "object" ? user?.role : undefined
     );
 
-    if (userRole === "owner" && normalizedCurrentUserRole !== "owner") {
-      toast.error("Only owners can remove owner accounts.");
+    if (userRole === "super_admin" && normalizedCurrentUserRole !== "super_admin") {
+      toast.error("Only Super Admins can remove Super Admin accounts.");
       return;
     }
 
@@ -160,12 +160,12 @@ const ManageEmployees = () => {
       ? String(currentUser._id)
       : "";
     if (
-      normalizedCurrentUserRole === "owner" &&
+      normalizedCurrentUserRole === "super_admin" &&
       currentUserIdString &&
       String(userId) === currentUserIdString
     ) {
       toast.error(
-        "Owners must delete their own account from Profile Settings."
+        "Super Admins must delete their own account from Profile Settings."
       );
       return;
     }
@@ -203,14 +203,14 @@ const ManageEmployees = () => {
       currentUserIdString &&
       userIdString === currentUserIdString;
 
-    if (normalizedRole === "owner" && normalizedCurrentUserRole !== "owner") {
-      toast.error("Only owners can reset passwords for owner accounts.");
+    if (normalizedRole === "super_admin" && normalizedCurrentUserRole !== "super_admin") {
+      toast.error("Only Super Admins can reset passwords for Super Admin accounts.");
       return;
     }
 
-    if (normalizedCurrentUserRole === "owner" && isCurrentUser) {
+    if (normalizedCurrentUserRole === "super_admin" && isCurrentUser) {
       toast.error(
-        "Owners can update their own password from Profile Settings."
+        "Super Admins can update their own password from Profile Settings."
       );
       return;
     }
@@ -229,8 +229,8 @@ const ManageEmployees = () => {
     if (!selectedUser || isResettingPassword) return;
 
    const selectedUserRole = normalizeRole(selectedUser?.role);
-    if (selectedUserRole === "owner" && normalizedCurrentUserRole !== "owner") {
-      toast.error("Only owners can reset passwords for owner accounts.");
+    if (selectedUserRole === "super_admin" && normalizedCurrentUserRole !== "super_admin") {
+      toast.error("Only Super Admins can reset passwords for Super Admin accounts.");
       return;
     }
   
@@ -281,7 +281,7 @@ const ManageEmployees = () => {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Error downloading expense details:", error);
-      toast.error("Failed to download employee report. Please try again later.");
+      toast.error("Failed to download client report. Please try again later.");
     }    
   };
 
@@ -296,10 +296,7 @@ const ManageEmployees = () => {
       return;
     }
 
-    const allowedRoles =
-      normalizedCurrentUserRole === "owner"
-        ? ["member", "admin", "owner"]
-        : ["member", "admin"];
+    const allowedRoles = ["client"];
 
     if (!allowedRoles.includes(formData.role)) {
       setFormData((prev) => ({
@@ -309,20 +306,10 @@ const ManageEmployees = () => {
     }
   }, [formData.role, normalizedCurrentUserRole, showCreateForm]);
 
-  const availableRoleOptions = useMemo(() => {
-    if (normalizedCurrentUserRole === "owner") {
-      return [
-        { value: "member", label: "Member" },       
-        { value: "admin", label: "Admin" },
-        { value: "owner", label: "Owner" },
-      ];
-    }
-
-    return [
-      { value: "member", label: "Member" },     
-      { value: "admin", label: "Admin" },
-    ];
-  }, [normalizedCurrentUserRole]);
+  const availableRoleOptions = useMemo(
+    () => [{ value: "client", label: "Client" }],
+    []
+  );
 
   const officeLocationOptions = useMemo(() => {
     const locationMap = new Map();
@@ -384,15 +371,11 @@ const ManageEmployees = () => {
     typeof selectedOffice === "string"
       ? selectedOffice.trim().toLowerCase()
       : "";
-  const canViewOwnerAccounts = normalizedCurrentUserRole === "owner";
-  const allowedRolesForDisplay = canViewOwnerAccounts
-    ? ["owner", "admin", "member"]
-    : ["admin", "member"];
 
   const filteredUsers = allUsers.filter((user) => {
     const normalizedRole = normalizeRole(user?.role);
 
-    if (!allowedRolesForDisplay.includes(normalizedRole)) {
+    if (normalizedRole !== "client") {
       return false;
     }
 
@@ -411,16 +394,16 @@ const ManageEmployees = () => {
   });
 
   return (
-    <DashboardLayout activeMenu="Employees">
+    <DashboardLayout activeMenu="Clients">
       <section className="relative overflow-hidden rounded-[32px] border border-white/60 bg-gradient-to-br from-primary via-indigo-500 to-purple-500 px-4 py-7 text-white shadow-[0_20px_45px_rgba(126,58,242,0.28)] sm:px-6 sm:py-8">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.18),_transparent_65%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,_rgba(251,191,36,0.16),_transparent_60%)]" />
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.42em] text-white/70">People & Partners</p>
-            <h2 className="mt-3 text-3xl font-semibold leading-tight sm:text-4xl">Employees</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.42em] text-white/70">Client Services</p>
+            <h2 className="mt-3 text-3xl font-semibold leading-tight sm:text-4xl">Clients</h2>
             <p className="mt-3 text-sm text-white/70">
-              Manage your internal team and keep every employee connected in one transparent view.
+              Nurture your client partnerships and keep every engagement organised in one transparent view.
             </p>
           </div>
 
@@ -430,10 +413,10 @@ const ManageEmployees = () => {
               className="download-btn"
               onClick={() => setShowCreateForm((prev) => !prev)}
             >
-              {showCreateForm ? "Close" : "Add Employee"}
+              {showCreateForm ? "Close" : "Add Client"}
             </button>
             <button className="download-btn" onClick={handleDownloadReport}>
-              <LuFileSpreadsheet className="text-lg" /> Export Employees
+              <LuFileSpreadsheet className="text-lg" /> Export Clients
             </button>
           </div>
         </div>
@@ -441,8 +424,8 @@ const ManageEmployees = () => {
 
       {showCreateForm && (
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-slate-900">Add a new employee</h3>
-          <p className="mt-1 text-sm text-slate-500">Provide the employee's details and choose their access level.</p>
+          <h3 className="text-lg font-semibold text-slate-900">Add a new client</h3>
+          <p className="mt-1 text-sm text-slate-500">Provide the client's details and assign their access.</p>
 
           <form className="mt-6 grid gap-5 md:grid-cols-2" onSubmit={handleCreateUser}>
             <div className="md:col-span-1">
@@ -454,7 +437,7 @@ const ManageEmployees = () => {
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
-                placeholder="Jane Cooper"
+                placeholder="Acme Corp"
                 className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
                 type="text"
                 autoComplete="name"
@@ -470,7 +453,7 @@ const ManageEmployees = () => {
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                placeholder="member@company.com"
+                placeholder="client@company.com"
                 className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
                 type="email"
                 autoComplete="email"
@@ -584,11 +567,9 @@ const ManageEmployees = () => {
                   ))}
                 </select>
               </div>
-              {normalizedCurrentUserRole !== "owner" && (
-                <p className="mt-2 text-xs text-slate-500">
-                  Only an owner can grant owner-level access.
-                </p>
-              )}
+              <p className="mt-2 text-xs text-slate-500">
+                Client accounts have limited access tailored to shared matters and tasks.
+              </p>
             </div>
 
             <div className="md:col-span-2 flex justify-end">
@@ -597,7 +578,7 @@ const ManageEmployees = () => {
                 className="rounded-2xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(79,70,229,0.35)] transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-indigo-300"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "Creating Employee..." : "Create Employee"}
+                {isSubmitting ? "Creating Client..." : "Create Client"}
               </button>
             </div>
           </form>
@@ -609,22 +590,22 @@ const ManageEmployees = () => {
           <LuUsers className="text-base" />
         </span>
         {isLoading
-          ? "Loading employees..."
-          : `${filteredUsers.length} teammates powering the mission.`}
+          ? "Loading clients..."
+          : `${filteredUsers.length} client partnerships nurtured.`}
       </section>
 
       <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="w-full md:max-w-sm">
             <label className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500" htmlFor="memberSearch">
-              Search Employees
+              Search Clients
             </label>
             <input
               id="memberSearch"
               type="search"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search by name"
+              placeholder="Search by client name"
               className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
               disabled={isLoading}
             />
@@ -656,12 +637,12 @@ const ManageEmployees = () => {
       </section>
 
       {isLoading ? (
-        <LoadingOverlay message="Loading employees..." className="py-24" />
+        <LoadingOverlay message="Loading clients..." className="py-24" />
       ) : (
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filteredUsers?.map((user) => {
             const normalizedRole = normalizeRole(user?.role);
-            const canManageOwner = normalizedCurrentUserRole === "owner";
+            const canManageSuperAdmin = normalizedCurrentUserRole === "super_admin";
             const userIdString = user?._id ? String(user._id) : "";
             const currentUserIdString = currentUser?._id
               ? String(currentUser._id)
@@ -671,10 +652,10 @@ const ManageEmployees = () => {
               currentUserIdString &&
               userIdString === currentUserIdString;
             const preventSelfManagement =
-              canManageOwner && isCurrentUser;
+              canManageSuperAdmin && isCurrentUser;
             const allowManagement =
               !preventSelfManagement &&
-              (canManageOwner || normalizedRole !== "owner");
+              (canManageSuperAdmin || normalizedRole !== "super_admin");
 
             return (
               <UserCard
@@ -769,4 +750,4 @@ const ManageEmployees = () => {
   );
 };
 
-export default ManageEmployees;
+export default ManageClients;

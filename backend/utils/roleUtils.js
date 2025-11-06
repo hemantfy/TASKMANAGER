@@ -1,9 +1,9 @@
 const DEFAULT_ROLE = "member";
-const PRIVILEGED_ROLES = ["admin", "owner"];
+const PRIVILEGED_ROLES = ["admin", "super_admin"];
 
 const normalizeRole = (role) => {
   if (typeof role === "string") {
-    return role.trim().toLowerCase();
+    return role.trim().toLowerCase().replace(/[\s-]+/g, "_");
   }
 
   return role ?? "";
@@ -29,8 +29,8 @@ const matchesRole = (role, expectedRole) => {
 };
 
 const getRoleLabel = (role) => {
-  if (matchesRole(role, "owner")) {
-    return "Owner";
+  if (matchesRole(role, "super_admin")) {
+    return "Super Admin";
   }
 
   if (matchesRole(role, "admin")) {
@@ -49,9 +49,9 @@ const getRoleLabel = (role) => {
 };
 
 const hasPrivilegedAccess = (role) =>
-  matchesRole(role, "admin") || matchesRole(role, "owner");
+  matchesRole(role, "admin") || matchesRole(role, "super_admin");
 
-const isOwnerRole = (role) => matchesRole(role, "owner");
+const isSuperAdminRole = (role) => matchesRole(role, "super_admin");
 
 const formatUserRole = (user) => {
   if (!user || typeof user !== "object") {
@@ -74,7 +74,7 @@ module.exports = {
   formatUserRole,
   getRoleLabel,
   hasPrivilegedAccess,
-  isOwnerRole,
+  isSuperAdminRole,
   matchesRole,
   normalizeRole,
 };

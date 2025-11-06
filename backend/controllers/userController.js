@@ -328,9 +328,9 @@ const createUser = async (req, res) => {
       allowedRoles.add("admin");
     }
 
-    if (requesterRole === "owner") {
+    if (requesterRole === "super_admin") {
       allowedRoles.add("admin");
-      allowedRoles.add("owner");
+      allowedRoles.add("super_admin");
     }
 
     const normalizedRequestedRole = normalizeRole(role);
@@ -420,13 +420,13 @@ const deleteUser = async (req, res) => {
     const isSelfDelete =
       requesterId && userId && requesterId === userId.toString();
 
-    if (targetRole === "owner" && requesterRole !== "owner") {
+    if (targetRole === "super_admin" && requesterRole !== "super_admin") {
       return res.status(403).json({
-        message: "Only owners can modify or remove owner accounts",
+        message: "Only Super Admins can modify or remove Super Admin accounts",
       });
     }
 
-    if (targetRole === "owner" && isSelfDelete) {
+    if (targetRole === "super_admin" && isSelfDelete) {
       const providedToken =
         typeof req.body?.adminInviteToken === "string"
           ? req.body.adminInviteToken.trim()
@@ -434,13 +434,14 @@ const deleteUser = async (req, res) => {
 
       if (!providedToken) {
         return res.status(400).json({
-          message: "Invite token is required to delete this owner account.",
+          message: "Invite token is required to delete this Super Admin account.",
         });
       }
 
       if (providedToken !== process.env.ADMIN_INVITE_TOKEN) {
         return res.status(403).json({
-          message: "Invalid invite token. Unable to delete owner account.",
+          message:
+            "Invalid invite token. Unable to delete Super Admin account.",
         });
       }
     }
@@ -616,9 +617,9 @@ const resetUserPassword = async (req, res) => {
     const requesterRole = normalizeRole(req.user?.role);
     const targetRole = normalizeRole(user.role);
 
-    if (targetRole === "owner" && requesterRole !== "owner") {
+    if (targetRole === "super_admin" && requesterRole !== "super_admin") {
       return res.status(403).json({
-        message: "Only owners can reset passwords for owner accounts",
+        message: "Only Super Admins can reset passwords for Super Admin accounts",
       });
     }
 

@@ -24,14 +24,14 @@ const MyTasks = React.lazy(() => import("./pages/User/MyTasks"));
 const ViewTaskDetails = React.lazy(() => import("./pages/User/ViewTaskDetails"));
 const UserMatters = React.lazy(() => import("./pages/User/Matters"));
 const UserDocuments = React.lazy(() => import("./pages/User/Documents"));
-const OwnerDashboard = React.lazy(() => import("./pages/Owner/Dashboard"));
-const OwnerTasks = React.lazy(() => import("./pages/Owner/Tasks"));
-const OwnerManageEmployees = React.lazy(() => import("./pages/Owner/ManageEmployees"));
-const OwnerManageClients = React.lazy(() => import("./pages/Owner/ManageClients"));
-const OwnerUserDetails = React.lazy(() => import("./pages/Owner/UserDetails"));
-const OwnerMatters = React.lazy(() => import("./pages/Owner/Matters"));
-const OwnerDocuments = React.lazy(() => import("./pages/Owner/Documents"));
-const OwnerInvoices = React.lazy(() => import("./pages/Owner/Invoices"));
+const SuperAdminDashboard = React.lazy(() => import("./pages/SuperAdmi/Dashboard.jsx"));
+const SuperAdminTasks = React.lazy(() => import("./pages/SuperAdmi/Tasks.js"));
+const SuperAdminManageEmployees = React.lazy(() => import("./pages/SuperAdmi/ManageEmployees.jsx"));
+const SuperAdminManageClients = React.lazy(() => import("./pages/SuperAdmi/ManageClients.js"));
+const SuperAdminUserDetails = React.lazy(() => import("./pages/SuperAdmi/UserDetails.jsx"));
+const SuperAdminMatters = React.lazy(() => import("./pages/SuperAdmi/Matters.js"));
+const SuperAdminDocuments = React.lazy(() => import("./pages/SuperAdmi/Documents.js"));
+const SuperAdminInvoices = React.lazy(() => import("./pages/SuperAdmi/Invoices.js"));
 const ClientHome = React.lazy(() => import("./pages/Client/Home"));
 const ClientProjects = React.lazy(() => import("./pages/Client/ClientProjects"));
 const ClientViewTaskDetails = React.lazy(() => import("./pages/Client/ViewTaskDetails"));
@@ -66,17 +66,41 @@ const App = () => {
                 <Route path="/admin/profile-settings" element={<ProfileSettings />} />
               </Route>
 
-              {/* Owner Routes */}
-              <Route element={<PrivateRoute allowedRoles={["owner"]} />}>
-                <Route path="/owner/dashboard" element={<OwnerDashboard />} />
-                <Route path="/owner/tasks" element={<OwnerTasks />} />
-                <Route path="/owner/matters/*" element={<OwnerMatters />} />
-                <Route path="/owner/documents/*" element={<OwnerDocuments />} />
-                <Route path="/owner/invoices" element={<OwnerInvoices />} />                
-                <Route path="/owner/employees" element={<OwnerManageEmployees />} />
-                <Route path="/owner/clients" element={<OwnerManageClients />} />
-                <Route path="/owner/users/:userId" element={<OwnerUserDetails />} />
-                <Route path="/owner/profile-settings" element={<ProfileSettings />} />
+              {/* Super Admin Routes */}
+              <Route element={<PrivateRoute allowedRoles={["super_admin"]} />}>
+                <Route
+                  path="/super-admin/dashboard"
+                  element={<SuperAdminDashboard />}
+                />
+                <Route path="/super-admin/tasks" element={<SuperAdminTasks />} />
+                <Route
+                  path="/super-admin/matters/*"
+                  element={<SuperAdminMatters />}
+                />
+                <Route
+                  path="/super-admin/documents/*"
+                  element={<SuperAdminDocuments />}
+                />
+                <Route
+                  path="/super-admin/invoices"
+                  element={<SuperAdminInvoices />}
+                />
+                <Route
+                  path="/super-admin/employees"
+                  element={<SuperAdminManageEmployees />}
+                />
+                <Route
+                  path="/super-admin/clients"
+                  element={<SuperAdminManageClients />}
+                />
+                <Route
+                  path="/super-admin/users/:userId"
+                  element={<SuperAdminUserDetails />}
+                />
+                <Route
+                  path="/super-admin/profile-settings"
+                  element={<ProfileSettings />}
+                />
               </Route>
 
               {/* Member Routes */}

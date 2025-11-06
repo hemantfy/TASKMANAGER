@@ -31,7 +31,9 @@ const adminOnly = (req, res, next) => {
   if (req.user && PRIVILEGED_ROLES.includes(normalizedRole)) {
     next();
   } else {
-   res.status(403).json({ message: "Access denied, admin or owner only" });
+    res
+      .status(403)
+      .json({ message: "Access denied, admin or Super Admin only" });
   }
 };
   

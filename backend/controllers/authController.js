@@ -75,7 +75,7 @@ const registerUser = async (req, res) => {
     const normalizedPrivilegedRole = normalizeRole(privilegedRole) || "";
 
     // Determine user role based on provided token/selection
-    const allowedPrivilegedRoles = ["admin", "owner"];
+    const allowedPrivilegedRoles = ["admin", "super_admin"];
     const selfAssignableRoles = ["member", "client"];    
     let role = "member";
 
@@ -91,7 +91,7 @@ const registerUser = async (req, res) => {
       if (allowedPrivilegedRoles.includes(normalizedPrivilegedRole)) {
         return res.status(400).json({
           message:
-            "Admin invite token is required to register as an admin or owner",
+            "Admin invite token is required to register as an admin or Super Admin",
         });
       }
 

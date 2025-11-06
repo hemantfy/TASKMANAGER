@@ -18,7 +18,7 @@ const Unauthorized = () => {
           You don&apos;t have permission to view this page.
         </h1>
         <p className="text-sm text-slate-600 transition-colors duration-300 dark:text-slate-400">
-          If you believe this is a mistake, please contact your workspace owner or try signing in with a different account.
+          If you believe this is a mistake, please contact your workspace Super Admin or try signing in with a different account.
         </p>
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">

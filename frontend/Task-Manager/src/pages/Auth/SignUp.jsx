@@ -105,7 +105,7 @@ const SignUp = () => {
         const trimmedAdminInviteToken = adminInviteToken.trim();
 
     if (trimmedAdminInviteToken && !privilegedRole) {
-      setError("Please choose whether to sign up as an admin or an owner.");
+      setError("Please choose whether to sign up as an admin or a Super Admin.");
       setIsRoleSelectionOpen(true);
       return;
     }
@@ -277,7 +277,7 @@ const SignUp = () => {
                   <div className="space-y-3 rounded-2xl border border-blue-200 bg-blue-50/80 px-4 py-3 text-sm text-blue-700">
                     <p>
                       You have entered an admin access token. Choose whether you would like
-                      to continue as an admin or as an owner.
+                      to continue as an admin or as a Super Admin.
                     </p>
                     <button
                       type="button"
@@ -351,14 +351,14 @@ const SignUp = () => {
               </button>
               <button
                 type="button"
-                onClick={() => handleRoleSelection('owner')}
+                onClick={() => handleRoleSelection('super_admin')}
                 className={`w-full rounded-2xl border px-4 py-4 text-left transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                  privilegedRole === 'owner'
+                  privilegedRole === 'super_admin'
                     ? 'border-blue-500 bg-blue-50 text-blue-700'
                     : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-200 hover:bg-blue-50'
                 }`}
               >
-                <span className="block text-base font-semibold">Sign up as Owner</span>
+                <span className="block text-base font-semibold">Sign up as Super Admin</span>
                 <span className="mt-1 block text-sm text-slate-500">
                   Gain full visibility into the workspace, including admin-level insights.
                 </span>

@@ -15,7 +15,7 @@ const ClientProjects = () => {
       heroBadge: "Matter Room",
       heroTitle: "Matter Progress",
       heroDescription:
-        "Track every case in motion with a clear view of milestones, owners, and next steps.",
+        "Track every case in motion with a clear view of milestones, Super Admins, and next steps.",
       filterPrompt: "Filter case updates by status to focus on what matters most.",
       loadingMessage: "Loading your matters...",
       emptyState: "No matters found for the selected status.",

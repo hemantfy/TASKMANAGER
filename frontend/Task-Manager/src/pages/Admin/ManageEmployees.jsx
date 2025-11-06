@@ -43,7 +43,7 @@ const ManageEmployees = () => {
       if (Array.isArray(response.data)) {
         const sortedUsers = [...response.data].sort((userA, userB) => {
           const rolePriority = {
-            owner: 0,
+            super_admin: 0,
             admin: 1,
             member: 2,
             client: 3,            
@@ -146,8 +146,8 @@ const ManageEmployees = () => {
       typeof user === "object" ? user?.role : undefined
     );
 
-    if (userRole === "owner" && normalizedCurrentUserRole !== "owner") {
-      toast.error("Only owners can remove owner accounts.");
+    if (userRole === "super_admin" && normalizedCurrentUserRole !== "super_admin") {
+      toast.error("Only Super Admins can remove Super Admin accounts.");
       return;
     }
 
@@ -160,12 +160,12 @@ const ManageEmployees = () => {
       ? String(currentUser._id)
       : "";
     if (
-      normalizedCurrentUserRole === "owner" &&
+      normalizedCurrentUserRole === "super_admin" &&
       currentUserIdString &&
       String(userId) === currentUserIdString
     ) {
       toast.error(
-        "Owners must delete their own account from Profile Settings."
+        "Super Admins must delete their own account from Profile Settings."
       );
       return;
     }
@@ -203,14 +203,14 @@ const ManageEmployees = () => {
       currentUserIdString &&
       userIdString === currentUserIdString;
 
-    if (normalizedRole === "owner" && normalizedCurrentUserRole !== "owner") {
-      toast.error("Only owners can reset passwords for owner accounts.");
+    if (normalizedRole === "super_admin" && normalizedCurrentUserRole !== "super_admin") {
+      toast.error("Only Super Admins can reset passwords for Super Admin accounts.");
       return;
     }
 
-    if (normalizedCurrentUserRole === "owner" && isCurrentUser) {
+    if (normalizedCurrentUserRole === "super_admin" && isCurrentUser) {
       toast.error(
-        "Owners can update their own password from Profile Settings."
+        "Super Admins can update their own password from Profile Settings."
       );
       return;
     }
@@ -228,8 +228,8 @@ const ManageEmployees = () => {
     event.preventDefault();
     if (!selectedUser || isResettingPassword) return;
 
-   const selectedUserRole = normalizeRole(selectedUser?.role);
-    if (selectedUserRole === "owner" && normalizedCurrentUserRole !== "owner") {
+    if (selectedUserRole === "super_admin" && normalizedCurrentUserRole !== "super_admin") {
+      toast.error("Only Super Admins can reset passwords for Super Admin accounts.");
       toast.error("Only owners can reset passwords for owner accounts.");
       return;
     }
@@ -297,8 +297,8 @@ const ManageEmployees = () => {
     }
 
     const allowedRoles =
-      normalizedCurrentUserRole === "owner"
-        ? ["member", "admin", "owner"]
+      normalizedCurrentUserRole === "super_admin"
+        ? ["member", "admin", "super_admin"]
         : ["member", "admin"];
 
     if (!allowedRoles.includes(formData.role)) {
@@ -310,11 +310,11 @@ const ManageEmployees = () => {
   }, [formData.role, normalizedCurrentUserRole, showCreateForm]);
 
   const availableRoleOptions = useMemo(() => {
-    if (normalizedCurrentUserRole === "owner") {
+    if (normalizedCurrentUserRole === "super_admin") {
       return [
         { value: "member", label: "Member" },       
         { value: "admin", label: "Admin" },
-        { value: "owner", label: "Owner" },
+        { value: "super_admin", label: "Super Admin" },
       ];
     }
 
@@ -384,9 +384,9 @@ const ManageEmployees = () => {
     typeof selectedOffice === "string"
       ? selectedOffice.trim().toLowerCase()
       : "";
-  const canViewOwnerAccounts = normalizedCurrentUserRole === "owner";
-  const allowedRolesForDisplay = canViewOwnerAccounts
-    ? ["owner", "admin", "member"]
+  const canViewSuperAdminAccounts = normalizedCurrentUserRole === "super_admin";
+  const allowedRolesForDisplay = canViewSuperAdminAccounts
+    ? ["super_admin", "admin", "member"]
     : ["admin", "member"];
 
   const filteredUsers = allUsers.filter((user) => {
@@ -584,9 +584,9 @@ const ManageEmployees = () => {
                   ))}
                 </select>
               </div>
-              {normalizedCurrentUserRole !== "owner" && (
+              {normalizedCurrentUserRole !== "super_admin" && (
                 <p className="mt-2 text-xs text-slate-500">
-                  Only an owner can grant owner-level access.
+                  Only a Super Admin can grant Super Admin-level access.
                 </p>
               )}
             </div>
@@ -661,7 +661,7 @@ const ManageEmployees = () => {
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filteredUsers?.map((user) => {
             const normalizedRole = normalizeRole(user?.role);
-            const canManageOwner = normalizedCurrentUserRole === "owner";
+            const canManageSuperAdmin = normalizedCurrentUserRole === "super_admin";
             const userIdString = user?._id ? String(user._id) : "";
             const currentUserIdString = currentUser?._id
               ? String(currentUser._id)
@@ -671,10 +671,10 @@ const ManageEmployees = () => {
               currentUserIdString &&
               userIdString === currentUserIdString;
             const preventSelfManagement =
-              canManageOwner && isCurrentUser;
+              canManageSuperAdmin && isCurrentUser;
             const allowManagement =
               !preventSelfManagement &&
-              (canManageOwner || normalizedRole !== "owner");
+              (canManageSuperAdmin || normalizedRole !== "super_admin");
 
             return (
               <UserCard

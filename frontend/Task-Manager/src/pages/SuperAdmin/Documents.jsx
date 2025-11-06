@@ -5,25 +5,25 @@ import { Route, Routes } from "react-router-dom";
 import DashboardLayout from "../../components/layouts/DashboardLayout";
 import DocumentsWorkspace from "../../components/documents/DocumentsWorkspace";
 
-const OwnerDocuments = () => {
+const SuperAdminDocuments = () => {
   return (
     <DashboardLayout activeMenu="Documents">
       <Routes>
         <Route
           index
-          element={<DocumentsWorkspace basePath="/owner/documents" />}
+          element={<DocumentsWorkspace basePath="/super-admin/documents" />}
         />
         <Route
           path=":matterId"
-          element={<DocumentsWorkspace basePath="/owner/documents" />}
+          element={<DocumentsWorkspace basePath="/super-admin/documents" />}
         />
         <Route
           path=":matterId/cases/:caseId"
-          element={<DocumentsWorkspace basePath="/owner/documents" />}
+          element={<DocumentsWorkspace basePath="/super-admin/documents" />}
         />
       </Routes>
     </DashboardLayout>
   );
 };
 
-export default OwnerDocuments;
+export default SuperAdminDocuments;

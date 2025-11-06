@@ -1,6 +1,6 @@
 export const normalizeRole = (role) => {
   if (typeof role === "string") {
-    return role.trim().toLowerCase();
+    return role.trim().toLowerCase().replace(/[\s-]+/g, "_");
   }
 
   return role ?? "";
@@ -26,8 +26,8 @@ export const matchesRole = (role, expectedRole) => {
 };
 
 export const getRoleLabel = (role) => {
-  if (matchesRole(role, "owner")) {
-    return "Owner";
+  if (matchesRole(role, "super_admin")) {
+    return "Super Admin";
   }
 
   if (matchesRole(role, "admin")) {
@@ -46,9 +46,9 @@ export const getRoleLabel = (role) => {
 };
 
 export const hasPrivilegedAccess = (role) =>
-  matchesRole(role, "admin") || matchesRole(role, "owner");
+  matchesRole(role, "admin") || matchesRole(role, "super_admin");
 
-export const isOwnerRole = (role) => matchesRole(role, "owner");
+export const isSuperAdminRole = (role) => matchesRole(role, "super_admin");
 
 export const isRoleAllowed = (role, allowedRoles = []) => {
   if (!Array.isArray(allowedRoles) || allowedRoles.length === 0) {
@@ -59,7 +59,7 @@ export const isRoleAllowed = (role, allowedRoles = []) => {
 };
 
 export const getPrivilegedBasePath = (role) =>
-  matchesRole(role, "owner") ? "/owner" : "/admin";
+  matchesRole(role, "super_admin") ? "/super-admin" : "/admin";
 
 export const resolvePrivilegedPath = (path, role) => {
   if (typeof path !== "string") {
@@ -75,8 +75,8 @@ export const resolvePrivilegedPath = (path, role) => {
 };
 
 export const getDefaultRouteForRole = (role) => {
-  if (matchesRole(role, "owner")) {
-    return "/owner/dashboard";
+  if (matchesRole(role, "super_admin")) {
+    return "/super-admin/dashboard";
   }
 
   if (matchesRole(role, "admin")) {

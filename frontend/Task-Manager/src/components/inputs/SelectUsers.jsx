@@ -22,7 +22,7 @@ const SelectUsers = ({
       if (response.data?.length > 0) {
         const sortedUsers = [...response.data].sort((userA, userB) => {
           const rolePriority = {
-            owner: 0,
+            super_admin: 0,
             admin: 1,
             member: 2,
           };
