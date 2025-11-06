@@ -131,11 +131,29 @@ const registerUser = async (req, res) => {
 // @access  Public
 const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const rawEmail = req.body?.email;
+    const rawPassword = req.body?.password;
+
+    const email = typeof rawEmail === "string" ? rawEmail.trim() : "";
+    const password = typeof rawPassword === "string" ? rawPassword : "";
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    if (!password) {
+      return res.status(400).json({ message: "Password is required" });
+    }
 
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    if (typeof user.password !== "string" || user.password.length === 0) {
+      return res
+        .status(400)
+        .json({ message: "Password not set. Please reset your password or contact an administrator." });
     }
 
     // Compare password
