@@ -1,5 +1,5 @@
 import React from "react";
-import InvoicesWorkspace from "../../components/invoices/InvoicesWorkspace";
+import InvoicesWorkspace from "../../components/Invoices/InvoicesWorkspace";
 
 const AdminInvoices = () => (
   <InvoicesWorkspace

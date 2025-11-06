@@ -58,7 +58,7 @@ const DeleteMatterModal = ({ isOpen, onClose, matter, onDeleted }) => {
     >
       <div className="space-y-4 text-sm text-slate-600 dark:text-slate-300">
         <div className="flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-rose-600 dark:border-rose-900/50 dark:bg-rose-950/50 dark:text-rose-200">
-          <LuAlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0" />
+          <LuTriangleAlert className="mt-0.5 h-5 w-5 flex-shrink-0" />
           <div>
             <p className="font-semibold">This action is permanent.</p>
             <p className="mt-1 text-xs text-rose-500 dark:text-rose-200/80">

@@ -17,12 +17,12 @@ import {
 } from "react-icons/lu";
 import toast from "react-hot-toast";
 
-import DashboardLayout from "../layouts/DashboardLayout";
-import LoadingOverlay from "../LoadingOverlay";
+import DashboardLayout from "../layouts/DashboardLayout.jsx";
+import LoadingOverlay from "../LoadingOverlay.jsx";
 import { UserContext } from "../../context/userContext.jsx";
 import { useUserAuth } from "../../hooks/useUserAuth.jsx";
-import axiosInstance from "../../utils/axiosInstance";
-import { API_PATHS } from "../../utils/apiPaths";
+import axiosInstance from "../../utils/axiosInstance.js";
+import { API_PATHS } from "../../utils/apiPaths.js";
 import {
   computeCollectionRate,
   deriveInvoicesFromMatters,
@@ -32,8 +32,8 @@ import {
   sortInvoicesByDueDate,
   STATUS_FILTERS,
   summarizeInvoices,
-} from "../../utils/invoiceUtils";
-import { getPrivilegedBasePath, resolvePrivilegedPath } from "../../utils/roleUtils";
+} from "../../utils/invoiceUtils.js";
+import { getPrivilegedBasePath, resolvePrivilegedPath } from "../../utils/roleUtils.js";
 
 const SummaryCard = ({ icon: Icon, title, value, hint, accent }) => (
   <div className="relative overflow-hidden rounded-3xl border border-white/60 bg-white/80 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.08)] transition dark:border-slate-700/60 dark:bg-slate-900/60">
