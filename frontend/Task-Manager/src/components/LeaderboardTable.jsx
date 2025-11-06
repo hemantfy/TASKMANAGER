@@ -48,8 +48,14 @@ const formatPercentage = (value) => {
   return `${Math.max(0, Math.min(100, Math.round(value)))}%`;
 };
 
-const LeaderboardTable = ({ entries }) => {
+const LeaderboardTable = ({ entries, onEntryClick }) => {
   const data = Array.isArray(entries) ? entries : [];
+
+  const handleEntryClick = (entry) => {
+    if (typeof onEntryClick === "function") {
+      onEntryClick(entry);
+    }
+  };
 
   if (!data.length) {
     return (
@@ -76,55 +82,79 @@ const LeaderboardTable = ({ entries }) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/50 bg-white/60">
-              {data.map((entry, index) => (
-              <tr
-                key={entry.userId || index}
-                className={`text-sm text-slate-600 transition hover:bg-white ${
-                  index % 2 === 0 ? "bg-white/80" : "bg-white/60"
-                }`}
-              >
-                <td className="px-6 py-4 text-[13px] font-semibold text-slate-900">
-                  #{entry.rank}
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <Avatar
-                      name={entry.name}
-                      profileImageUrl={entry.profileImageUrl}
-                    />
-                    <div>
-                      <p className="text-[13px] font-semibold text-slate-900">
-                        {entry.name}
-                      </p>
-                      <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-slate-400">
-                        {getRoleLabel(entry.role)}
-                      </p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-[13px] font-semibold text-slate-900">
-                  {Number(entry.score || 0).toLocaleString()}
-                </td>
-                <td className="px-6 py-4 text-[13px] font-medium text-slate-700">
-                  {formatRatio(entry.completedTasks, entry.totalAssigned)}
-                  <span className="ml-2 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-500">
-                    {formatPercentage(entry.completionRate)}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-[13px] font-medium text-slate-700">
-                  {entry.onTimeCompletions}
-                  <span className="ml-2 text-xs font-semibold uppercase tracking-[0.18em] text-sky-500">
-                    {formatPercentage(entry.onTimeRate)}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-[13px] font-medium text-slate-700">
-                  {entry.lateCompletions}
-                </td>
-                <td className="px-6 py-4 text-[13px] font-medium text-slate-700">
-                  {entry.overdueTasks}
-                </td>
-              </tr>
-              ))}
+              {data.map((entry, index) => {
+                const isInteractive =
+                  typeof onEntryClick === "function" && entry?.userId;
+
+                return (
+                  <tr
+                    key={entry.userId || index}
+                    className={`text-sm text-slate-600 transition ${
+                      index % 2 === 0 ? "bg-white/80" : "bg-white/60"
+                    } ${isInteractive ? "cursor-pointer hover:bg-white" : "hover:bg-white"}`}
+                    onClick={
+                      isInteractive
+                        ? () => {
+                            handleEntryClick(entry);
+                          }
+                        : undefined
+                    }
+                    role={isInteractive ? "button" : undefined}
+                    tabIndex={isInteractive ? 0 : undefined}
+                    onKeyDown={
+                      isInteractive
+                        ? (event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              handleEntryClick(entry);
+                            }
+                          }
+                        : undefined
+                    }
+                  >
+                    <td className="px-6 py-4 text-[13px] font-semibold text-slate-900">
+                      #{entry.rank}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <Avatar
+                          name={entry.name}
+                          profileImageUrl={entry.profileImageUrl}
+                        />
+                        <div>
+                          <p className="text-[13px] font-semibold text-slate-900">
+                            {entry.name}
+                          </p>
+                          <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-slate-400">
+                            {getRoleLabel(entry.role)}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-[13px] font-semibold text-slate-900">
+                      {Number(entry.score || 0).toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 text-[13px] font-medium text-slate-700">
+                      {formatRatio(entry.completedTasks, entry.totalAssigned)}
+                      <span className="ml-2 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-500">
+                        {formatPercentage(entry.completionRate)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-[13px] font-medium text-slate-700">
+                      {entry.onTimeCompletions}
+                      <span className="ml-2 text-xs font-semibold uppercase tracking-[0.18em] text-sky-500">
+                        {formatPercentage(entry.onTimeRate)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-[13px] font-medium text-slate-700">
+                      {entry.lateCompletions}
+                    </td>
+                    <td className="px-6 py-4 text-[13px] font-medium text-slate-700">
+                      {entry.overdueTasks}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -134,7 +164,34 @@ const LeaderboardTable = ({ entries }) => {
         {data.map((entry, index) => (
           <article
             key={entry.userId || index}
-            className="rounded-2xl border border-white/70 bg-white/95 p-4 shadow-[0_12px_28px_rgba(15,23,42,0.08)]"
+            className={`rounded-2xl border border-white/70 bg-white/95 p-4 shadow-[0_12px_28px_rgba(15,23,42,0.08)] ${
+              typeof onEntryClick === "function" && entry?.userId
+                ? "cursor-pointer transition hover:-translate-y-0.5 hover:shadow-[0_16px_32px_rgba(15,23,42,0.12)]"
+                : ""
+            }`}
+            onClick={
+              typeof onEntryClick === "function" && entry?.userId
+                ? () => handleEntryClick(entry)
+                : undefined
+            }
+            role={
+              typeof onEntryClick === "function" && entry?.userId
+                ? "button"
+                : undefined
+            }
+            tabIndex={
+              typeof onEntryClick === "function" && entry?.userId ? 0 : undefined
+            }
+            onKeyDown={
+              typeof onEntryClick === "function" && entry?.userId
+                ? (event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      handleEntryClick(entry);
+                    }
+                  }
+                : undefined
+            }
           >
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-500">

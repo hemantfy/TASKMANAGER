@@ -267,6 +267,17 @@ const Dashboard = () => {
     [user?.role]
   );
 
+  const handleLeaderboardEntryClick = useCallback(
+    (entry) => {
+      if (!entry?.userId) {
+        return;
+      }
+
+      navigate(`${privilegedBasePath}/users/${entry.userId}`);
+    },
+    [navigate, privilegedBasePath]
+  );
+
   const onSeeMore = () => {
     navigate(`${privilegedBasePath}/tasks`);
   };
@@ -789,7 +800,10 @@ const Dashboard = () => {
                 </div>
               }
             >
-              <LeaderboardTable entries={filteredLeaderboard} />
+              <LeaderboardTable
+                entries={filteredLeaderboard}
+                onEntryClick={handleLeaderboardEntryClick}
+              />
             </Suspense>
           </section>
         </>
