@@ -1,6 +1,15 @@
+const ROLE_SYNONYMS = {
+  superadmin: "super_admin",
+  "super_administrator": "super_admin",
+  superadministrator: "super_admin",
+};
+
 export const normalizeRole = (role) => {
   if (typeof role === "string") {
-    return role.trim().toLowerCase().replace(/[\s-]+/g, "_");
+    const trimmedRole = role.trim().toLowerCase();
+    const normalizedRole = trimmedRole.replace(/[\s-]+/g, "_");
+
+    return ROLE_SYNONYMS[normalizedRole] || ROLE_SYNONYMS[trimmedRole] || normalizedRole;
   }
 
   return role ?? "";
