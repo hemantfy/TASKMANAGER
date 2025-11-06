@@ -11,6 +11,18 @@ const {
   formatUserRole,
   normalizeRole,
 } = require("../utils/roleUtils");
+const {
+  buildFieldChanges,
+  logEntityActivity,
+} = require("../utils/activityLogger");
+
+const USER_ACTIVITY_FIELDS = [
+  { path: "name", label: "Name" },
+  { path: "email", label: "Email" },
+  { path: "role", label: "Role" },
+  { path: "gender", label: "Gender" },
+  { path: "officeLocation", label: "Office Location" },
+];
 
 const buildTaskCountsForUser = async (userId) => {
   if (!userId) {
@@ -353,6 +365,18 @@ const createUser = async (req, res) => {
 
    const createdUser = formatUserRole(user);
 
+    const createdUserRole = normalizeRole(createdUser.role);
+    const userEntityType = createdUserRole === "client" ? "client" : "member";
+
+    await logEntityActivity({
+      entityType: userEntityType,
+      action: "created",
+      entityId: user._id,
+      entityName: createdUser.name,
+      actor: req.user,
+      details: buildFieldChanges({}, user.toObject(), USER_ACTIVITY_FIELDS),
+    });
+
     res.status(201).json({
       _id: createdUser._id,
       name: createdUser.name,
@@ -409,6 +433,7 @@ const deleteUser = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    const deletedUserSnapshot = user.toObject();    
     const requesterRole = normalizeRole(req.user?.role);
     const targetRole = normalizeRole(user.role);
     const requesterId = req.user?._id
@@ -477,6 +502,20 @@ const deleteUser = async (req, res) => {
     deleteExistingProfileImage(user.profileImageUrl);
 
     await user.deleteOne();
+
+    const userEntityType = targetRole === "client" ? "client" : "member";
+    await logEntityActivity({
+      entityType: userEntityType,
+      action: "deleted",
+      entityId: user._id,
+      entityName: user.name,
+      actor: req.user,
+      details: buildFieldChanges(
+        deletedUserSnapshot,
+        {},
+        USER_ACTIVITY_FIELDS
+      ),
+    });
 
     res.json({
       message: "User deleted successfully",

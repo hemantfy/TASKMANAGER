@@ -4,6 +4,10 @@ const CaseFile = require("../models/CaseFile");
 const Document = require("../models/Document");
 const Task = require("../models/Task");
 const User = require("../models/User");
+const {
+  buildFieldChanges,
+  logEntityActivity,
+} = require("../utils/activityLogger");
 
 const normalizeString = (value) =>
   typeof value === "string" ? value.trim() : "";
@@ -38,6 +42,15 @@ const normalizeOptionalString = (value) => {
   const normalizedValue = normalizeString(value);
   return normalizedValue || undefined;
 };
+
+const MATTER_ACTIVITY_FIELDS = [
+  { path: "title", label: "Title" },
+  { path: "status", label: "Status" },
+  { path: "matterNumber", label: "Matter Number" },
+  { path: "practiceArea", label: "Practice Area" },
+  { path: "clientName", label: "Client Name" },
+  { path: "openedDate", label: "Opened Date" },
+];
 
 const handleErrorResponse = (res, error) => {
   const statusCode = error.statusCode || 500;
@@ -252,6 +265,15 @@ const createMatter = async (req, res) => {
       .populate("teamMembers", "name email")
       .populate("client", "name email");
 
+    await logEntityActivity({
+      entityType: "matter",
+      action: "created",
+      entityId: matter._id,
+      entityName: matter.title,
+      actor: req.user,
+      details: buildFieldChanges({}, matter.toObject(), MATTER_ACTIVITY_FIELDS),
+    });
+
     res.status(201).json({
       message: "Matter created successfully",
       matter: populatedMatter,
@@ -269,6 +291,7 @@ const updateMatter = async (req, res) => {
       return res.status(404).json({ message: "Matter not found" });
     }
 
+    const originalMatter = matter.toObject();    
     const updates = { ...req.body };
 
     if (updates.title !== undefined) {
@@ -341,11 +364,26 @@ const updateMatter = async (req, res) => {
 
     Object.assign(matter, updates);
     await matter.save();
+    const updatedMatterObject = matter.toObject();
+    const matterChanges = buildFieldChanges(
+      originalMatter,
+      updatedMatterObject,
+      MATTER_ACTIVITY_FIELDS
+    );    
 
     const populatedMatter = await Matter.findById(matter._id)
       .populate("leadAttorney", "name email")
       .populate("teamMembers", "name email")
       .populate("client", "name email");
+
+    await logEntityActivity({
+      entityType: "matter",
+      action: "updated",
+      entityId: matter._id,
+      entityName: matter.title,
+      actor: req.user,
+      details: matterChanges,
+    });
 
     res.json({
       message: "Matter updated successfully",
@@ -364,6 +402,7 @@ const deleteMatter = async (req, res) => {
       return res.status(404).json({ message: "Matter not found" });
     }
 
+    const deletedMatterSnapshot = matter.toObject();    
     const [documents] = await Promise.all([
       Document.find({ matter: matter._id }).select("_id"),
     ]);
@@ -384,6 +423,19 @@ const deleteMatter = async (req, res) => {
     ]);
 
     await matter.deleteOne();
+
+    await logEntityActivity({
+      entityType: "matter",
+      action: "deleted",
+      entityId: matter._id,
+      entityName: matter.title,
+      actor: req.user,
+      details: buildFieldChanges(
+        deletedMatterSnapshot,
+        {},
+        MATTER_ACTIVITY_FIELDS
+      ),
+    });
 
     res.json({ message: "Matter deleted successfully" });
   } catch (error) {

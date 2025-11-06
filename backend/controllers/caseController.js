@@ -6,6 +6,10 @@ const Matter = require("../models/Matter");
 const Document = require("../models/Document");
 const Task = require("../models/Task");
 const { hasPrivilegedAccess } = require("../utils/roleUtils");
+const {
+  buildFieldChanges,
+  logEntityActivity,
+} = require("../utils/activityLogger");
 
 const buildHttpError = (message, statusCode = 400) => {
   const error = new Error(message);
@@ -41,6 +45,15 @@ const normalizeObjectId = (value) => {
 
   return value.toString();
 };
+
+const CASE_ACTIVITY_FIELDS = [
+  { path: "title", label: "Title" },
+  { path: "status", label: "Status" },
+  { path: "caseNumber", label: "Case Number" },
+  { path: "jurisdiction", label: "Jurisdiction" },
+  { path: "court", label: "Court" },
+  { path: "filingDate", label: "Filing Date" },
+];
 
 const deleteFileQuietly = (filePath) => {
   if (!filePath) {
@@ -142,6 +155,15 @@ const createCase = async (req, res) => {
         populate: { path: "client", select: "name email" },
       });
 
+    await logEntityActivity({
+      entityType: "case",
+      action: "created",
+      entityId: caseFile._id,
+      entityName: caseFile.title,
+      actor: req.user,
+      details: buildFieldChanges({}, caseFile.toObject(), CASE_ACTIVITY_FIELDS),
+    });
+
     res.status(201).json({
       message: "Case file created successfully",
       caseFile: populatedCase,
@@ -159,6 +181,7 @@ const updateCase = async (req, res) => {
       return res.status(404).json({ message: "Case file not found" });
     }
 
+    const originalCase = caseFile.toObject();    
     const updates = { ...req.body };
 
     if (updates.title !== undefined) {
@@ -186,6 +209,12 @@ const updateCase = async (req, res) => {
 
     Object.assign(caseFile, updates);
     await caseFile.save();
+    const updatedCaseObject = caseFile.toObject();
+    const caseChanges = buildFieldChanges(
+      originalCase,
+      updatedCaseObject,
+      CASE_ACTIVITY_FIELDS
+    );    
 
     const populatedCase = await CaseFile.findById(caseFile._id)
       .populate("leadCounsel", "name email")
@@ -194,6 +223,15 @@ const updateCase = async (req, res) => {
         select: "title clientName matterNumber status client",
         populate: { path: "client", select: "name email" },
       });
+
+    await logEntityActivity({
+      entityType: "case",
+      action: "updated",
+      entityId: caseFile._id,
+      entityName: caseFile.title,
+      actor: req.user,
+      details: caseChanges,
+    });
 
     res.json({
       message: "Case file updated successfully",
@@ -212,6 +250,7 @@ const deleteCase = async (req, res) => {
       return res.status(404).json({ message: "Case file not found" });
     }
 
+    const deletedCaseSnapshot = caseFile.toObject();    
     const documents = await Document.find({ caseFile: caseFile._id }).select("_id");
     const documentIds = documents.map((document) => document._id);
 
@@ -231,6 +270,19 @@ const deleteCase = async (req, res) => {
     ]);
 
     await caseFile.deleteOne();
+
+    await logEntityActivity({
+      entityType: "case",
+      action: "deleted",
+      entityId: caseFile._id,
+      entityName: caseFile.title,
+      actor: req.user,
+      details: buildFieldChanges(
+        deletedCaseSnapshot,
+        {},
+        CASE_ACTIVITY_FIELDS
+      ),
+    });
 
     res.json({ message: "Case file deleted successfully" });
   } catch (error) {

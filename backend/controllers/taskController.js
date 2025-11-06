@@ -6,8 +6,13 @@ const User = require("../models/User");
 const Matter = require("../models/Matter");
 const CaseFile = require("../models/CaseFile");
 const Document = require("../models/Document");
+const Notification = require("../models/Notification");
 const { sendTaskAssignmentEmail } = require("../utils/emailService");
 const { hasPrivilegedAccess, matchesRole } = require("../utils/roleUtils");
+const {
+  buildFieldChanges,
+  logEntityActivity,
+} = require("../utils/activityLogger");
 
 const isPrivileged = (role) => hasPrivilegedAccess(role);
 
@@ -338,6 +343,16 @@ const getTasks = async (req, res) => {
   }
 };
 
+const TASK_ACTIVITY_FIELDS = [
+  { path: "title", label: "Title" },
+  { path: "description", label: "Description" },
+  { path: "priority", label: "Priority" },
+  { path: "status", label: "Status" },
+  { path: "dueDate", label: "Due Date" },
+];
+
+const TASK_STATUS_FIELDS = [{ path: "status", label: "Status" }];
+
 // @desc    Get task by ID
 // @route   GET /api/tasks/:id
 // @access  Private
@@ -448,7 +463,16 @@ const createTask = async (req, res) => {
               { _id: { $in: taskPayload.relatedDocuments } },
               { $addToSet: { relatedTasks: task._id } }
             );
-          }          
+          }
+
+          await logEntityActivity({
+            entityType: "task",
+            action: "created",
+            entityId: task._id,
+            entityName: task.title,
+            actor: req.user,
+            details: buildFieldChanges({}, task.toObject(), TASK_ACTIVITY_FIELDS),
+          });       
           try {
             const assignees = await User.find({
               _id: { $in: uniqueAssigneeIds },
@@ -490,6 +514,8 @@ if (!task) return res.status(404).json({ message: "Task not found" });
 const existingAssigneeIds = Array.isArray(task.assignedTo)
   ? task.assignedTo.map((id) => id.toString())
   : [];
+
+const originalTask = task.toObject();
 
 const originalDueDate = task.dueDate ? task.dueDate.getTime() : null;
 let dueDateChanged = false;
@@ -603,6 +629,12 @@ if (dueDateChanged) {
 }
 
 const updatedTask = await task.save();
+const updatedTaskObject = updatedTask.toObject();
+const taskChangeDetails = buildFieldChanges(
+  originalTask,
+  updatedTaskObject,
+  TASK_ACTIVITY_FIELDS
+);
 
 if (Object.prototype.hasOwnProperty.call(req.body, "relatedDocuments")) {
   await Document.updateMany(
@@ -642,6 +674,15 @@ if (newlyAssignedIds.length) {
   }
 }
 
+await logEntityActivity({
+  entityType: "task",
+  action: "updated",
+  entityId: updatedTask._id,
+  entityName: updatedTask.title,
+  actor: req.user,
+  details: taskChangeDetails,
+});
+
 res.json({ message: "Task updated successfully", updatedTask });
 
     } catch (error) {
@@ -658,7 +699,20 @@ const deleteTask = async (req, res) => {
 
       if (!task) return res.status(404).json({ message: "Task not found" });
 
+      const deletedTaskSnapshot = task.toObject();      
       await task.deleteOne();
+      await logEntityActivity({
+        entityType: "task",
+        action: "deleted",
+        entityId: task._id,
+        entityName: task.title,
+        actor: req.user,
+        details: buildFieldChanges(
+          deletedTaskSnapshot,
+          {},
+          TASK_ACTIVITY_FIELDS
+        ),
+      });      
       res.json({ message: "Task deleted successfully" });
     } catch (error) {
       res.status(500).json({ message: "Server error", error: error.message });
@@ -708,6 +762,23 @@ if (task.status === "Completed") {
 }
 
 await task.save();
+const statusChanges = buildFieldChanges(
+  { status: previousStatus },
+  { status: task.status },
+  TASK_STATUS_FIELDS
+);
+
+if (statusChanges.length) {
+  await logEntityActivity({
+    entityType: "task",
+    action: "updated",
+    entityId: task._id,
+    entityName: task.title,
+    actor: req.user,
+    details: statusChanges,
+    meta: { scope: "status" },
+  });
+}
 res.json({ message: "Task status updated", task });
     } catch (error) {
       res.status(500).json({ message: "Server error", error: error.message });
@@ -819,55 +890,55 @@ const getNotifications = async (req, res) => {
 const now = new Date();
 
 if (isPrivileged(req.user.role)) {
-const completedTasks = await Task.find({
-  status: "Completed",
-  completedAt: { $ne: null },
-})
-  .sort({ completedAt: -1 })
-  .limit(30)
-  .select("title completedAt dueDate assignedTo")
-  .populate("assignedTo", "name");
+  const actionStatusMap = {
+    created: "success",
+    updated: "warning",
+    deleted: "danger",
+  };
 
-completedTasks.forEach((task) => {
-  const assigneesArray = Array.isArray(task.assignedTo)
-    ? task.assignedTo
-    : task.assignedTo
-    ? [task.assignedTo]
-    : [];
-  const assigneeNames = assigneesArray
-    .map((assignee) => assignee?.name)
-    .filter(Boolean)
-    .join(", ");
+  const titleCase = (value = "") =>
+    value
+      .toString()
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
 
-  const completedOnTime =
-    task.completedAt && task.dueDate
-      ? task.completedAt.getTime() <= task.dueDate.getTime()
-      : false;
+  const activityFeed = await Notification.find({})
+    .sort({ createdAt: -1 })
+    .limit(20)
+    .lean();
 
-  let message = `Task "${task.title}" was completed ${
-    completedOnTime ? "on time" : "late"
-  }`;
-  if (assigneeNames) {
-    message += ` by ${assigneeNames}`;
-  }
-  message += ".";
+  activityFeed.forEach((activity) => {
+    const entityLabel = titleCase(activity.entityType || "");
+    const actionLabel = titleCase(activity.action || "");
+    const actorName = activity.actor?.name || "System";
+    const actorRoleLabel = activity.actor?.role
+      ? titleCase(activity.actor.role)
+      : "";
 
-  notifications.push({
-    id: `task-completed-${task._id}`,
-    type: "task_completed",
-    taskId: task._id,
-    title: task.title,
-    message,
-    date: task.completedAt,
-    status: completedOnTime ? "success" : "danger",
-    meta: {
-      completedOnTime,
-      dueDate: task.dueDate,
-      completedAt: task.completedAt,
-      assignedTo: assigneeNames,
-    },
+    const message = `${actorName}${
+      actorRoleLabel ? ` (${actorRoleLabel})` : ""
+    } ${actionLabel || "Updated"} ${entityLabel || "Record"}.`;
+
+    notifications.push({
+      id: `activity-${activity._id}`,
+      type: `${activity.entityType}_${activity.action}`,
+      action: activity.action,
+      entityType: activity.entityType,
+      entity: {
+        id: activity.entityId,
+        type: activity.entityType,
+        name: activity.entityName,
+      },
+      title: entityLabel
+        ? `${entityLabel}${activity.entityName ? `: ${activity.entityName}` : ""}`
+        : activity.entityName || entityLabel,
+      message,
+      date: activity.createdAt,
+      status: actionStatusMap[activity.action] || "info",
+      actor: activity.actor,
+      details: activity.details,
+    });
   });
-});
 } else {
 const lastSevenDays = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 

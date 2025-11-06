@@ -9,7 +9,7 @@ import { LuBell, LuLoader } from "react-icons/lu";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { UserContext } from "../../context/userContext.jsx";
-import { hasPrivilegedAccess } from "../../utils/roleUtils";
+import { getRoleLabel, hasPrivilegedAccess } from "../../utils/roleUtils";
 import PublishNoticeModal from "./PublishNoticeModal.jsx";
 import { formatRelativeTimeFromNow } from "../../utils/dateUtils";
 
@@ -40,7 +40,7 @@ const NotificationBell = () => {
   const lastSeenRef = useRef(null);
   const storageKey = user ? `notifications:lastSeen:${user._id}` : null;
   const [noticeModalOpen, setNoticeModalOpen] = useState(false);
-    const isPrivilegedUser = hasPrivilegedAccess(user?.role);
+  const isPrivilegedUser = hasPrivilegedAccess(user?.role);
 
   useEffect(() => {
     if (!user) {
@@ -103,6 +103,18 @@ const NotificationBell = () => {
   }, [fetchNotifications, lastSeenReady, user]);
 
   useEffect(() => {
+    if (!isPrivilegedUser || !user) {
+      return undefined;
+    }
+
+    const intervalId = setInterval(() => {
+      fetchNotifications();
+    }, 15000);
+
+    return () => clearInterval(intervalId);
+  }, [fetchNotifications, isPrivilegedUser, user]);
+
+  useEffect(() => {
     if (!open) return undefined;
 
     const handleClickOutside = (event) => {
@@ -146,7 +158,7 @@ const NotificationBell = () => {
   const hasNotifications = notifications.length > 0;
   const showBadge = badgeCount > 0;
   const displayBadgeValue = badgeCount > 9 ? "9+" : badgeCount;
-  const visibleNotifications = notifications.slice(0, 5);
+  const visibleNotifications = notifications.slice(0, isPrivilegedUser ? 10 : 5);
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -201,11 +213,48 @@ const NotificationBell = () => {
                 const statusClass =
                   STATUS_STYLES[notification.status] || STATUS_STYLES.info;
                 let indicator = "★";
-                if (notification.type === "task_due_soon") {
+                if (notification.action === "created") {
+                  indicator = "+";
+                } else if (notification.action === "updated") {
+                  indicator = "↻";
+                } else if (notification.action === "deleted") {
+                  indicator = "−";
+                } else if (notification.type === "task_due_soon") {
                   indicator = "!";
                 } else if (notification.type === "task_completed") {
                   indicator = "✓";
                 }
+
+                const actionLabel =
+                  typeof notification.action === "string" && notification.action
+                    ? notification.action
+                        .replace(/_/g, " ")
+                        .replace(/\b\w/g, (char) => char.toUpperCase())
+                    : "";
+                const actorRoleLabel = notification.actor?.role
+                  ? getRoleLabel(notification.actor.role) ||
+                    notification.actor.role.replace(/_/g, " ")
+                  : "";
+                const changeDetails = Array.isArray(notification.details)
+                  ? notification.details.filter((detail) => {
+                      if (!detail) {
+                        return false;
+                      }
+
+                      const beforeValue =
+                        typeof detail.before === "string"
+                          ? detail.before.trim()
+                          : "";
+                      const afterValue =
+                        typeof detail.after === "string"
+                          ? detail.after.trim()
+                          : "";
+
+                      return beforeValue !== "" || afterValue !== "";
+                    })
+                  : [];
+                const trimmedDetails = changeDetails.slice(0, 3);
+                const remainingDetails = changeDetails.length - trimmedDetails.length;
 
                 return (
                   <div
@@ -218,13 +267,73 @@ const NotificationBell = () => {
                       {indicator}
                     </div>
                     <div className="flex flex-1 flex-col">
-                      <p className="text-sm font-medium text-slate-900">
-                        {notification.title}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {notification.message}
-                      </p>
-                      <span className="mt-2 text-[11px] uppercase tracking-[0.2em] text-slate-400">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-semibold text-slate-900">
+                          {notification.title}
+                        </p>
+                        {actionLabel ? (
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                            {actionLabel}
+                          </span>
+                        ) : null}
+                      </div>
+                      {notification.message ? (
+                        <p className="mt-1 text-xs text-slate-500">
+                          {notification.message}
+                        </p>
+                      ) : null}
+                      {notification.actor?.name ? (
+                        <p className="mt-1 text-[11px] text-slate-400">
+                          {notification.actor.name}
+                          {actorRoleLabel ? ` • ${actorRoleLabel}` : ""}
+                          {notification.actor.email
+                            ? ` • ${notification.actor.email}`
+                            : ""}
+                        </p>
+                      ) : null}
+                      {trimmedDetails.length > 0 && (
+                        <ul className="mt-2 space-y-1">
+                          {trimmedDetails.map((detail) => {
+                            const hasBefore =
+                              typeof detail.before === "string" && detail.before !== "";
+                            const hasAfter =
+                              typeof detail.after === "string" && detail.after !== "";
+
+                            return (
+                              <li
+                                key={`${notification.id}-${detail.field}-${detail.after}`}
+                                className="text-[11px] text-slate-500"
+                              >
+                                <span className="font-medium text-slate-600">
+                                  {detail.label || detail.field}
+                                </span>
+                                <span className="ml-2">
+                                  {hasBefore ? (
+                                    <span className="text-slate-400 line-through">
+                                      {detail.before}
+                                    </span>
+                                  ) : null}
+                                  {hasBefore && hasAfter ? (
+                                    <span className="mx-1 text-slate-400">→</span>
+                                  ) : null}
+                                  {hasAfter ? (
+                                    <span className="text-slate-600">{detail.after}</span>
+                                  ) : !hasBefore ? (
+                                    <span className="text-slate-400">—</span>
+                                  ) : null}
+                                </span>
+                              </li>
+                            );
+                          })}
+                          {remainingDetails > 0 && (
+                            <li className="text-[11px] text-slate-400">
+                              +{remainingDetails} more change
+                              {remainingDetails > 1 ? "s" : ""}
+                            </li>
+                          )}
+                        </ul>
+                      )}
+                      <span className="mt-3 text-[11px] uppercase tracking-[0.2em] text-slate-400">
                         {formatRelativeTimeFromNow(notification.date)}
                       </span>
                     </div>

@@ -2,6 +2,10 @@ const Document = require("../models/Document");
 const Matter = require("../models/Matter");
 const CaseFile = require("../models/CaseFile");
 const Task = require("../models/Task");
+const {
+  buildFieldChanges,
+  logEntityActivity,
+} = require("../utils/activityLogger");
 
 const normalizeString = (value) =>
   typeof value === "string" ? value.trim() : "";
@@ -37,6 +41,16 @@ const buildHttpError = (message, statusCode = 400) => {
   error.statusCode = statusCode;
   return error;
 };
+
+const DOCUMENT_ACTIVITY_FIELDS = [
+  { path: "title", label: "Title" },
+  { path: "documentType", label: "Document Type" },
+  { path: "matter", label: "Matter" },
+  { path: "caseFile", label: "Case File" },
+  { path: "version", label: "Version" },
+  { path: "receivedFrom", label: "Received From" },
+  { path: "producedTo", label: "Produced To" },
+];
 
 const handleErrorResponse = (res, error) => {
   const statusCode = error.statusCode || 500;
@@ -269,6 +283,15 @@ const createDocument = async (req, res) => {
       .populate("caseFile", "title caseNumber status")
       .populate("uploadedBy", "name email");
 
+    await logEntityActivity({
+      entityType: "document",
+      action: "created",
+      entityId: document._id,
+      entityName: document.title,
+      actor: req.user,
+      details: buildFieldChanges({}, document.toObject(), DOCUMENT_ACTIVITY_FIELDS),
+    });
+
     res.status(201).json({
       message: "Document created successfully",
       document: populatedDocument,
@@ -286,6 +309,7 @@ const updateDocument = async (req, res) => {
       return res.status(404).json({ message: "Document not found" });
     }
 
+    const originalDocument = document.toObject();    
     const updates = { ...req.body };
 
     if (updates.title !== undefined) {
@@ -355,6 +379,12 @@ const updateDocument = async (req, res) => {
 
     Object.assign(document, updates);
     await document.save();
+    const updatedDocumentObject = document.toObject();
+    const documentChanges = buildFieldChanges(
+      originalDocument,
+      updatedDocumentObject,
+      DOCUMENT_ACTIVITY_FIELDS
+    );    
 
     const populatedDocument = await Document.findById(document._id)
       .populate({
@@ -365,6 +395,15 @@ const updateDocument = async (req, res) => {
       .populate("caseFile", "title caseNumber status")
       .populate("uploadedBy", "name email")
       .populate("relatedTasks", "title status dueDate");
+
+    await logEntityActivity({
+      entityType: "document",
+      action: "updated",
+      entityId: document._id,
+      entityName: document.title,
+      actor: req.user,
+      details: documentChanges,
+    });
 
     res.json({
       message: "Document updated successfully",
@@ -383,12 +422,26 @@ const deleteDocument = async (req, res) => {
       return res.status(404).json({ message: "Document not found" });
     }
 
+    const deletedDocumentSnapshot = document.toObject();
     await Task.updateMany(
       { relatedDocuments: document._id },
       { $pull: { relatedDocuments: document._id } }
     );
 
     await document.deleteOne();
+
+    await logEntityActivity({
+      entityType: "document",
+      action: "deleted",
+      entityId: document._id,
+      entityName: document.title,
+      actor: req.user,
+      details: buildFieldChanges(
+        deletedDocumentSnapshot,
+        {},
+        DOCUMENT_ACTIVITY_FIELDS
+      ),
+    });
 
     res.json({ message: "Document deleted successfully" });
   } catch (error) {
