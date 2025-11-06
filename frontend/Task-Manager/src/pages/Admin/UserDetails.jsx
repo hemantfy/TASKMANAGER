@@ -16,6 +16,7 @@ import { API_PATHS } from "../../utils/apiPaths";
 import { UserContext } from "../../context/userContext.jsx";
 import { getPrivilegedBasePath, normalizeRole } from "../../utils/roleUtils";
 import TaskFormModal from "../../components/TaskFormModal";
+import { formatCurrency } from "../../utils/invoiceUtils";
 
 const statusBadgeStyles = {
   Pending: "bg-amber-100 text-amber-600 border-amber-200",
@@ -42,6 +43,12 @@ const UserDetails = () => {
     inProgress: 0,
     completed: 0,
   });
+  const [clientSummary, setClientSummary] = useState({
+    totalMatters: 0,
+    totalCases: 0,
+    activeCases: 0,
+    amountDue: 0,
+  });  
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
@@ -101,6 +108,16 @@ const UserDetails = () => {
         inProgress: summary?.inProgress ?? 0,
         completed: summary?.completed ?? 0,
       });
+      const clientSummaryData =
+        (responseData.clientSummary && typeof responseData.clientSummary === "object"
+          ? responseData.clientSummary
+          : {}) || {};
+      setClientSummary({
+        totalMatters: clientSummaryData?.totalMatters ?? 0,
+        totalCases: clientSummaryData?.totalCases ?? 0,
+        activeCases: clientSummaryData?.activeCases ?? 0,
+        amountDue: clientSummaryData?.amountDue ?? 0,
+      });      
       setError("");
     } catch (requestError) {
       console.error("Failed to fetch user details", requestError);
@@ -147,28 +164,90 @@ const UserDetails = () => {
     navigate(`${privilegedBasePath}/create-task`, { state: { taskId } });
   };
 
-  const summaryItems = [
-    {
-      label: "Total Tasks",
-      value: taskSummary.total,
-      gradient: "from-slate-600 via-slate-500 to-slate-400",
-    },
-    {
-      label: "Pending",
-      value: taskSummary.pending,
-      gradient: "from-amber-500 via-orange-400 to-yellow-400",
-    },
-    {
-      label: "In Progress",
-      value: taskSummary.inProgress,
-      gradient: "from-sky-500 via-cyan-500 to-blue-500",
-    },
-    {
-      label: "Completed",
-      value: taskSummary.completed,
-      gradient: "from-emerald-500 via-green-500 to-lime-400",
-    },
-  ];
+  const formatCount = useCallback((value) => {
+    if (typeof value !== "number" || Number.isNaN(value)) {
+      return "0";
+    }
+    return value.toLocaleString();
+  }, []);
+
+  const summaryItems = useMemo(() => {
+    if (isClientProfile) {
+      return [
+        {
+          label: "Total Matters",
+          value: clientSummary.totalMatters,
+          displayValue: formatCount(clientSummary.totalMatters),
+          caption:
+            clientSummary.totalMatters === 1 ? "Matter" : "Matters",
+          gradient: "from-slate-600 via-slate-500 to-slate-400",
+        },
+        {
+          label: "Total Cases",
+          value: clientSummary.totalCases,
+          displayValue: formatCount(clientSummary.totalCases),
+          caption: clientSummary.totalCases === 1 ? "Case" : "Cases",
+          gradient: "from-sky-500 via-cyan-500 to-blue-500",
+        },
+        {
+          label: "Active Cases",
+          value: clientSummary.activeCases,
+          displayValue: formatCount(clientSummary.activeCases),
+          caption: clientSummary.activeCases === 1 ? "Active Case" : "Active Cases",
+          gradient: "from-emerald-500 via-green-500 to-lime-400",
+        },
+        {
+          label: "Amount Due",
+          value: clientSummary.amountDue,
+          displayValue: formatCurrency(clientSummary.amountDue || 0),
+          caption: "Outstanding",
+          gradient: "from-amber-500 via-orange-400 to-yellow-400",
+        },
+      ];
+    }
+
+    return [
+      {
+        label: "Total Tasks",
+        value: taskSummary.total,
+        displayValue: formatCount(taskSummary.total),
+        caption: taskSummary.total === 1 ? "Task" : "Tasks",
+        gradient: "from-slate-600 via-slate-500 to-slate-400",
+      },
+      {
+        label: "Pending",
+        value: taskSummary.pending,
+        displayValue: formatCount(taskSummary.pending),
+        caption: taskSummary.pending === 1 ? "Task" : "Tasks",
+        gradient: "from-amber-500 via-orange-400 to-yellow-400",
+      },
+      {
+        label: "In Progress",
+        value: taskSummary.inProgress,
+        displayValue: formatCount(taskSummary.inProgress),
+        caption: taskSummary.inProgress === 1 ? "Task" : "Tasks",
+        gradient: "from-sky-500 via-cyan-500 to-blue-500",
+      },
+      {
+        label: "Completed",
+        value: taskSummary.completed,
+        displayValue: formatCount(taskSummary.completed),
+        caption: taskSummary.completed === 1 ? "Task" : "Tasks",
+        gradient: "from-emerald-500 via-green-500 to-lime-400",
+      },
+    ];
+  }, [
+    clientSummary.activeCases,
+    clientSummary.amountDue,
+    clientSummary.totalCases,
+    clientSummary.totalMatters,
+    formatCount,
+    isClientProfile,
+    taskSummary.completed,
+    taskSummary.inProgress,
+    taskSummary.pending,
+    taskSummary.total,
+  ]);
 
   const renderContent = () => {
     if (isLoading) {
@@ -259,10 +338,14 @@ const UserDetails = () => {
               <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500">
                 {item.label}
               </p>
-              <p className="mt-3 text-3xl font-semibold text-slate-900">{item.value}</p>
-              <p className="mt-1 text-xs font-medium uppercase tracking-[0.24em] text-slate-400">
-                {item.value === 1 ? "Task" : "Tasks"}
+              <p className="mt-3 text-3xl font-semibold text-slate-900">
+                {item.displayValue ?? formatCount(item.value)}
               </p>
+             {item.caption ? (
+                <p className="mt-1 text-xs font-medium uppercase tracking-[0.24em] text-slate-400">
+                  {item.caption}
+                </p>
+              ) : null}              
             </div>
           ))}
         </section>

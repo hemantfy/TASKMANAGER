@@ -5,6 +5,7 @@ const bcrypt = require("bcryptjs");
 const Task = require("../models/Task");
 const User = require("../models/User");
 const Matter = require("../models/Matter");
+const CaseFile = require("../models/CaseFile");
 const {
   PRIVILEGED_ROLES,
   formatUserRole,
@@ -39,6 +40,118 @@ const buildMatterCountsForClient = async (userId) => {
   ]);
 
   return { totalMatters, activeMatters, closedMatters };
+};
+
+const clamp = (value, min, max) => {
+  return Math.min(Math.max(value, min), max);
+};
+
+const buildClientAccountSummary = async (clientId) => {
+  if (!clientId) {
+    return { totalMatters: 0, totalCases: 0, activeCases: 0, amountDue: 0 };
+  }
+
+  const matters = await Matter.find({ client: clientId })
+    .select("_id status createdAt updatedAt openedDate")
+    .lean();
+
+  if (!Array.isArray(matters) || matters.length === 0) {
+    return { totalMatters: 0, totalCases: 0, activeCases: 0, amountDue: 0 };
+  }
+
+  const matterIds = matters
+    .map((matter) => matter?._id)
+    .filter((id) => id && mongoose.Types.ObjectId.isValid(id.toString()));
+
+  if (matterIds.length === 0) {
+    return {
+      totalMatters: matters.length,
+      totalCases: 0,
+      activeCases: 0,
+      amountDue: 0,
+    };
+  }
+
+  const matterObjectIds = matterIds.map((id) =>
+    id instanceof mongoose.Types.ObjectId ? id : new mongoose.Types.ObjectId(id)
+  );
+
+  const [caseFiles, openTaskCounts, closedTaskCounts] = await Promise.all([
+    CaseFile.find({ matter: { $in: matterObjectIds } })
+      .select("status matter")
+      .lean(),
+    Task.aggregate([
+      {
+        $match: {
+          matter: { $in: matterObjectIds },
+          status: { $ne: "Completed" },
+        },
+      },
+      { $group: { _id: "$matter", count: { $sum: 1 } } },
+    ]),
+    Task.aggregate([
+      {
+        $match: {
+          matter: { $in: matterObjectIds },
+          status: "Completed",
+        },
+      },
+      { $group: { _id: "$matter", count: { $sum: 1 } } },
+    ]),
+  ]);
+
+  const totalCases = Array.isArray(caseFiles) ? caseFiles.length : 0;
+  const activeCases = Array.isArray(caseFiles)
+    ? caseFiles.filter((caseFile) => caseFile?.status !== "Closed").length
+    : 0;
+
+  const buildCountMap = (entries = []) => {
+    const map = new Map();
+    entries.forEach((entry) => {
+      const key = entry?._id ? entry._id.toString() : "";
+      if (key) {
+        map.set(key, entry?.count || 0);
+      }
+    });
+    return map;
+  };
+
+  const openTaskMap = buildCountMap(openTaskCounts);
+  const closedTaskMap = buildCountMap(closedTaskCounts);
+
+  const computeBalanceDue = (openTasks = 0, closedTasks = 0) => {
+    const totalTasks = Math.max((openTasks || 0) + (closedTasks || 0), 0);
+    const complexityFactor = 1 + clamp(totalTasks * 0.04, 0, 0.45);
+    const baseAmount = 12000 + totalTasks * 1800;
+    const totalAmount = Math.round(baseAmount * complexityFactor);
+    const progress = totalTasks
+      ? clamp(closedTasks / Math.max(totalTasks, 1), 0, 1)
+      : 0.35;
+    const paidAmount = Math.round(
+      totalAmount * clamp(progress + 0.2, 0.35, 1)
+    );
+
+    return Math.max(totalAmount - paidAmount, 0);
+  };
+
+  const amountDue = matters.reduce((total, matter) => {
+    const matterId = matter?._id ? matter._id.toString() : "";
+    if (!matterId) {
+      return total;
+    }
+
+    const openCount = openTaskMap.get(matterId) || 0;
+    const closedCount = closedTaskMap.get(matterId) || 0;
+
+    return total + computeBalanceDue(openCount, closedCount);
+  }, 0);
+
+  return {
+    totalMatters: matters.length,
+    totalCases,
+    activeCases,
+    amountDue,
+  };
 };
 
 // @desc    Get all users (Admin only)
@@ -152,6 +265,20 @@ const getUserById = async (req, res) => {
     );
 
     const formattedUser = formatUserRole(user);
+    const normalizedRole = normalizeRole(formattedUser.role);
+    const clientSummary = await (async () => {
+      if (normalizedRole !== "client") {
+        return { totalMatters: 0, totalCases: 0, activeCases: 0, amountDue: 0 };
+      }
+
+      try {
+        return await buildClientAccountSummary(formattedUser._id);
+      } catch (summaryError) {
+        console.error("Failed to build client account summary", summaryError);
+        return { totalMatters: 0, totalCases: 0, activeCases: 0, amountDue: 0 };
+      }
+    })();
+
     const userData = {
       ...formattedUser,
       pendingTasks: taskSummary.pending,
@@ -166,6 +293,7 @@ const getUserById = async (req, res) => {
         total: tasks.length,
         ...taskSummary,
       },
+      clientSummary,      
     });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });

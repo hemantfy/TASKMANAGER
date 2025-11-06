@@ -957,7 +957,7 @@ const MattersWorkspace = ({ basePath = "" }) => {
               type="search"
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Search matters"
+              placeholder="Search"
               aria-label="Search matters"
               className="w-full rounded-xl border border-slate-200 bg-white/80 py-2 pl-9 pr-3 text-sm text-slate-600 transition focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200"
             />
@@ -995,7 +995,7 @@ const MattersWorkspace = ({ basePath = "" }) => {
                     className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <LuPlus className="h-4 w-4" />
-                    New Case
+                    Case
                   </button>
                   <button
                     type="button"
