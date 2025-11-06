@@ -5,7 +5,7 @@ import Modal from "../Modal";
 import { LuUsers } from "react-icons/lu";
 import { FaUser } from "react-icons/fa6";
 import AvatarGroup from "../AvatarGroup";
-import { getRoleLabel, normalizeRole } from "../../utils/roleUtils";
+import { getRoleLabel, matchesRole, normalizeRole } from "../../utils/roleUtils";
 
 const SelectUsers = ({
   selectedUsers,
@@ -20,7 +20,11 @@ const SelectUsers = ({
     try {
       const response = await axiosInstance.get(API_PATHS.USERS.GET_ALL_USERS);
       if (response.data?.length > 0) {
-        const sortedUsers = [...response.data].sort((userA, userB) => {
+        const nonClientUsers = response.data.filter(
+          (user) => !matchesRole(user?.role, "client")
+        );
+
+        const sortedUsers = [...nonClientUsers].sort((userA, userB) => {
           const rolePriority = {
             super_admin: 0,
             admin: 1,
