@@ -27,6 +27,11 @@ import {
   getStatusMeta,
   sortInvoicesByDueDate,
 } from "../../utils/invoiceUtils";
+import {
+  buildInvoiceEntryFromPayload,
+  buildInvoiceModalInitialValues,
+  inferInvoiceStatus,
+} from "../../utils/invoiceEditing.js";
 import MatterFormModal from "./MatterFormModal";
 import CaseFormModal from "./CaseFormModal";
 import CaseDocumentModal from "./CaseDocumentModal";
@@ -116,50 +121,6 @@ const renderChipList = (items = []) => {
   );
 };
 
-const computeLineItemsTotal = (items = []) => {
-  if (!Array.isArray(items) || items.length === 0) {
-    return 0;
-  }
-
-  return items.reduce((sum, item) => {
-    const amount = Number(item?.amount ?? 0);
-    return Number.isFinite(amount) ? sum + amount : sum;
-  }, 0);
-};
-
-const inferInvoiceStatus = ({ totalAmount, dueDate }) => {
-  if (!totalAmount || totalAmount <= 0) {
-    return "paid";
-  }
-
-  if (!dueDate) {
-    return "paymentDue";
-  }
-
-  const parsedDueDate = new Date(dueDate);
-
-  if (Number.isNaN(parsedDueDate.getTime())) {
-    return "paymentDue";
-  }
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  parsedDueDate.setHours(0, 0, 0, 0);
-
-  const diffInMs = parsedDueDate.getTime() - today.getTime();
-  const diffInDays = Math.round(diffInMs / (24 * 60 * 60 * 1000));
-
-  if (diffInDays < 0) {
-    return "overdue";
-  }
-
-  if (diffInDays <= 7) {
-    return "dueSoon";
-  }
-
-  return "paymentDue";
-};
-
 const normalizeInvoiceEntry = (invoice, index, matter = {}) => {
   const rawStatus =
     typeof invoice?.status === "string"
@@ -244,56 +205,6 @@ const transformInvoicesFromMatter = (matter) => {
     status: invoice.status,
     raw: invoice,
   }));
-};
-
-const buildInvoiceEntryFromPayload = (payload, { fallbackInvoice } = {}) => {
-  const issuedOn =
-    payload?.invoiceDate ||
-    fallbackInvoice?.issuedOn ||
-    fallbackInvoice?.raw?.invoiceDate ||
-    fallbackInvoice?.raw?.issuedOn ||
-    new Date().toISOString();
-  const dueDate =
-    payload?.dueDate ||
-    fallbackInvoice?.dueDate ||
-    fallbackInvoice?.raw?.dueDate ||
-    "";
-
-  const professionalTotal = computeLineItemsTotal(payload?.professionalFees);
-  const expensesTotal = computeLineItemsTotal(payload?.expenses);
-  const governmentTotal = computeLineItemsTotal(payload?.governmentFees);
-  const hasLineItems = professionalTotal > 0 || expensesTotal > 0 || governmentTotal > 0;
-
-  const fallbackTotal = Math.max(Number(fallbackInvoice?.totalAmount) || 0, 0);
-  const calculatedTotal = professionalTotal + expensesTotal + governmentTotal;
-  const totalAmount = hasLineItems ? calculatedTotal : fallbackTotal;
-  const fallbackBalance = Math.max(Number(fallbackInvoice?.balanceDue) || fallbackTotal, 0);
-  const balanceDue = hasLineItems ? Math.max(calculatedTotal, 0) : fallbackBalance;
-
-  const identifier =
-    fallbackInvoice?.id ||
-    payload?.invoiceId ||
-    payload?.invoiceNumber ||
-    `invoice-${Date.now()}`;
-
-  return {
-    id: identifier,
-    invoiceNumber:
-      payload?.invoiceNumber ||
-      fallbackInvoice?.invoiceNumber ||
-      `Invoice ${new Date().getFullYear()}`,
-    issuedOn,
-    issuedOnLabel: formatDateLabel(issuedOn, "Not set"),
-    dueDate,
-    dueDateLabel: formatDateLabel(dueDate, "Not set"),
-    totalAmount: Math.max(totalAmount, 0),
-    balanceDue,
-    status: inferInvoiceStatus({ totalAmount: balanceDue, dueDate }),
-    raw: {
-      ...fallbackInvoice?.raw,
-      ...payload,
-    },
-  };
 };
 
 const MattersWorkspace = ({ basePath = "" }) => {
@@ -1463,26 +1374,10 @@ const MattersWorkspace = ({ basePath = "" }) => {
     [invoiceBeingEdited]
   );
 
-  const invoiceModalInitialValues = useMemo(() => {
-    if (!invoiceBeingEdited) {
-      return null;
-    }
-
-    const rawInvoice = invoiceBeingEdited.raw || {};
-
-    return {
-      ...rawInvoice,
-      invoiceNumber:
-        rawInvoice.invoiceNumber || invoiceBeingEdited.invoiceNumber || "",
-      invoiceDate:
-        rawInvoice.invoiceDate ||
-        rawInvoice.issuedOn ||
-        invoiceBeingEdited.issuedOn ||
-        "",
-      dueDate:
-        rawInvoice.dueDate || invoiceBeingEdited.dueDate || "",
-    };
-  }, [invoiceBeingEdited]);
+  const invoiceModalInitialValues = useMemo(
+    () => buildInvoiceModalInitialValues(invoiceBeingEdited),
+    [invoiceBeingEdited]
+  );
 
   useEffect(() => {
     if (!isMatterView) {

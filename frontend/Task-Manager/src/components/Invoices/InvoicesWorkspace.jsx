@@ -10,6 +10,7 @@ import {
   LuArrowUpRight,
   LuClipboardCheck,
   LuClock3,
+  LuEllipsisVertical,  
   LuFileText,
   LuRefreshCw,
   LuSearch,
@@ -34,6 +35,11 @@ import {
   summarizeInvoices,
 } from "../../utils/invoiceUtils.js";
 import { getPrivilegedBasePath, resolvePrivilegedPath } from "../../utils/roleUtils.js";
+import InvoiceModal from "../modals/InvoiceModal.jsx";
+import {
+  buildInvoiceEntryFromPayload,
+  buildInvoiceModalInitialValues,
+} from "../../utils/invoiceEditing.js";
 
 const SummaryCard = ({ icon: Icon, title, value, hint, accent }) => (
   <div className="relative overflow-hidden rounded-3xl border border-white/60 bg-white/80 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.08)] transition dark:border-slate-700/60 dark:bg-slate-900/60">
@@ -77,6 +83,10 @@ const InvoiceCard = ({
   invoice,
   onViewMatter,
   showClientDetails,
+  onToggleMenu,
+  onUpdate,
+  onDelete,
+  isMenuOpen,  
 }) => {
   const progressPercentage = Math.round(Math.min(Math.max(invoice.progress * 100, 0), 100));
 
@@ -126,14 +136,55 @@ const InvoiceCard = ({
             )}
           </dl>
         </div>
-        <div className="text-right">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Amount</p>
-          <p className="mt-2 text-2xl font-semibold text-slate-900 dark:text-slate-100">
-            {formatCurrency(invoice.totalAmount)}
-          </p>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Balance {formatCurrency(invoice.balanceDue)}
-          </p>
+        <div className="flex items-start gap-2">
+          <div className="text-right">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Amount</p>
+            <p className="mt-2 text-2xl font-semibold text-slate-900 dark:text-slate-100">
+              {formatCurrency(invoice.totalAmount)}
+            </p>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              Balance {formatCurrency(invoice.balanceDue)}
+            </p>
+          </div>
+          <div
+            className="relative flex-shrink-0"
+            data-invoice-actions-root="true"
+          >
+            <button
+              type="button"
+              onClick={() => onToggleMenu?.(invoice)}
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-primary/10 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/40 dark:text-slate-300"
+              aria-haspopup="menu"
+              aria-expanded={isMenuOpen}
+              aria-label="Invoice options"
+            >
+              <LuEllipsisVertical className="h-5 w-5" />
+            </button>
+            {isMenuOpen && (
+              <div
+                role="menu"
+                data-invoice-actions-menu="true"
+                className="absolute right-0 z-20 mt-2 w-40 overflow-hidden rounded-xl border border-slate-200 bg-white text-sm shadow-lg dark:border-slate-700 dark:bg-slate-900"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => onUpdate?.(invoice)}
+                  className="flex w-full items-center px-4 py-2 text-left text-slate-600 transition hover:bg-primary/10 hover:text-primary dark:text-slate-300"
+                >
+                  Update
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => onDelete?.(invoice)}
+                  className="flex w-full items-center px-4 py-2 text-left text-slate-600 transition hover:bg-red-50 hover:text-red-600 dark:text-slate-300 dark:hover:bg-red-500/20 dark:hover:text-red-300"
+                >
+                  Delete
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -214,6 +265,10 @@ const InvoicesWorkspace = ({
   const [invoices, setInvoices] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [openInvoiceActionsId, setOpenInvoiceActionsId] = useState(null);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [invoiceBeingEdited, setInvoiceBeingEdited] = useState(null);
+  const [matterLookup, setMatterLookup] = useState({});  
 
   const navigate = useNavigate();
 
@@ -229,7 +284,22 @@ const InvoicesWorkspace = ({
         viewerId: user?._id,
       });
 
-      const sorted = sortInvoicesByDueDate(derived);
+      const matterMap = matters.reduce((accumulator, matter) => {
+        const key = matter?._id?.toString() || matter?.id?.toString();
+        if (!key) {
+          return accumulator;
+        }
+
+        accumulator[key] = matter;
+        return accumulator;
+      }, {});
+
+      const sorted = sortInvoicesByDueDate(derived).map((invoice) => ({
+        ...invoice,
+        rawMatter: matterMap[invoice.matterId] || null,
+      }));
+
+      setMatterLookup(matterMap);
       setInvoices(sorted);
     } catch (error) {
       console.error("Failed to load invoices", error);
@@ -255,6 +325,40 @@ const InvoicesWorkspace = ({
 
     initialize();
   }, [fetchInvoices]);
+
+  useEffect(() => {
+    if (!openInvoiceActionsId) {
+      return undefined;
+    }
+
+    const handleDocumentClick = (event) => {
+      const { target } = event;
+
+      if (target && typeof target.closest === "function") {
+        const withinMenu = target.closest('[data-invoice-actions-root="true"]');
+
+        if (withinMenu) {
+          return;
+        }
+      }
+
+      setOpenInvoiceActionsId(null);
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") {
+        setOpenInvoiceActionsId(null);
+      }
+    };
+
+    document.addEventListener("click", handleDocumentClick);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("click", handleDocumentClick);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [openInvoiceActionsId]);
 
   const handleRefresh = async () => {
     if (isRefreshing) {
@@ -316,6 +420,136 @@ const InvoicesWorkspace = ({
     navigate(target);
   };
 
+  const handleToggleInvoiceMenu = useCallback((invoice) => {
+    if (!invoice) {
+      setOpenInvoiceActionsId(null);
+      return;
+    }
+
+    setOpenInvoiceActionsId((previous) =>
+      previous === invoice.id ? null : invoice.id
+    );
+  }, []);
+
+  const handleInvoiceUpdate = useCallback((invoice) => {
+    if (!invoice) {
+      return;
+    }
+
+    setOpenInvoiceActionsId(null);
+    setInvoiceBeingEdited(invoice);
+    setIsInvoiceModalOpen(true);
+  }, []);
+
+  const handleInvoiceDelete = useCallback(
+    (invoice) => {
+      if (!invoice) {
+        return;
+      }
+
+      setInvoices((previous) =>
+        previous.filter((entry) => entry.id !== invoice.id)
+      );
+      setOpenInvoiceActionsId(null);
+
+      if (invoiceBeingEdited?.id === invoice.id) {
+        setInvoiceBeingEdited(null);
+        setIsInvoiceModalOpen(false);
+      }
+
+      toast.success("Invoice removed from list.");
+    },
+    [invoiceBeingEdited]
+  );
+
+  const handleInvoiceModalClose = useCallback(() => {
+    setIsInvoiceModalOpen(false);
+    setInvoiceBeingEdited(null);
+  }, []);
+
+  const handleInvoiceDrafted = useCallback(
+    (invoiceData) => {
+      if (!invoiceBeingEdited) {
+        setIsInvoiceModalOpen(false);
+        return;
+      }
+
+      const updatedEntry = buildInvoiceEntryFromPayload(invoiceData, {
+        fallbackInvoice: invoiceBeingEdited,
+      });
+
+      const relatedMatter =
+        matterLookup[invoiceBeingEdited.matterId] ||
+        invoiceBeingEdited.rawMatter ||
+        null;
+
+      const mergedEntry = {
+        ...invoiceBeingEdited,
+        ...updatedEntry,
+        rawMatter: relatedMatter,
+        client: invoiceBeingEdited.client ?? updatedEntry.client ?? null,
+        leadAttorney:
+          invoiceBeingEdited.leadAttorney ?? updatedEntry.leadAttorney ?? null,
+        matterTitle:
+          updatedEntry.matterTitle ?? invoiceBeingEdited.matterTitle ?? "",
+        practiceArea:
+          updatedEntry.practiceArea ?? invoiceBeingEdited.practiceArea ?? "",
+        matterId:
+          invoiceBeingEdited.matterId || updatedEntry.matterId || "",
+        progress:
+          typeof invoiceBeingEdited.progress === "number"
+            ? invoiceBeingEdited.progress
+            : typeof updatedEntry.progress === "number"
+              ? updatedEntry.progress
+              : 0,
+        openTasks:
+          typeof invoiceBeingEdited.openTasks === "number"
+            ? invoiceBeingEdited.openTasks
+            : updatedEntry.openTasks ?? 0,
+        closedTasks:
+          typeof invoiceBeingEdited.closedTasks === "number"
+            ? invoiceBeingEdited.closedTasks
+            : updatedEntry.closedTasks ?? 0,
+        totalTasks:
+          typeof invoiceBeingEdited.totalTasks === "number"
+            ? invoiceBeingEdited.totalTasks
+            : updatedEntry.totalTasks ?? 0,
+      };
+
+      setInvoices((previous) => {
+        const next = previous.map((entry) =>
+          entry.id === invoiceBeingEdited.id ? mergedEntry : entry
+        );
+
+        return sortInvoicesByDueDate(next);
+      });
+
+      toast.success("Invoice updated successfully.");
+
+      setIsInvoiceModalOpen(false);
+      setInvoiceBeingEdited(null);
+      setOpenInvoiceActionsId(null);
+    },
+    [invoiceBeingEdited, matterLookup]
+  );
+
+  const invoiceModalInitialValues = useMemo(
+    () => buildInvoiceModalInitialValues(invoiceBeingEdited),
+    [invoiceBeingEdited]
+  );
+
+  const selectedMatterForModal = useMemo(() => {
+    if (!invoiceBeingEdited) {
+      return null;
+    }
+
+    return (
+      matterLookup[invoiceBeingEdited.matterId] ||
+      invoiceBeingEdited.rawMatter ||
+      null
+    );
+  }, [invoiceBeingEdited, matterLookup]);
+  
   const renderContent = () => {
     if (isLoading) {
       return (
@@ -356,6 +590,10 @@ const InvoicesWorkspace = ({
             invoice={invoice}
             showClientDetails={showClientDetails}
             onViewMatter={handleViewMatter}
+            onToggleMenu={handleToggleInvoiceMenu}
+            onUpdate={handleInvoiceUpdate}
+            onDelete={handleInvoiceDelete}
+            isMenuOpen={openInvoiceActionsId === invoice.id}            
           />
         ))}
       </div>
@@ -461,6 +699,13 @@ const InvoicesWorkspace = ({
       </section>
 
       {renderContent()}
+      <InvoiceModal
+        isOpen={isInvoiceModalOpen}
+        onClose={handleInvoiceModalClose}
+        matter={selectedMatterForModal}
+        invoice={invoiceModalInitialValues}
+        onSubmit={handleInvoiceDrafted}
+      />
     </DashboardLayout>
   );
 };
