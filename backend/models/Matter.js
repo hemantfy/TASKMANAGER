@@ -40,6 +40,11 @@ const matterSchema = new mongoose.Schema(
     importantDates: [deadlineSchema],
     tags: [{ type: String, trim: true }],
     notes: { type: String },
+    billing: {
+      invoiceSuppressed: { type: Boolean, default: false },
+      invoiceSuppressedAt: { type: Date },
+      invoiceSuppressedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    },    
   },
   { timestamps: true }
 );

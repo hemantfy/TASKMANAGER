@@ -442,24 +442,67 @@ const InvoicesWorkspace = ({
   }, []);
 
   const handleInvoiceDelete = useCallback(
-    (invoice) => {
+    async (invoice) => {
       if (!invoice) {
         return;
       }
 
+      setOpenInvoiceActionsId(null);
+
+      if (!invoice.matterId) {
+        toast.error(
+          "We couldn't determine which matter this invoice belongs to."
+        );
+        return;
+      }
+
+      const invoiceEntry = invoice;
+      const wasEditing = invoiceBeingEdited?.id === invoice.id;
+
       setInvoices((previous) =>
         previous.filter((entry) => entry.id !== invoice.id)
       );
-      setOpenInvoiceActionsId(null);
 
-      if (invoiceBeingEdited?.id === invoice.id) {
+      if (wasEditing) {
         setInvoiceBeingEdited(null);
         setIsInvoiceModalOpen(false);
       }
 
-      toast.success("Invoice removed from list.");
+      const payload = {
+        billing: {
+          invoiceSuppressed: true,
+          invoiceSuppressedAt: new Date().toISOString(),
+        },
+      };
+
+      if (user?._id) {
+        payload.billing.invoiceSuppressedBy = user._id;
+      }
+
+      try {
+        await axiosInstance.put(
+          API_PATHS.MATTERS.UPDATE(invoice.matterId),
+          payload
+        );
+        toast.success("Invoice removed from list.");
+      } catch (error) {
+        console.error("Failed to remove invoice", error);
+        toast.error(
+          error.response?.data?.message ||
+            "We couldn't remove this invoice. Please try again."
+        );
+
+        setInvoices((previous) =>
+          sortInvoicesByDueDate([...previous, invoiceEntry])
+        );
+
+        if (wasEditing) {
+          setInvoiceBeingEdited(invoiceEntry);
+          setIsInvoiceModalOpen(true);
+        }
+      }
     },
-    [invoiceBeingEdited]
+    [invoiceBeingEdited, user?._id]
   );
 
   const handleInvoiceModalClose = useCallback(() => {

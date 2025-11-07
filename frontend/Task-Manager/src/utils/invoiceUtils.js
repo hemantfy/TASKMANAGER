@@ -204,6 +204,10 @@ export const deriveInvoicesFromMatters = (
 ) => {
   const normalizedMatters = Array.isArray(matters) ? matters : [];
   const filteredMatters = normalizedMatters.filter((matter) => {
+    if (matter?.billing?.invoiceSuppressed) {
+      return false;
+    }
+
     if (viewerRole !== "client") {
       return true;
     }
