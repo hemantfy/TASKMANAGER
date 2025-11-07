@@ -15,33 +15,6 @@ const createLineItem = () => ({
   amount: "",
 });
 
-const buildInitialState = (matter) => {
-  const today = formatDateInputValue(new Date());
-  const matterTitle = matter?.title || "";
-  const matterNumber = matter?.matterNumber || "";
-  const inferredMatterReference = matterTitle || matterNumber;
-  const clientName =
-    matter?.client?.name ||
-    matter?.clientName ||
-    (typeof matter?.client === "string" ? matter.client : "");
-
-  return {
-    recipient: clientName,
-    matterAdvance: "",
-    advanceAmount: "",
-    invoiceNumber: "",
-    billingAddress: "",
-    invoiceDate: today,
-    dueDate: "",
-    inMatter: inferredMatterReference,
-    subject: matterTitle ? `Professional services for ${matterTitle}` : "",
-    professionalFees: [createLineItem()],
-    expenses: [createLineItem()],
-    governmentFees: [createLineItem()],
-    accountHolder: "",
-  };
-};
-
 const sanitizeText = (value) => (typeof value === "string" ? value.trim() : "");
 
 const sanitizeAmount = (value) => {
@@ -71,8 +44,113 @@ const sanitizeLineItems = (items) => {
     .filter((item) => item.date || item.particulars || item.amount !== "");
 };
 
-const InvoiceModal = ({ isOpen, onClose, matter, onSubmit, accountHolders }) => {
-  const [formState, setFormState] = useState(() => buildInitialState(matter));
+const normalizeExistingLineItems = (items) => {
+  if (!Array.isArray(items) || items.length === 0) {
+    return [createLineItem()];
+  }
+
+  const normalized = items
+    .map((item) => ({
+      date: sanitizeText(item?.date),
+      particulars: sanitizeText(item?.particulars || item?.description),
+      amount:
+        item?.amount !== undefined && item?.amount !== null && item.amount !== ""
+          ? `${item.amount}`
+          : sanitizeText(item?.total || item?.value || ""),
+    }))
+    .filter((item) => item.date || item.particulars || item.amount);
+
+  return normalized.length > 0 ? normalized : [createLineItem()];
+};
+
+const normalizeDateForInput = (value, fallback) => {
+  if (!value) {
+    return fallback;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return sanitizeText(value) || fallback;
+  }
+
+  return formatDateInputValue(parsed);
+};
+
+const buildInitialState = (matter, invoice) => {
+  const today = formatDateInputValue(new Date());
+  const matterTitle = matter?.title || "";
+  const matterNumber = matter?.matterNumber || "";
+  const inferredMatterReference = matterTitle || matterNumber;
+  const clientName =
+    matter?.client?.name ||
+    matter?.clientName ||
+    (typeof matter?.client === "string" ? matter.client : "");
+
+  const baseState = {
+    recipient: clientName,
+    matterAdvance: "",
+    advanceAmount: "",
+    invoiceNumber: "",
+    billingAddress: "",
+    invoiceDate: today,
+    dueDate: "",
+    inMatter: inferredMatterReference,
+    subject: matterTitle ? `Professional services for ${matterTitle}` : "",
+    professionalFees: [createLineItem()],
+    expenses: [createLineItem()],
+    governmentFees: [createLineItem()],
+    accountHolder: "",
+  };
+
+  if (!invoice) {
+    return baseState;
+  }
+
+  return {
+    ...baseState,
+    recipient: sanitizeText(invoice.recipient) || baseState.recipient,
+    matterAdvance:
+      sanitizeText(invoice.matterAdvance) || baseState.matterAdvance,
+    advanceAmount:
+      invoice.advanceAmount !== undefined && invoice.advanceAmount !== null
+        ? `${invoice.advanceAmount}`
+        : baseState.advanceAmount,
+    invoiceNumber:
+      sanitizeText(invoice.invoiceNumber || invoice.number) ||
+      baseState.invoiceNumber,
+    billingAddress:
+      sanitizeText(invoice.billingAddress) || baseState.billingAddress,
+    invoiceDate: normalizeDateForInput(
+      invoice.invoiceDate || invoice.issuedOn,
+      baseState.invoiceDate
+    ),
+    dueDate: normalizeDateForInput(invoice.dueDate, baseState.dueDate),
+    inMatter: sanitizeText(invoice.inMatter) || baseState.inMatter,
+    subject: sanitizeText(invoice.subject) || baseState.subject,
+    professionalFees:
+      normalizeExistingLineItems(invoice.professionalFees) ||
+      baseState.professionalFees,
+    expenses:
+      normalizeExistingLineItems(invoice.expenses) || baseState.expenses,
+    governmentFees:
+      normalizeExistingLineItems(invoice.governmentFees) ||
+      baseState.governmentFees,
+    accountHolder:
+      sanitizeText(invoice.accountHolder) || baseState.accountHolder,
+  };
+};
+
+const InvoiceModal = ({
+  isOpen,
+  onClose,
+  matter,
+  onSubmit,
+  accountHolders,
+  invoice,
+}) => {
+  const [formState, setFormState] = useState(() =>
+    buildInitialState(matter, invoice)
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -80,8 +158,8 @@ const InvoiceModal = ({ isOpen, onClose, matter, onSubmit, accountHolders }) => 
       return;
     }
 
-    setFormState(buildInitialState(matter));
-  }, [isOpen, matter]);
+    setFormState(buildInitialState(matter, invoice));
+  }, [invoice, isOpen, matter]);
 
   const availableAccountHolders = useMemo(() => {
     if (Array.isArray(accountHolders) && accountHolders.length > 0) {
@@ -148,6 +226,13 @@ const InvoiceModal = ({ isOpen, onClose, matter, onSubmit, accountHolders }) => 
       return;
     }
 
+    const invoiceIdentifier =
+      invoice?._id ||
+      invoice?.id ||
+      invoice?.invoiceId ||
+      invoice?.invoiceNumber ||
+      null;
+
     const payload = {
       recipient: sanitizeText(formState.recipient),
       matterAdvance: sanitizeText(formState.matterAdvance),
@@ -163,6 +248,7 @@ const InvoiceModal = ({ isOpen, onClose, matter, onSubmit, accountHolders }) => 
       governmentFees: sanitizeLineItems(formState.governmentFees),
       accountHolder: sanitizeText(formState.accountHolder),
       matterId: matter?._id || "",
+      invoiceId: invoiceIdentifier,      
     };
 
     try {

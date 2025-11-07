@@ -21,10 +21,17 @@ import LoadingOverlay from "../LoadingOverlay";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { formatDateLabel, formatMediumDateTime } from "../../utils/dateUtils";
+import {
+  deriveInvoicesFromMatters,
+  formatCurrency,
+  getStatusMeta,
+  sortInvoicesByDueDate,
+} from "../../utils/invoiceUtils";
 import MatterFormModal from "./MatterFormModal";
 import CaseFormModal from "./CaseFormModal";
 import CaseDocumentModal from "./CaseDocumentModal";
 import DeleteMatterModal from "../modals/DeleteMatterModal";
+import DeleteCaseModal from "../modals/DeleteCaseModal";
 import InvoiceModal from "../modals/InvoiceModal";
 
 const trimSlashes = (value, { keepLeading = false } = {}) => {
@@ -98,7 +105,6 @@ const renderChipList = (items = []) => {
     <div className="flex flex-wrap gap-2">
       {items.map((item, index) => (
         <span
-          // eslint-disable-next-line react/no-array-index-key
           key={`${item}-${index}`}
           className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary dark:bg-primary/20"
         >
@@ -108,6 +114,186 @@ const renderChipList = (items = []) => {
       ))}
     </div>
   );
+};
+
+const computeLineItemsTotal = (items = []) => {
+  if (!Array.isArray(items) || items.length === 0) {
+    return 0;
+  }
+
+  return items.reduce((sum, item) => {
+    const amount = Number(item?.amount ?? 0);
+    return Number.isFinite(amount) ? sum + amount : sum;
+  }, 0);
+};
+
+const inferInvoiceStatus = ({ totalAmount, dueDate }) => {
+  if (!totalAmount || totalAmount <= 0) {
+    return "paid";
+  }
+
+  if (!dueDate) {
+    return "paymentDue";
+  }
+
+  const parsedDueDate = new Date(dueDate);
+
+  if (Number.isNaN(parsedDueDate.getTime())) {
+    return "paymentDue";
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  parsedDueDate.setHours(0, 0, 0, 0);
+
+  const diffInMs = parsedDueDate.getTime() - today.getTime();
+  const diffInDays = Math.round(diffInMs / (24 * 60 * 60 * 1000));
+
+  if (diffInDays < 0) {
+    return "overdue";
+  }
+
+  if (diffInDays <= 7) {
+    return "dueSoon";
+  }
+
+  return "paymentDue";
+};
+
+const normalizeInvoiceEntry = (invoice, index, matter = {}) => {
+  const rawStatus =
+    typeof invoice?.status === "string"
+      ? invoice.status
+      : typeof invoice?.invoiceStatus === "string"
+        ? invoice.invoiceStatus
+        : typeof invoice?.state === "string"
+          ? invoice.state
+          : "";
+  const normalizedStatus = typeof rawStatus === "string" ? rawStatus.trim() : "";
+  const issuedOn =
+    invoice?.invoiceDate ||
+    invoice?.issuedOn ||
+    invoice?.createdAt ||
+    matter.updatedAt ||
+    matter.openedDate ||
+    null;
+  const dueDate = invoice?.dueDate || invoice?.paymentDueDate || invoice?.dueOn || null;
+
+  const totalAmountCandidate =
+    Number(
+      invoice?.totalAmount ??
+        invoice?.amount ??
+        invoice?.grandTotal ??
+        invoice?.balanceDue ??
+        0
+    );
+  const totalAmount = Number.isFinite(totalAmountCandidate)
+    ? totalAmountCandidate
+    : 0;
+
+  const balanceDueCandidate =
+    Number(invoice?.balanceDue ?? invoice?.outstanding ?? invoice?.amountDue ?? totalAmount);
+  const balanceDue = Number.isFinite(balanceDueCandidate)
+    ? balanceDueCandidate
+    : totalAmount;
+
+  return {
+    id:
+      invoice?._id?.toString() ||
+      invoice?.id?.toString() ||
+      invoice?.invoiceId?.toString() ||
+      `invoice-${index}`,
+    invoiceNumber:
+      invoice?.invoiceNumber ||
+      invoice?.number ||
+      invoice?.reference ||
+      `Invoice ${index + 1}`,
+    issuedOn,
+    issuedOnLabel: formatDateLabel(issuedOn, "Not set"),
+    dueDate,
+    dueDateLabel: formatDateLabel(dueDate, "Not set"),
+    totalAmount: Math.max(totalAmount, 0),
+    balanceDue: Math.max(balanceDue, 0),
+    status:
+      normalizedStatus ||
+      inferInvoiceStatus({ totalAmount: Math.max(balanceDue, 0), dueDate }),
+    raw: invoice,
+  };
+};
+
+const transformInvoicesFromMatter = (matter) => {
+  if (!matter) {
+    return [];
+  }
+
+  if (Array.isArray(matter.invoices) && matter.invoices.length > 0) {
+    return matter.invoices.map((invoice, index) =>
+      normalizeInvoiceEntry(invoice, index, matter)
+    );
+  }
+
+  return deriveInvoicesFromMatters([matter]).map((invoice) => ({
+    id: invoice.id,
+    invoiceNumber: invoice.invoiceNumber,
+    issuedOn: invoice.issuedOn,
+    issuedOnLabel: invoice.issuedOnLabel,
+    dueDate: invoice.dueDate,
+    dueDateLabel: invoice.dueDateLabel,
+    totalAmount: Math.max(Number(invoice.totalAmount) || 0, 0),
+    balanceDue: Math.max(Number(invoice.balanceDue) || 0, 0),
+    status: invoice.status,
+    raw: invoice,
+  }));
+};
+
+const buildInvoiceEntryFromPayload = (payload, { fallbackInvoice } = {}) => {
+  const issuedOn =
+    payload?.invoiceDate ||
+    fallbackInvoice?.issuedOn ||
+    fallbackInvoice?.raw?.invoiceDate ||
+    fallbackInvoice?.raw?.issuedOn ||
+    new Date().toISOString();
+  const dueDate =
+    payload?.dueDate ||
+    fallbackInvoice?.dueDate ||
+    fallbackInvoice?.raw?.dueDate ||
+    "";
+
+  const professionalTotal = computeLineItemsTotal(payload?.professionalFees);
+  const expensesTotal = computeLineItemsTotal(payload?.expenses);
+  const governmentTotal = computeLineItemsTotal(payload?.governmentFees);
+  const hasLineItems = professionalTotal > 0 || expensesTotal > 0 || governmentTotal > 0;
+
+  const fallbackTotal = Math.max(Number(fallbackInvoice?.totalAmount) || 0, 0);
+  const calculatedTotal = professionalTotal + expensesTotal + governmentTotal;
+  const totalAmount = hasLineItems ? calculatedTotal : fallbackTotal;
+  const fallbackBalance = Math.max(Number(fallbackInvoice?.balanceDue) || fallbackTotal, 0);
+  const balanceDue = hasLineItems ? Math.max(calculatedTotal, 0) : fallbackBalance;
+
+  const identifier =
+    fallbackInvoice?.id ||
+    payload?.invoiceId ||
+    payload?.invoiceNumber ||
+    `invoice-${Date.now()}`;
+
+  return {
+    id: identifier,
+    invoiceNumber:
+      payload?.invoiceNumber ||
+      fallbackInvoice?.invoiceNumber ||
+      `Invoice ${new Date().getFullYear()}`,
+    issuedOn,
+    issuedOnLabel: formatDateLabel(issuedOn, "Not set"),
+    dueDate,
+    dueDateLabel: formatDateLabel(dueDate, "Not set"),
+    totalAmount: Math.max(totalAmount, 0),
+    balanceDue,
+    status: inferInvoiceStatus({ totalAmount: balanceDue, dueDate }),
+    raw: {
+      ...fallbackInvoice?.raw,
+      ...payload,
+    },
+  };
 };
 
 const MattersWorkspace = ({ basePath = "" }) => {
@@ -125,9 +311,16 @@ const MattersWorkspace = ({ basePath = "" }) => {
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [openMatterActionsId, setOpenMatterActionsId] = useState(null);
+  const [openCaseActionsId, setOpenCaseActionsId] = useState(null);
   const [editingMatter, setEditingMatter] = useState(null);
+  const [editingCase, setEditingCase] = useState(null);  
   const [matterPendingDelete, setMatterPendingDelete] = useState(null);
-  const [isDeleteMatterModalOpen, setIsDeleteMatterModalOpen] = useState(false);  
+  const [isDeleteMatterModalOpen, setIsDeleteMatterModalOpen] = useState(false);
+  const [casePendingDelete, setCasePendingDelete] = useState(null);
+  const [isDeleteCaseModalOpen, setIsDeleteCaseModalOpen] = useState(false); 
+  const [matterInvoices, setMatterInvoices] = useState([]);
+  const [openInvoiceActionsId, setOpenInvoiceActionsId] = useState(null);
+  const [invoiceBeingEdited, setInvoiceBeingEdited] = useState(null);
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const hasSearchQuery = normalizedSearchQuery.length > 0;  
@@ -249,21 +442,51 @@ const MattersWorkspace = ({ basePath = "" }) => {
     [baseRoute, fetchWorkspaceData, handleDeleteModalClose, matterId, navigate]
   );
 
-  const handleCaseCreated = useCallback(
-    async (createdCase) => {
+  const handleCaseModalClose = useCallback(() => {
+    setIsCaseFormOpen(false);
+    setEditingCase(null);
+  }, []);
+
+  const handleCaseFormSuccess = useCallback(
+    async (savedCase) => {
+      const wasEditing = Boolean(editingCase?._id);
+
       try {
         await fetchWorkspaceData();
 
-        if (createdCase?._id && matterId) {
-          navigate(joinPaths(baseRoute, matterId, "cases", createdCase._id));
+        if (!wasEditing && savedCase?._id && matterId) {
+          navigate(joinPaths(baseRoute, matterId, "cases", savedCase._id));
         }
       } catch {
         // Error already surfaced in fetchWorkspaceData
       } finally {
         setIsCaseFormOpen(false);
+        setEditingCase(null);        
       }
     },
-    [baseRoute, fetchWorkspaceData, matterId, navigate]
+    [baseRoute, editingCase, fetchWorkspaceData, matterId, navigate]
+  );
+
+  const handleCaseDeleteModalClose = useCallback(() => {
+    setIsDeleteCaseModalOpen(false);
+    setCasePendingDelete(null);
+  }, []);
+
+  const handleCaseDeleted = useCallback(
+    async (deletedCase) => {
+      try {
+        await fetchWorkspaceData();
+      } catch {
+        // Error already surfaced in fetchWorkspaceData
+      } finally {
+        handleCaseDeleteModalClose();
+
+        if (deletedCase?._id && deletedCase._id === caseId) {
+          navigate(joinPaths(baseRoute, matterId), { replace: true });
+        }
+      }
+    },
+    [baseRoute, caseId, fetchWorkspaceData, handleCaseDeleteModalClose, matterId, navigate]
   );
 
   const handleCaseDocumentUploaded = useCallback(async () => {
@@ -413,6 +636,23 @@ const MattersWorkspace = ({ basePath = "" }) => {
     });
   }, [normalizedSearchQuery, selectedMatter]);
 
+    useEffect(() => {
+    if (!selectedMatter?.matter) {
+      setMatterInvoices([]);
+      setInvoiceBeingEdited(null);
+      setOpenInvoiceActionsId(null);
+      return;
+    }
+
+    const nextInvoices = sortInvoicesByDueDate(
+      transformInvoicesFromMatter(selectedMatter.matter)
+    );
+
+    setMatterInvoices(nextInvoices);
+    setInvoiceBeingEdited(null);
+    setOpenInvoiceActionsId(null);
+  }, [selectedMatter]);
+
   useEffect(() => {
     if (!isLoading && matterId && !selectedMatter) {
       toast.error("We couldn't find that matter folder.");
@@ -461,12 +701,83 @@ const MattersWorkspace = ({ basePath = "" }) => {
     };
   }, [openMatterActionsId]);
 
+    useEffect(() => {
+    if (!openInvoiceActionsId) {
+      return undefined;
+    }
+
+    const handleDocumentClick = (event) => {
+      const { target } = event;
+
+      if (target && typeof target.closest === "function") {
+        const withinMenu = target.closest('[data-invoice-actions-root="true"]');
+
+        if (withinMenu) {
+          return;
+        }
+      }
+
+      setOpenInvoiceActionsId(null);
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") {
+        setOpenInvoiceActionsId(null);
+      }
+    };
+
+    document.addEventListener("click", handleDocumentClick);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("click", handleDocumentClick);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [openInvoiceActionsId]);
+
+  useEffect(() => {
+    if (!openCaseActionsId) {
+      return undefined;
+    }
+
+    const handleDocumentClick = (event) => {
+      const { target } = event;
+
+      if (target && typeof target.closest === "function") {
+        const withinMenu = target.closest('[data-case-actions-root="true"]');
+
+        if (withinMenu) {
+          return;
+        }
+      }
+
+      setOpenCaseActionsId(null);
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") {
+        setOpenCaseActionsId(null);
+      }
+    };
+
+    document.addEventListener("click", handleDocumentClick);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("click", handleDocumentClick);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [openCaseActionsId]);
+
   const handleOpenMatter = (targetMatterId) => {
     if (!targetMatterId) {
       return;
     }
 
-    setOpenMatterActionsId(null);    
+    setOpenMatterActionsId(null);
+    setOpenInvoiceActionsId(null);
+    setInvoiceBeingEdited(null);
+    setOpenCaseActionsId(null);    
     navigate(joinPaths(baseRoute, targetMatterId));
   };
 
@@ -475,8 +786,36 @@ const MattersWorkspace = ({ basePath = "" }) => {
       return;
     }
 
+    setOpenCaseActionsId(null);    
     navigate(joinPaths(baseRoute, matterId, "cases", targetCaseId));
   };
+
+    const handleInvoiceUpdate = useCallback((invoice) => {
+    if (!invoice) {
+      return;
+    }
+
+    setOpenInvoiceActionsId(null);
+    setInvoiceBeingEdited(invoice);
+    setIsInvoiceModalOpen(true);
+  }, []);
+
+  const handleInvoiceDelete = useCallback((invoice) => {
+    if (!invoice) {
+      return;
+    }
+
+    setMatterInvoices((previous) =>
+      previous.filter((entry) => entry.id !== invoice.id)
+    );
+    setOpenInvoiceActionsId(null);
+    toast.success("Invoice removed from matter.");
+  }, []);
+
+  const handleInvoiceModalClose = useCallback(() => {
+    setIsInvoiceModalOpen(false);
+    setInvoiceBeingEdited(null);
+  }, []);
 
   const handleBackToMatters = () => {
     navigate(joinPaths(baseRoute));
@@ -730,6 +1069,107 @@ const MattersWorkspace = ({ basePath = "" }) => {
           </div>
         </div>
 
+       <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-[0_18px_36px_rgba(15,23,42,0.08)] dark:border-slate-700 dark:bg-slate-900/70">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+              <LuReceipt className="h-4 w-4" />
+              Invoices
+            </h3>
+            {matterInvoices.length > 0 && (
+              <span className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+                {matterInvoices.length} invoice{matterInvoices.length === 1 ? "" : "s"}
+              </span>
+            )}
+          </div>
+
+          {matterInvoices.length === 0 ? (
+            <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
+              No invoices have been recorded for this matter yet.
+            </p>
+          ) : (
+            <ul className="mt-4 space-y-3">
+              {matterInvoices.map((invoice) => {
+                const statusMeta = getStatusMeta(invoice.status);
+                const isMenuOpen = openInvoiceActionsId === invoice.id;
+
+                return (
+                  <li key={invoice.id}>
+                    <div className="group relative flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white/70 px-4 py-4 transition hover:border-primary/40 hover:bg-primary/10 dark:border-slate-700 dark:bg-slate-900/70 dark:hover:border-primary/50 dark:hover:bg-slate-800/70">
+                      <div className="flex flex-wrap items-start gap-3">
+                        <div className="flex min-w-0 flex-1 flex-col gap-1">
+                          <span className="text-base font-medium text-slate-700 dark:text-slate-200">
+                            {invoice.invoiceNumber}
+                          </span>
+                          <span className="flex flex-wrap gap-3 text-xs text-slate-500 dark:text-slate-400">
+                            <span>Issued {invoice.issuedOnLabel}</span>
+                            <span>Due {invoice.dueDateLabel}</span>
+                          </span>
+                        </div>
+                        <span
+                          className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.3em] ${statusMeta.badgeClass}`}
+                        >
+                          {statusMeta.label}
+                        </span>
+                        <div
+                          className="relative ml-auto flex-shrink-0"
+                          data-invoice-actions-root="true"
+                        >
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setOpenInvoiceActionsId((previous) =>
+                                previous === invoice.id ? null : invoice.id
+                              )
+                            }
+                            className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-primary/10 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/40 dark:text-slate-300"
+                            aria-haspopup="menu"
+                            aria-expanded={isMenuOpen}
+                            aria-label="Invoice options"
+                          >
+                            <LuEllipsisVertical className="h-5 w-5" />
+                          </button>
+                          {isMenuOpen && (
+                            <div
+                              role="menu"
+                              data-invoice-actions-menu="true"
+                              className="absolute right-0 z-20 mt-2 w-40 overflow-hidden rounded-xl border border-slate-200 bg-white text-sm shadow-lg dark:border-slate-700 dark:bg-slate-900"
+                            >
+                              <button
+                                type="button"
+                                role="menuitem"
+                                onClick={() => handleInvoiceUpdate(invoice)}
+                                className="flex w-full items-center px-4 py-2 text-left text-slate-600 transition hover:bg-primary/10 hover:text-primary dark:text-slate-300"
+                              >
+                                Update
+                              </button>
+                              <button
+                                type="button"
+                                role="menuitem"
+                                onClick={() => handleInvoiceDelete(invoice)}
+                                className="flex w-full items-center px-4 py-2 text-left text-slate-600 transition hover:bg-red-50 hover:text-red-600 dark:text-slate-300 dark:hover:bg-red-500/20 dark:hover:text-red-300"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-end justify-between gap-3 text-sm text-slate-600 dark:text-slate-300">
+                        <span className="text-base font-semibold text-slate-700 dark:text-slate-100">
+                          {formatCurrency(invoice.totalAmount)}
+                        </span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                          Balance {formatCurrency(invoice.balanceDue)}
+                        </span>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+
         <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-[0_18px_36px_rgba(15,23,42,0.08)] dark:border-slate-700 dark:bg-slate-900/70">
           <h3 className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
             Matter Stats
@@ -765,24 +1205,98 @@ const MattersWorkspace = ({ basePath = "" }) => {
                   const targetCaseId = caseEntry.caseFile?._id || caseEntry.caseFile?.id;
                   const status = caseEntry.caseFile?.status || "Unknown";
                   const leadCounsel = caseEntry.caseFile?.leadCounsel?.name || "Unassigned";
+                  const isMenuOpen = targetCaseId && openCaseActionsId === targetCaseId;                  
 
                   return (
                     <li key={targetCaseId || Math.random()}>
-                      <button
-                        type="button"
+                      <div
+                        role="button"
+                        tabIndex={0}
                         onClick={() => handleOpenCase(targetCaseId)}
-                        className="flex w-full flex-col gap-2 rounded-2xl border border-slate-200 bg-white/70 px-4 py-4 text-left transition hover:border-primary/40 hover:bg-primary/10 dark:border-slate-700 dark:bg-slate-900/70 dark:hover:border-primary/50 dark:hover:bg-slate-800/70"
+                         onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            handleOpenCase(targetCaseId);
+                          }
+                        }}
+                      className="group relative flex w-full flex-col gap-2 rounded-2xl border border-slate-200 bg-white/70 px-4 py-4 text-left transition hover:border-primary/40 hover:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-primary/30 dark:border-slate-700 dark:bg-slate-900/70 dark:hover:border-primary/50 dark:hover:bg-slate-800/70"
                       >
-                        <span className="flex items-center gap-3 text-base font-medium text-slate-700 dark:text-slate-200">
-                          <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20">
+                        <div className="flex items-start gap-3">
+                          <span className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20">
                             <LuFolderTree className="h-5 w-5" />
                           </span>
-                          {caseEntry.caseFile?.title || "Untitled Case"}
-                        </span>
-                        <span className="text-xs text-slate-500 dark:text-slate-400">
-                          Status: {status} • Lead Counsel: {leadCounsel}
-                        </span>
-                      </button>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start justify-between gap-3">
+                              <span className="text-base font-medium text-slate-700 dark:text-slate-200">
+                                {caseEntry.caseFile?.title || "Untitled Case"}
+                              </span>
+                              {targetCaseId && (
+                                <div
+                                  className="relative flex-shrink-0"
+                                  data-case-actions-root="true"
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      event.preventDefault();
+                                      setOpenMatterActionsId(null);
+                                      setOpenCaseActionsId((previous) =>
+                                        previous === targetCaseId ? null : targetCaseId
+                                      );
+                                    }}
+                                    className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-primary/10 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/40 dark:text-slate-300"
+                                    aria-haspopup="menu"
+                                    aria-expanded={Boolean(isMenuOpen)}
+                                    aria-label="Case options"
+                                  >
+                                    <LuEllipsisVertical className="h-5 w-5" />
+                                  </button>
+                                  {isMenuOpen && (
+                                    <div
+                                      role="menu"
+                                      data-case-actions-menu="true"
+                                      className="absolute right-0 z-20 mt-2 w-40 overflow-hidden rounded-xl border border-slate-200 bg-white text-sm shadow-lg dark:border-slate-700 dark:bg-slate-900"
+                                    >
+                                      <button
+                                        type="button"
+                                        role="menuitem"
+                                        onClick={(event) => {
+                                          event.stopPropagation();
+                                          event.preventDefault();
+                                          setOpenCaseActionsId(null);
+                                          setEditingCase(caseEntry.caseFile);
+                                          setIsCaseFormOpen(true);
+                                        }}
+                                        className="flex w-full items-center px-4 py-2 text-left text-slate-600 transition hover:bg-primary/10 hover:text-primary dark:text-slate-300"
+                                      >
+                                        Update
+                                      </button>
+                                      <button
+                                        type="button"
+                                        role="menuitem"
+                                        onClick={(event) => {
+                                          event.stopPropagation();
+                                          event.preventDefault();
+                                          setOpenCaseActionsId(null);
+                                          setCasePendingDelete(caseEntry.caseFile);
+                                          setIsDeleteCaseModalOpen(true);
+                                        }}
+                                        className="flex w-full items-center px-4 py-2 text-left text-slate-600 transition hover:bg-red-50 hover:text-red-600 dark:text-slate-300 dark:hover:bg-red-500/20 dark:hover:text-red-300"
+                                      >
+                                        Delete
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">
+                              Status: {status} • Lead Counsel: {leadCounsel}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     </li>
                   );
                 })}
@@ -889,7 +1403,6 @@ const MattersWorkspace = ({ basePath = "" }) => {
             <ul className="mt-4 space-y-3">
               {keyDates.map((entry, index) => (
                 <li
-                  // eslint-disable-next-line react/no-array-index-key
                   key={`${entry.label || "key-date"}-${index}`}
                   className="rounded-2xl border border-slate-200 bg-white/70 p-4 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300"
                 >
@@ -921,11 +1434,55 @@ const MattersWorkspace = ({ basePath = "" }) => {
   const isMatterView = Boolean(matterId);
   const isCaseView = Boolean(matterId && caseId);
 
-  const handleInvoiceDrafted = useCallback((invoiceData) => {
-    console.debug("Invoice draft payload", invoiceData);
-    toast.success("Invoice draft saved.");
-    setIsInvoiceModalOpen(false);
-  }, []);
+  const handleInvoiceDrafted = useCallback(
+    (invoiceData) => {
+      const updatedEntry = buildInvoiceEntryFromPayload(invoiceData, {
+        fallbackInvoice: invoiceBeingEdited || undefined,
+      });
+
+      setMatterInvoices((previous) => {
+        const next = invoiceBeingEdited
+          ? previous.map((invoice) =>
+              invoice.id === invoiceBeingEdited.id ? updatedEntry : invoice
+            )
+          : [...previous, updatedEntry];
+
+        return sortInvoicesByDueDate(next);
+      });
+
+      toast.success(
+        invoiceBeingEdited
+          ? "Invoice updated successfully."
+          : "Invoice draft saved."
+      );
+
+      setIsInvoiceModalOpen(false);
+      setInvoiceBeingEdited(null);
+      setOpenInvoiceActionsId(null);
+    },
+    [invoiceBeingEdited]
+  );
+
+  const invoiceModalInitialValues = useMemo(() => {
+    if (!invoiceBeingEdited) {
+      return null;
+    }
+
+    const rawInvoice = invoiceBeingEdited.raw || {};
+
+    return {
+      ...rawInvoice,
+      invoiceNumber:
+        rawInvoice.invoiceNumber || invoiceBeingEdited.invoiceNumber || "",
+      invoiceDate:
+        rawInvoice.invoiceDate ||
+        rawInvoice.issuedOn ||
+        invoiceBeingEdited.issuedOn ||
+        "",
+      dueDate:
+        rawInvoice.dueDate || invoiceBeingEdited.dueDate || "",
+    };
+  }, [invoiceBeingEdited]);
 
   useEffect(() => {
     if (!isMatterView) {
@@ -989,6 +1546,8 @@ const MattersWorkspace = ({ basePath = "" }) => {
                         return;
                       }
 
+                      setOpenCaseActionsId(null);
+                      setEditingCase(null);                      
                       setIsCaseFormOpen(true);
                     }}
                     disabled={!selectedMatter}
@@ -1046,10 +1605,11 @@ const MattersWorkspace = ({ basePath = "" }) => {
 
       <CaseFormModal
         isOpen={isCaseFormOpen}
-        onClose={() => setIsCaseFormOpen(false)}
-        onSuccess={handleCaseCreated}
+        onClose={handleCaseModalClose}
+        onSuccess={handleCaseFormSuccess}
         matterId={selectedMatter?.matter?._id}
         matterTitle={selectedMatter?.matter?.title}
+        caseFile={editingCase}        
       />
       <CaseDocumentModal
         isOpen={isCaseDocumentModalOpen}
@@ -1065,6 +1625,12 @@ const MattersWorkspace = ({ basePath = "" }) => {
         onSuccess={handleMatterFormSuccess}
         matter={editingMatter}
       />
+      <DeleteCaseModal
+        isOpen={isDeleteCaseModalOpen}
+        onClose={handleCaseDeleteModalClose}
+        caseFile={casePendingDelete}
+        onDeleted={handleCaseDeleted}
+      />      
       <DeleteMatterModal
         isOpen={isDeleteMatterModalOpen}
         onClose={handleDeleteModalClose}
@@ -1073,10 +1639,11 @@ const MattersWorkspace = ({ basePath = "" }) => {
       />
       <InvoiceModal
         isOpen={isInvoiceModalOpen}
-        onClose={() => setIsInvoiceModalOpen(false)}
+        onClose={handleInvoiceModalClose}
         matter={selectedMatter?.matter}
+        invoice={invoiceModalInitialValues}        
         onSubmit={handleInvoiceDrafted}
-      />    
+      />
     </div>
   );
 };

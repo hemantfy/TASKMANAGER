@@ -30,17 +30,40 @@ const defaultFormState = {
   tags: "",
 };
 
+const formatDateForInput = (value) => {
+  if (!value) {
+    return "";
+  }
+
+  try {
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
+
+    return date.toISOString().split("T")[0];
+  } catch (error) {
+    console.error("Failed to parse date for input", error);
+    return "";
+  }
+};
+
 const CaseFormModal = ({
   isOpen,
   onClose,
   onSuccess,
   matterId,
   matterTitle,
+  caseFile,  
 }) => {
   const [formData, setFormData] = useState(defaultFormState);
   const [users, setUsers] = useState([]);
   const [isLoadingMetadata, setIsLoadingMetadata] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isEditMode = Boolean(caseFile?._id);
+  const caseId = caseFile?._id;
 
   const resetForm = useCallback(() => {
     setFormData(defaultFormState);
@@ -56,6 +79,38 @@ const CaseFormModal = ({
     setIsLoadingMetadata(false);
     onClose?.();
   }, [isSubmitting, onClose, resetForm]);
+
+  const applyCaseToForm = useCallback(
+    (targetCase) => {
+      if (!targetCase) {
+        resetForm();
+        return;
+      }
+
+      const normalizedLeadCounsel =
+        targetCase?.leadCounsel?._id || targetCase?.leadCounsel || "";
+      const normalizedTags = Array.isArray(targetCase?.tags)
+        ? targetCase.tags.join(", ")
+        : typeof targetCase?.tags === "string"
+        ? targetCase.tags
+        : "";
+
+      setFormData({
+        title: targetCase?.title || "",
+        caseNumber: targetCase?.caseNumber || "",
+        status: targetCase?.status || "Active",
+        jurisdiction: targetCase?.jurisdiction || "",
+        court: targetCase?.court || "",
+        leadCounsel: normalizedLeadCounsel,
+        filingDate: formatDateForInput(targetCase?.filingDate),
+        opposingCounsel: targetCase?.opposingCounsel || "",
+        description: targetCase?.description || "",
+        notes: targetCase?.notes || "",
+        tags: normalizedTags,
+      });
+    },
+    [resetForm]
+  );
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -87,11 +142,24 @@ const CaseFormModal = ({
       return;
     }
 
-    resetForm();
-    if (matterId) {
+    if (isEditMode && caseFile) {
+      applyCaseToForm(caseFile);
+    } else {
+      resetForm();
+    }
+
+    if (matterId || isEditMode) {
       fetchUsers();
     }
-  }, [fetchUsers, isOpen, matterId, resetForm]);
+  }, [
+    applyCaseToForm,
+    caseFile,
+    fetchUsers,
+    isEditMode,
+    isOpen,
+    matterId,
+    resetForm,
+  ]);
 
   const handleValueChange = (key, value) => {
     setFormData((previous) => ({
@@ -109,11 +177,6 @@ const CaseFormModal = ({
       return;
     }
 
-    if (!matterId) {
-      toast.error("An active matter is required to create a case file.");
-      return;
-    }
-
     const trimmedTitle = formData.title.trim();
 
     if (!trimmedTitle) {
@@ -121,9 +184,17 @@ const CaseFormModal = ({
       return;
     }
 
+    const relatedMatterId =
+      matterId || caseFile?.matter?._id || caseFile?.matter || "";
+
+    if (!relatedMatterId) {
+      toast.error("An active matter is required to save this case file.");
+      return;
+    }
+
     const payload = {
       title: trimmedTitle,
-      matter: matterId,
+      matter: relatedMatterId,
     };
 
     if (formData.caseNumber.trim()) {
@@ -173,35 +244,44 @@ const CaseFormModal = ({
 
     try {
       setIsSubmitting(true);
-      const response = await axiosInstance.post(
-        API_PATHS.CASES.CREATE,
-        payload
-      );
 
-      const message =
-        response.data?.message || "Case file created successfully";
+      const request = isEditMode
+        ? axiosInstance.put(API_PATHS.CASES.UPDATE(caseId), payload)
+        : axiosInstance.post(API_PATHS.CASES.CREATE, payload);
+
+      const response = await request;
+
+      const defaultMessage = isEditMode
+        ? "Case file updated successfully"
+        : "Case file created successfully";
+      const message = response.data?.message || defaultMessage;
       toast.success(message);
-      onSuccess?.(response.data?.caseFile);
+      const normalizedCase =
+        response.data?.caseFile ||
+        (isEditMode && caseFile ? { ...caseFile, ...payload } : null);
+      onSuccess?.(normalizedCase);
       resetForm();
     } catch (error) {
-      console.error("Failed to create case file", error);
+      console.error("Failed to save case file", error);
       const message =
         error.response?.data?.message ||
         error.message ||
-        "Failed to create case file.";
+        (isEditMode
+          ? "Failed to update case file."
+          : "Failed to create case file.");
       toast.error(message);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const isMatterMissing = !matterId;
+  const isMatterMissing = !matterId && !isEditMode;
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={handleModalClose}
-      title="Create Case File"
+      title={isEditMode ? "Update Case File" : "Create Case File"}
       maxWidthClass="max-w-3xl"
     >
       {isMatterMissing ? (
@@ -215,9 +295,14 @@ const CaseFormModal = ({
         </div>
       ) : (
         <form className="space-y-5" onSubmit={handleSubmit}>
-          {matterTitle && (
+          {!isEditMode && matterTitle && (
             <div className="rounded-xl bg-primary/10 px-4 py-3 text-sm font-medium text-primary dark:bg-primary/20 dark:text-primary">
               Case will be added to <span className="font-semibold">{matterTitle}</span>
+            </div>
+          )}
+          {isEditMode && matterTitle && (
+            <div className="rounded-xl bg-slate-100 px-4 py-3 text-sm font-medium text-slate-600 dark:bg-slate-800/60 dark:text-slate-200">
+              Linked matter: <span className="font-semibold">{matterTitle}</span>
             </div>
           )}
 
@@ -389,10 +474,10 @@ const CaseFormModal = ({
               {isSubmitting ? (
                 <>
                   <LuRefreshCw className="h-4 w-4 animate-spin" />
-                  Creating...
+                  {isEditMode ? "Saving..." : "Creating..."}
                 </>
               ) : (
-                "Create Case"
+                isEditMode ? "Update Case" : "Create Case"
               )}
             </button>
           </div>

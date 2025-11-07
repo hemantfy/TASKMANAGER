@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   LuFileSpreadsheet,
   LuPlus,
@@ -21,6 +21,7 @@ const Tasks = () => {
   const [tabs, setTabs] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const location = useLocation();
+  const navigate = useNavigate();  
   const initialFilterStatus = location.state?.filterStatus || "All";
 
   const [filterStatus, setFilterStatus] = useState(initialFilterStatus);
@@ -144,6 +145,19 @@ const Tasks = () => {
   const handleTaskMutationSuccess = () => {
     getAllTasks();
     closeTaskForm();
+  };
+
+  const handleTaskCardClick = (taskId) => {
+    if (!taskId) {
+      return;
+    }
+
+    if (taskScope === "My Task") {
+      navigate(`/admin/task-details/${taskId}`);
+      return;
+    }
+
+    openTaskForm(taskId);
   };
 
   useEffect(() => {
@@ -288,7 +302,7 @@ const Tasks = () => {
                 todoChecklist={item.todoChecklist || []}
                 matter={item.matter}
                 caseFile={item.caseFile}                
-                onClick={() => openTaskForm(item._id)}
+                onClick={() => handleTaskCardClick(item._id)}
               />
             ))}
 

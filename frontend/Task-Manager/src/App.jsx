@@ -57,6 +57,10 @@ const App = () => {
               <Route element={<PrivateRoute allowedRoles={["admin"]} />}>
                 <Route path="/admin/dashboard" element={<AdminDashboard />} />
                 <Route path="/admin/tasks" element={<AdminTasks />} />
+                <Route
+                  path="/admin/task-details/:id"
+                  element={<ViewTaskDetails activeMenu="Tasks" />}
+                />                
                 <Route path="/admin/matters/*" element={<AdminMatters />} />
                 <Route path="/admin/documents/*" element={<AdminDocuments />} />
                 <Route path="/admin/invoices" element={<AdminInvoices />} />                
@@ -73,6 +77,10 @@ const App = () => {
                   element={<SuperAdminDashboard />}
                 />
                 <Route path="/super-admin/tasks" element={<SuperAdminTasks />} />
+                <Route
+                  path="/super-admin/task-details/:id"
+                  element={<ViewTaskDetails activeMenu="Tasks" />}
+                />                
                 <Route
                   path="/super-admin/matters/*"
                   element={<SuperAdminMatters />}

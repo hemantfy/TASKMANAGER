@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { LuFileSpreadsheet, LuPlus } from "react-icons/lu";
 import toast from "react-hot-toast";
 
@@ -10,6 +11,7 @@ import LoadingOverlay from "../../components/LoadingOverlay";
 import TaskFormModal from "../../components/TaskFormModal";
 
 const Tasks = () => {
+  const navigate = useNavigate();  
   const [allTasks, setAllTasks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
@@ -112,6 +114,19 @@ const Tasks = () => {
     closeTaskForm();
   };
 
+  const handleTaskCardClick = (taskId) => {
+    if (!taskId) {
+      return;
+    }
+
+    if (taskScope === "My Task") {
+      navigate(`/super-admin/task-details/${taskId}`);
+      return;
+    }
+
+    openTaskForm(taskId);
+  };
+
   useEffect(() => {
     getAllTasks();
     return () => {};
@@ -189,7 +204,7 @@ const Tasks = () => {
                 todoChecklist={item.todoChecklist || []}
                 matter={item.matter}
                 caseFile={item.caseFile}                
-                onClick={() => openTaskForm(item._id)}
+                onClick={() => handleTaskCardClick(item._id)}
               />
             ))}
 

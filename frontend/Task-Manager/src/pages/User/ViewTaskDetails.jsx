@@ -12,7 +12,7 @@ import { UserContext } from "../../context/userContext.jsx";
 import { hasPrivilegedAccess } from "../../utils/roleUtils";
 import TaskDocumentModal from "../../components/TaskDocumentModal";
 
-const ViewTaskDetails = () => {
+const ViewTaskDetails = ({ activeMenu = "My Tasks" }) => {
   const { id } = useParams();
   const [task, setTask] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -288,7 +288,7 @@ const ViewTaskDetails = () => {
     : [];
 
   return (
-    <DashboardLayout activeMenu="My Tasks">
+    <DashboardLayout activeMenu={activeMenu}>
       {isLoading ? (
         <LoadingOverlay message="Loading task details..." className="py-24" />
       ) : (
