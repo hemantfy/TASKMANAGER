@@ -13,6 +13,7 @@ const {
   buildFieldChanges,
   logEntityActivity,
 } = require("../utils/activityLogger");
+const { createHttpError } = require("../utils/httpError");
 
 const isPrivileged = (role) => hasPrivilegedAccess(role);
 
@@ -46,11 +47,6 @@ const normalizeObjectId = (value) => {
   return undefined;
 };
 
-const buildHttpError = (message, statusCode = 400) => {
-  const error = new Error(message);
-  error.statusCode = statusCode;
-  return error;
-};
 
 const resolveMatterAndCase = async ({ matterId, caseFileId }) => {
   const matterProvided = matterId !== undefined;
@@ -69,7 +65,7 @@ const resolveMatterAndCase = async ({ matterId, caseFileId }) => {
       caseFileDocument = await CaseFile.findById(normalizedCaseId).select("matter");
 
       if (!caseFileDocument) {
-        throw buildHttpError("Selected case file could not be found.");
+        throw createHttpError("Selected case file could not be found.");
       }
     } else {
       normalizedCaseId = null; // explicit clear
@@ -82,11 +78,11 @@ const resolveMatterAndCase = async ({ matterId, caseFileId }) => {
       : null;
 
     if (!caseMatterId) {
-      throw buildHttpError("Selected case file is not linked to a matter.");
+      throw createHttpError("Selected case file is not linked to a matter.");
     }
 
     if (matterProvided && normalizedMatterId && normalizedMatterId !== caseMatterId) {
-      throw buildHttpError(
+      throw createHttpError(
         "Selected case file does not belong to the specified matter."
       );
     }
@@ -98,7 +94,7 @@ const resolveMatterAndCase = async ({ matterId, caseFileId }) => {
     if (normalizedMatterId) {
       const matterExists = await Matter.exists({ _id: normalizedMatterId });
       if (!matterExists) {
-        throw buildHttpError("Selected matter could not be found.");
+        throw createHttpError("Selected matter could not be found.");
       }
     } else {
       normalizedMatterId = null; // explicit clear
@@ -133,7 +129,7 @@ const validateRelatedDocuments = async (documentIds, matterId, caseFileId) => {
   }).select("_id matter caseFile");
 
   if (!documents.length) {
-    throw buildHttpError("Linked documents could not be found.");
+    throw createHttpError("Linked documents could not be found.");
   }
 
   const filteredDocuments = documents.filter((document) => {
@@ -152,7 +148,7 @@ const validateRelatedDocuments = async (documentIds, matterId, caseFileId) => {
   });
 
   if (filteredDocuments.length !== documents.length) {
-    throw buildHttpError(
+    throw createHttpError(
       "Some linked documents do not belong to the selected matter or case file."
     );
   }
@@ -204,7 +200,7 @@ const sanitizeTodoChecklist = ({
       const assignedTo = assignedValue ? assignedValue.toString() : "";
 
       if (!assignedTo || !validAssigneeSet.has(assignedTo)) {
-        throw buildHttpError(
+        throw createHttpError(
           "Each checklist item must be assigned to a selected member."
         );
       }
@@ -239,7 +235,7 @@ const sanitizeTodoChecklist = ({
 // @desc    Get all tasks (Admin: all, User: only assigned tasks)
 // @route   GET /api/tasks/
 // @access  Private
-const getTasks = async (req, res) => {
+const getTasks = async (req, res, next) => {
   try {
     const { status, scope, matter: matterId, caseFile: caseFileId } = req.query;
     let filter = {};
@@ -339,7 +335,7 @@ const getTasks = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    next(error);
   }
 };
 
@@ -356,7 +352,7 @@ const TASK_STATUS_FIELDS = [{ path: "status", label: "Status" }];
 // @desc    Get task by ID
 // @route   GET /api/tasks/:id
 // @access  Private
-const getTaskById = async (req, res) => {
+const getTaskById = async (req, res, next) => {
     try {
         const task = await Task.findById(req.params.id)
           .populate("assignedTo", "name email profileImageUrl")
@@ -369,22 +365,20 @@ const getTaskById = async (req, res) => {
           .populate("caseFile", "title caseNumber status")
           .populate("relatedDocuments", "title documentType version fileUrl");
           
-          if (!task) return res.status(404).json({ message: "Task not found" });
-          
-          res.json(task);          
+          if (!task) {
+            throw createHttpError("Task not found", 404);
+          }
+
+          res.json(task);        
     } catch (error) {
-      const statusCode = error.statusCode || 500;
-      res.status(statusCode).json({
-        message: error.statusCode ? error.message : "Server error",
-        error: error.statusCode ? undefined : error.message,
-      });
+      next(error);
     }
 };
 
 // @desc    Create a new task (Admin only)
 // @route   POST /api/tasks/
 // @access  Private (Admin)
-const createTask = async (req, res) => {
+const createTask = async (req, res, next) => {
     try {
         const {
             title,
@@ -398,39 +392,19 @@ const createTask = async (req, res) => {
             caseFile: caseFileId,
             relatedDocuments,            
           } = req.body;
-          
-          if (!Array.isArray(assignedTo)) {
-            return res
-              .status(400)
-              .json({ message: "assignedTo must be an array of user IDs" });
-          }
-
-          const normalizedAssignees = assignedTo
-            .map((assignee) => {
-              if (assignee && typeof assignee === "object" && assignee._id) {
-                return assignee._id.toString();
-              }
-
-              return assignee?.toString();
-            })
-            .filter(Boolean);
-
-          const uniqueAssigneeIds = [
-            ...new Set(normalizedAssignees.map((id) => id.toString())),
-          ];
 
           const { matterId: resolvedMatterId, caseFileId: resolvedCaseId } =
             await resolveMatterAndCase({ matterId, caseFileId });
 
-          const validatedDocumentIds = await validateRelatedDocuments(
-            relatedDocuments,
+          const relatedDocumentIds = await validateRelatedDocuments(
+            relatedDocuments ?? [],
             resolvedMatterId ?? undefined,
             resolvedCaseId ?? undefined
           );
 
           const sanitizedTodoChecklist = sanitizeTodoChecklist({
             checklistInput: todoChecklist,
-            validAssigneeIds: uniqueAssigneeIds,
+            validAssigneeIds: assignedTo,
           });
 
           const taskPayload = {
@@ -438,10 +412,10 @@ const createTask = async (req, res) => {
             description,
             priority,
             dueDate,
-            assignedTo: uniqueAssigneeIds,
+            assignedTo,
             createdBy: req.user._id,
             todoChecklist: sanitizedTodoChecklist,
-            attachments,
+            attachments: attachments ?? [],
           };
 
           if (resolvedMatterId !== undefined) {
@@ -452,15 +426,15 @@ const createTask = async (req, res) => {
             taskPayload.caseFile = resolvedCaseId;
           }
 
-          if (validatedDocumentIds.length) {
-            taskPayload.relatedDocuments = validatedDocumentIds;
+          if (relatedDocumentIds.length) {
+            taskPayload.relatedDocuments = relatedDocumentIds;
           }
 
           const task = await Task.create(taskPayload);
 
-          if (Array.isArray(taskPayload.relatedDocuments) && taskPayload.relatedDocuments.length) {
+          if (relatedDocumentIds.length) {
             await Document.updateMany(
-              { _id: { $in: taskPayload.relatedDocuments } },
+              { _id: { $in: relatedDocumentIds } },
               { $addToSet: { relatedTasks: task._id } }
             );
           }
@@ -475,7 +449,7 @@ const createTask = async (req, res) => {
           });       
           try {
             const assignees = await User.find({
-              _id: { $in: uniqueAssigneeIds },
+              _id: { $in: assignedTo },
             }).select("name email");
 
             if (assignees.length) {
@@ -494,22 +468,20 @@ const createTask = async (req, res) => {
 
           res.status(201).json({ message: "Task created successfully", task }); 
     } catch (error) {
-      const statusCode = error.statusCode || 500;
-      res.status(statusCode).json({
-        message: error.statusCode ? error.message : "Server error",
-        error: error.statusCode ? undefined : error.message,
-      });
+      next(error);
     }
 };
 
 // @desc    Update task details
 // @route   PUT /api/tasks/:id
 // @access  Private
-const updateTask = async (req, res) => {
+const updateTask = async (req, res, next) => {
     try {
         const task = await Task.findById(req.params.id);
 
-if (!task) return res.status(404).json({ message: "Task not found" });
+if (!task) {
+  throw createHttpError("Task not found", 404);
+}
 
 const existingAssigneeIds = Array.isArray(task.assignedTo)
   ? task.assignedTo.map((id) => id.toString())
@@ -523,23 +495,23 @@ let newlyAssignedIds = [];
 let resolvedMatterId = task.matter ? task.matter.toString() : null;
 let resolvedCaseId = task.caseFile ? task.caseFile.toString() : null;
 
-if (req.body.title !== undefined) {
+if (Object.prototype.hasOwnProperty.call(req.body, "title")) {
   task.title = req.body.title;
 }
-if (req.body.description !== undefined) {
+if (Object.prototype.hasOwnProperty.call(req.body, "description")) {
   task.description = req.body.description;
 }
-if (req.body.priority !== undefined) {
+if (Object.prototype.hasOwnProperty.call(req.body, "priority")) {
   task.priority = req.body.priority;
 }
-if (req.body.dueDate) {
+if (Object.prototype.hasOwnProperty.call(req.body, "dueDate")) {
   const incomingDueDate = new Date(req.body.dueDate);
   if (!Number.isNaN(incomingDueDate.getTime())) {
     dueDateChanged = originalDueDate !== incomingDueDate.getTime();
     task.dueDate = incomingDueDate;
   }
 }
-if (req.body.attachments !== undefined) {
+if (Object.prototype.hasOwnProperty.call(req.body, "attachments")) {
   task.attachments = req.body.attachments;
 }
 
@@ -572,35 +544,20 @@ if (hasMatterUpdate || hasCaseUpdate) {
 
 if (Object.prototype.hasOwnProperty.call(req.body, "relatedDocuments")) {
   const validatedDocumentIds = await validateRelatedDocuments(
-    req.body.relatedDocuments,
+    req.body.relatedDocuments ?? [],
     resolvedMatterId ?? undefined,
     resolvedCaseId ?? undefined
   );
   task.relatedDocuments = validatedDocumentIds;
 }
 
-if (req.body.assignedTo) {
-  if (!Array.isArray(req.body.assignedTo)) {
-    return res
-      .status(400)
-      .json({ message: "assignedTo must be an array of user IDs" });
-  }
-
-  const normalizedAssignees = req.body.assignedTo
-    .map((assignee) => {
-      if (assignee && typeof assignee === "object" && assignee._id) {
-        return assignee._id.toString();
-      }
-      return assignee?.toString();
-    })
-    .filter(Boolean);
-
-  newlyAssignedIds = normalizedAssignees.filter(
+if (Object.prototype.hasOwnProperty.call(req.body, "assignedTo")) {
+  newlyAssignedIds = req.body.assignedTo.filter(
     (assigneeId) =>
       assigneeId && !existingAssigneeIds.includes(assigneeId.toString())
   );
 
-  task.assignedTo = normalizedAssignees;
+  task.assignedTo = req.body.assignedTo;
 }
 
 const hasTodoChecklistUpdate = Object.prototype.hasOwnProperty.call(
@@ -686,18 +643,20 @@ await logEntityActivity({
 res.json({ message: "Task updated successfully", updatedTask });
 
     } catch (error) {
-      res.status(500).json({ message: "Server error", error: error.message });
+      next(error);
     }
 };
 
 // @desc    Delete a task (Admin only)
 // @route   DELETE /api/tasks/:id
 // @access  Private (Admin)
-const deleteTask = async (req, res) => {
+const deleteTask = async (req, res, next) => {
     try {
       const task = await Task.findById(req.params.id);
 
-      if (!task) return res.status(404).json({ message: "Task not found" });
+      if (!task) {
+        throw createHttpError("Task not found", 404);
+      }
 
       const deletedTaskSnapshot = task.toObject();      
       await task.deleteOne();
@@ -715,17 +674,19 @@ const deleteTask = async (req, res) => {
       });      
       res.json({ message: "Task deleted successfully" });
     } catch (error) {
-      res.status(500).json({ message: "Server error", error: error.message });
+      next(error);
     }
 };
 
 // @desc    Update task status
 // @route   PUT /api/tasks/:id/status
 // @access  Private
-const updateTaskStatus = async (req, res) => {
+const updateTaskStatus = async (req, res, next) => {
     try {
       const task = await Task.findById(req.params.id);
-if (!task) return res.status(404).json({ message: "Task not found" });
+if (!task) {
+  throw createHttpError("Task not found", 404);
+}
 
 const assignedUsers = Array.isArray(task.assignedTo)
   ? task.assignedTo
@@ -743,7 +704,7 @@ const isAssigned = assignedUsers.some((user) => {
 });
 
 if (!isAssigned && !isPrivileged(req.user.role)) {
-  return res.status(403).json({ message: "Not authorized" });
+  throw createHttpError("Not authorized", 403);
 }
 
 const previousStatus = task.status;
@@ -781,26 +742,26 @@ if (statusChanges.length) {
 }
 res.json({ message: "Task status updated", task });
     } catch (error) {
-      res.status(500).json({ message: "Server error", error: error.message });
+      next(error);
     }
 };
 
 // @desc    Update task checklist
 // @route   PUT /api/tasks/:id/todo
 // @access  Private
-const updateTaskChecklist = async (req, res) => {
+const updateTaskChecklist = async (req, res, next) => {
     try {
       const { todoChecklist } = req.body;
 
       if (!Array.isArray(todoChecklist)) {
-        return res
-          .status(400)
-          .json({ message: "Invalid checklist payload" });
+        throw createHttpError("Invalid checklist payload", 400);
       }
 
       const task = await Task.findById(req.params.id);
 
-      if (!task) return res.status(404).json({ message: "Task not found" });
+      if (!task) {
+        throw createHttpError("Task not found", 404);
+      }
 
       const assignedUsers = Array.isArray(task.assignedTo)
         ? task.assignedTo
@@ -818,9 +779,7 @@ const updateTaskChecklist = async (req, res) => {
       });
 
       if (!isAssigned && !canManageAll) {
-        return res
-          .status(403)
-          .json({ message: "Not authorized to update checklist" });
+        throw createHttpError("Not authorized to update checklist", 403);
       }
 
       const checklistUpdates = new Map(
@@ -877,14 +836,14 @@ const updatedTask = await Task.findById(req.params.id)
 
 res.json({ message: "Task checklist updated", task: updatedTask });
     } catch (error) {
-      res.status(500).json({ message: "Server error", error: error.message });
+      next(error);
     }
 };
 
 // @desc    Fetch dashboard notifications
 // @route   GET /api/tasks/notifications
 // @access  Private
-const getNotifications = async (req, res) => {
+const getNotifications = async (req, res, next) => {
   try {
     const notifications = [];
 const now = new Date();
@@ -1009,19 +968,17 @@ res.json({
   count: recentNotifications.length,
 });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    next(error);
   }
 };
 
 // @desc    Dashboard Data (Admin only)
 // @route   GET /api/tasks/dashboard-data
 // @access  Private
-const getDashboardData = async (req, res) => {
+const getDashboardData = async (req, res, next) => {
     try {
             if (!isPrivileged(req.user.role)) {
-        return res
-          .status(403)
-          .json({ message: "Access denied, admin only" });
+        throw createHttpError("Access denied, admin only", 403);
       }
 
       const normalizeStartDate = (value) => {
@@ -1331,14 +1288,14 @@ const getDashboardData = async (req, res) => {
       });
 
     } catch (error) {
-      res.status(500).json({ message: "Server error", error: error.message });
+      next(error);
     }
 };
 
 // @desc    Dashboard Data (User-specific)
 // @route   GET /api/tasks/user-dashboard-data
 // @access  Private
-const getUserDashboardData = async (req, res) => {
+const getUserDashboardData = async (req, res, next) => {
     try {
       const userId = req.user._id; // Only fetch data for the logged-in user
 
@@ -1401,12 +1358,12 @@ res.status(200).json({
 });
 
     } catch (error) {
-      res.status(500).json({ message: "Server error", error: error.message });
+      next(error);
     }
 };
 
 
-const uploadTaskDocument = async (req, res) => {
+const uploadTaskDocument = async (req, res, next) => {
   const { id: taskId } = req.params;
   const uploadedFile = req.file;
   const title = typeof req.body?.title === "string" ? req.body.title.trim() : "";
@@ -1420,12 +1377,12 @@ const uploadTaskDocument = async (req, res) => {
       : "";
 
   if (!uploadedFile) {
-    return res.status(400).json({ message: "A document file is required." });
+    return next(createHttpError("A document file is required.", 400));
   }
 
   if (!title) {
     deleteFileQuietly(uploadedFile.path);
-    return res.status(400).json({ message: "Document title is required." });
+    return next(createHttpError("Document title is required.", 400));
   }
 
   try {
@@ -1435,7 +1392,7 @@ const uploadTaskDocument = async (req, res) => {
 
     if (!task) {
       deleteFileQuietly(uploadedFile.path);
-      return res.status(404).json({ message: "Task not found" });
+      throw createHttpError("Task not found", 404);
     }
 
     const requesterId = req.user?._id ? req.user._id.toString() : "";
@@ -1502,16 +1459,18 @@ const uploadTaskDocument = async (req, res) => {
 
     if (!isPrivilegedUser && !isAssignedMember && !isTaskClient) {
       deleteFileQuietly(uploadedFile.path);
-      return res.status(403).json({
-        message: "You do not have permission to upload documents for this task.",
-      });
+      throw createHttpError(
+        "You do not have permission to upload documents for this task.",
+        403
+      );
     }
 
     if (!matterId) {
       deleteFileQuietly(uploadedFile.path);
-      return res.status(400).json({
-        message: "Task must be linked to a matter before uploading documents.",
-      });
+      throw createHttpError(
+        "Task must be linked to a matter before uploading documents.",
+        400
+      );
     }
 
     const documentPayload = {
@@ -1556,11 +1515,7 @@ const uploadTaskDocument = async (req, res) => {
     });
   } catch (error) {
     deleteFileQuietly(uploadedFile?.path);
-    const statusCode = error.statusCode || 500;
-    res.status(statusCode).json({
-      message: error.statusCode ? error.message : "Server error",
-      error: error.statusCode ? undefined : error.message,
-    });
+    next(error);
   }
 };
 

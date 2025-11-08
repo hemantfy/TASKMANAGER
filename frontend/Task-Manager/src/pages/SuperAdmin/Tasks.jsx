@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LuFileSpreadsheet, LuPlus } from "react-icons/lu";
 import toast from "react-hot-toast";
@@ -9,75 +9,19 @@ import { API_PATHS } from "../../utils/apiPaths";
 import TaskCard from "../../components/Cards/TaskCard";
 import LoadingOverlay from "../../components/LoadingOverlay";
 import TaskFormModal from "../../components/TaskFormModal";
+import useTasks from "../../hooks/useTasks";
 
 const Tasks = () => {
-  const navigate = useNavigate();  
-  const [allTasks, setAllTasks] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const [activeTaskId, setActiveTaskId] = useState(null);
   const [taskScope, setTaskScope] = useState("All Tasks");
 
-  const getAllTasks = async () => {
-    try {
-      setIsLoading(true);
-      setAllTasks([]);
-
-      const response = await axiosInstance.get(API_PATHS.TASKS.GET_ALL_TASKS, {
-        params: {
-          status: "",
-          scope: taskScope === "My Task" ? "my" : "all",         
-        },
-      });
-
-      const tasks = Array.isArray(response.data?.tasks)
-        ? response.data.tasks
-        : [];
-
-      const priorityRank = {
-        High: 0,
-        Medium: 1,
-        Low: 2,
-      };
-
-      const statusRank = { Completed: 1 };
-
-      const sortedTasks = [...tasks].sort((taskA, taskB) => {
-        const taskAStatusRank = statusRank[taskA.status] ?? 0;
-        const taskBStatusRank = statusRank[taskB.status] ?? 0;
-
-        if (taskAStatusRank !== taskBStatusRank) {
-          return taskAStatusRank - taskBStatusRank;
-        }
-
-        const taskAPriority =
-          priorityRank[taskA.priority] ?? Number.MAX_SAFE_INTEGER;
-        const taskBPriority =
-          priorityRank[taskB.priority] ?? Number.MAX_SAFE_INTEGER;
-
-        if (taskAPriority !== taskBPriority) {
-          return taskAPriority - taskBPriority;
-        }
-
-        const taskADueDate = taskA.dueDate
-          ? new Date(taskA.dueDate).getTime()
-          : Number.MAX_SAFE_INTEGER;
-        const taskBDueDate = taskB.dueDate
-          ? new Date(taskB.dueDate).getTime()
-          : Number.MAX_SAFE_INTEGER;
-
-        return taskADueDate - taskBDueDate;
-      });
-
-      setAllTasks(sortedTasks);
-
-    } catch (error) {
-      console.error("Error fetching tasks:", error);
-      toast.error("Failed to fetch tasks. Please try again later.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { tasks: tasksData, isLoading, refetch } = useTasks({
+    scope: taskScope === "My Task" ? "my" : "all",
+    includePrioritySort: true,
+    errorMessage: "Failed to fetch tasks. Please try again later.",
+  });
 
   const handleDownloadReport = async () => {
     try {
@@ -110,7 +54,7 @@ const Tasks = () => {
   };
 
   const handleTaskMutationSuccess = () => {
-    getAllTasks();
+    refetch();
     closeTaskForm();
   };
 
@@ -127,11 +71,7 @@ const Tasks = () => {
     openTaskForm(taskId);
   };
 
-  useEffect(() => {
-    getAllTasks();
-    return () => {};
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [taskScope]);
+  const allTasks = useMemo(() => tasksData, [tasksData]);
 
   return (
     <DashboardLayout activeMenu="Tasks">

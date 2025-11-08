@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   LuFileSpreadsheet,
@@ -9,16 +9,15 @@ import {
 import toast from "react-hot-toast";
 
 import DashboardLayout from "../../components/layouts/DashboardLayout";
-import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import TaskStatusTabs from "../../components/TaskStatusTabs";
 import TaskCard from "../../components/Cards/TaskCard";
 import LoadingOverlay from "../../components/LoadingOverlay";
 import TaskFormModal from "../../components/TaskFormModal";
+import useTasks from "../../hooks/useTasks";
+import axiosInstance from "../../utils/axiosInstance";
 
 const Tasks = () => {
-  const [allTasks, setAllTasks] = useState([]);
-  const [tabs, setTabs] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const location = useLocation();
   const navigate = useNavigate();  
@@ -26,10 +25,15 @@ const Tasks = () => {
 
   const [filterStatus, setFilterStatus] = useState(initialFilterStatus);
   const [selectedDate, setSelectedDate] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const [activeTaskId, setActiveTaskId] = useState(null);
   const [taskScope, setTaskScope] = useState("All Tasks");
+
+  const { tasks, tabs, isLoading, refetch } = useTasks({
+    statusFilter: filterStatus,
+    scope: taskScope === "My Task" ? "my" : "all",
+    includePrioritySort: true,
+  });
 
   const hasActiveFilters =
     filterStatus !== "All" || searchQuery.trim() || selectedDate.trim();
@@ -38,78 +42,6 @@ const Tasks = () => {
     setFilterStatus("All");
     setSearchQuery("");
     setSelectedDate("");
-  };
-
-  const getAllTasks = async () => {
-    try {
-      setIsLoading(true);
-      setAllTasks([]);
-      setTabs([]);
-
-      const response = await axiosInstance.get(API_PATHS.TASKS.GET_ALL_TASKS, {
-        params: {
-          status: filterStatus === "All" ? "" : filterStatus,
-          scope: taskScope === "My Task" ? "my" : "all",          
-        },
-      });
-
-      const tasks = Array.isArray(response.data?.tasks)
-        ? response.data.tasks
-        : [];
-
-      const priorityRank = {
-        High: 0,
-        Medium: 1,
-        Low: 2,
-      };
-
-      const statusRank = { Completed: 1 };
-
-      const sortedTasks = [...tasks].sort((taskA, taskB) => {
-        const taskAStatusRank = statusRank[taskA.status] ?? 0;
-        const taskBStatusRank = statusRank[taskB.status] ?? 0;
-
-        if (taskAStatusRank !== taskBStatusRank) {
-          return taskAStatusRank - taskBStatusRank;
-        }
-
-        const taskAPriority =
-          priorityRank[taskA.priority] ?? Number.MAX_SAFE_INTEGER;
-        const taskBPriority =
-          priorityRank[taskB.priority] ?? Number.MAX_SAFE_INTEGER;
-
-        if (taskAPriority !== taskBPriority) {
-          return taskAPriority - taskBPriority;
-        }
-
-        const taskADueDate = taskA.dueDate
-          ? new Date(taskA.dueDate).getTime()
-          : Number.MAX_SAFE_INTEGER;
-        const taskBDueDate = taskB.dueDate
-          ? new Date(taskB.dueDate).getTime()
-          : Number.MAX_SAFE_INTEGER;
-
-        return taskADueDate - taskBDueDate;
-      });
-
-      setAllTasks(sortedTasks);
-
-      const statusSummary = response.data?.statusSummary || {};
-
-      const statusArray = [
-        { label: "All", count: statusSummary.all || 0 },
-        { label: "Pending", count: statusSummary.pendingTasks || 0 },
-        { label: "In Progress", count: statusSummary.inProgressTasks || 0 },
-        { label: "Completed", count: statusSummary.completedTasks || 0 },
-      ];
-
-      setTabs(statusArray);
-    } catch (error) {
-      console.error("Error fetching tasks:", error);
-      toast.error("Failed to fetch tasks. Please try again later.");
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   const handleDownloadReport = async () => {
@@ -143,7 +75,7 @@ const Tasks = () => {
   };
 
   const handleTaskMutationSuccess = () => {
-    getAllTasks();
+    refetch();
     closeTaskForm();
   };
 
@@ -161,12 +93,6 @@ const Tasks = () => {
   };
 
   useEffect(() => {
-    getAllTasks();
-    return () => {};
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterStatus, taskScope]);
-
-  useEffect(() => {
     if (
       location.state?.filterStatus &&
       location.state.filterStatus !== filterStatus
@@ -175,9 +101,10 @@ const Tasks = () => {
     }
   }, [location.state?.filterStatus, filterStatus]);
 
-  const filteredTasks = allTasks.filter((task) => {
-    const normalizedQuery = searchQuery.trim().toLowerCase();
-    const normalizedSelectedDate = selectedDate.trim();
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((task) => {
+      const normalizedQuery = searchQuery.trim().toLowerCase();
+      const normalizedSelectedDate = selectedDate.trim();
 
     const matchesSearch =
       !normalizedQuery || task.title?.toLowerCase().includes(normalizedQuery);
@@ -188,8 +115,9 @@ const Tasks = () => {
         new Date(task.dueDate).toISOString().split("T")[0] ===
           normalizedSelectedDate);
 
-    return matchesSearch && matchesDate;
-  });
+      return matchesSearch && matchesDate;
+    });
+  }, [tasks, searchQuery, selectedDate]);
 
   return (
     <DashboardLayout activeMenu="Tasks">
@@ -232,7 +160,7 @@ const Tasks = () => {
         <LoadingOverlay message="Loading tasks..." className="py-24" />
       ) : (
         <>
-          {(tabs.length > 0 || allTasks.length > 0) && (
+          {(tabs.length > 0 || tasks.length > 0) && (
             <div className="flex flex-col gap-4 rounded-[28px] border border-white/60 bg-white/70 p-4 shadow-[0_20px_45px_rgba(15,23,42,0.08)] transition-colors duration-300 dark:border-slate-800/60 dark:bg-slate-900/60 dark:shadow-[0_26px_60px_rgba(2,6,23,0.55)]">
               <TaskStatusTabs
                 tabs={tabs}

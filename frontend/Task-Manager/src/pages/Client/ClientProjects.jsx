@@ -1,12 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import DashboardLayout from "../../components/layouts/DashboardLayout";
 import { useNavigate } from "react-router-dom";
-import axiosInstance from "../../utils/axiosInstance";
-import { API_PATHS } from "../../utils/apiPaths";
 import { LuScale } from "react-icons/lu";
 import TaskStatusTabs from "../../components/TaskStatusTabs";
 import MatterCard from "../../components/Cards/MatterCard";
 import LoadingOverlay from "../../components/LoadingOverlay";
+import useTasks from "../../hooks/useTasks";
 
 const ClientProjects = () => {
   const viewCopy = useMemo(
@@ -23,66 +22,16 @@ const ClientProjects = () => {
     []
   );
 
-  const [allTasks, setAllTasks] = useState([]);
-  const [tabs, setTabs] = useState([]);
   const [filterStatus, setFilterStatus] = useState("All");
-  const [isLoading, setIsLoading] = useState(true);
-
   const navigate = useNavigate();
 
-  const getAllTasks = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setAllTasks([]);
-      setTabs([]);
+  const { tasks: fetchedTasks, tabs, isLoading } = useTasks({
+    statusFilter: filterStatus,
+    includePrioritySort: false,
+    errorMessage: "Error fetching client matters",
+  });
 
-      const response = await axiosInstance.get(API_PATHS.TASKS.GET_ALL_TASKS, {
-        params: {
-          status: filterStatus === "All" ? "" : filterStatus,
-        },
-      });
-
-      const fetchedTasks =
-        response.data?.tasks?.length > 0 ? response.data.tasks : [];
-
-      const statusRank = { Completed: 1 };
-
-      const sortedTasks = [...fetchedTasks].sort((taskA, taskB) => {
-        const taskAStatusRank = statusRank[taskA.status] ?? 0;
-        const taskBStatusRank = statusRank[taskB.status] ?? 0;
-
-        if (taskAStatusRank !== taskBStatusRank) {
-          return taskAStatusRank - taskBStatusRank;
-        }
-
-        const taskADueDate = taskA.dueDate
-          ? new Date(taskA.dueDate).getTime()
-          : Number.MAX_SAFE_INTEGER;
-        const taskBDueDate = taskB.dueDate
-          ? new Date(taskB.dueDate).getTime()
-          : Number.MAX_SAFE_INTEGER;
-
-        return taskADueDate - taskBDueDate;
-      });
-
-      setAllTasks(sortedTasks);
-
-      const statusSummary = response.data?.statusSummary || {};
-
-      const statusArray = [
-        { label: "All", count: statusSummary.all || 0 },
-        { label: "Pending", count: statusSummary.pendingTasks || 0 },
-        { label: "In Progress", count: statusSummary.inProgressTasks || 0 },
-        { label: "Completed", count: statusSummary.completedTasks || 0 },
-      ];
-
-      setTabs(statusArray);
-    } catch (error) {
-      console.error("Error fetching client matters:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [filterStatus]);
+  const allTasks = useMemo(() => fetchedTasks, [fetchedTasks]);
 
   const handleViewDetails = (taskId) => {
     navigate(`/client/task-details/${taskId}`);
