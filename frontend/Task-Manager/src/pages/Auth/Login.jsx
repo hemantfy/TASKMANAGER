@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import AuthLayout from "../../components/layouts/AuthLayout";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
@@ -7,6 +7,90 @@ import { UserContext } from "../../context/userContext.jsx";
 import Input from "../../components/inputs/input";
 import { getStoredTokenPreference, getToken } from "../../utils/tokenStorage";
 import { getDefaultRouteForRole } from "../../utils/roleUtils";
+
+const FOCUSABLE_SELECTORS =
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+const useModalAccessibility = (isOpen, dialogRef, onClose) => {
+  useEffect(() => {
+    if (!isOpen || typeof document === "undefined") {
+      return undefined;
+    }
+
+    const dialogNode = dialogRef.current;
+
+    if (!dialogNode) {
+      return undefined;
+    }
+
+    const previouslyFocusedElement = document.activeElement;
+
+    const getFocusableElements = () => {
+      if (!dialogRef.current) {
+        return [];
+      }
+
+      return Array.from(
+        dialogRef.current.querySelectorAll(FOCUSABLE_SELECTORS)
+      ).filter((element) => !element.hasAttribute("disabled"));
+    };
+
+    const focusableElements = getFocusableElements();
+    const firstFocusableElement = focusableElements[0];
+
+    if (firstFocusableElement && typeof firstFocusableElement.focus === "function") {
+      firstFocusableElement.focus({ preventScroll: true });
+    } else if (typeof dialogNode.focus === "function") {
+      dialogNode.focus({ preventScroll: true });
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape" && typeof onClose === "function") {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+
+      if (event.key !== "Tab") {
+        return;
+      }
+
+      const focusable = getFocusableElements();
+
+      if (focusable.length === 0) {
+        event.preventDefault();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const isShiftPressed = event.shiftKey;
+      const activeElement = document.activeElement;
+
+      if (isShiftPressed) {
+        if (activeElement === first || !dialogNode.contains(activeElement)) {
+          event.preventDefault();
+          last.focus({ preventScroll: true });
+        }
+      } else if (activeElement === last) {
+        event.preventDefault();
+        first.focus({ preventScroll: true });
+      }
+    };
+
+    dialogNode.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      dialogNode.removeEventListener("keydown", handleKeyDown);
+      if (
+        previouslyFocusedElement &&
+        typeof previouslyFocusedElement.focus === "function"
+      ) {
+        previouslyFocusedElement.focus({ preventScroll: true });
+      }
+    };
+  }, [dialogRef, isOpen, onClose]);
+};
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -21,13 +105,30 @@ const Login = () => {
   });
   const [changePasswordError, setChangePasswordError] = useState(null);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);  
   const [pendingRoleRedirect, setPendingRoleRedirect] = useState(null);
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
+  const forgotPasswordDialogRef = useRef(null);
+  const changePasswordDialogRef = useRef(null);  
 
   const { updateUser, clearUser } = useContext(UserContext);
   const navigate = useNavigate();
+
+  const handleCloseForgotPasswordModal = useCallback(() => {
+    setShowForgotPasswordModal(false);
+  }, []);
+
+  const handleCloseChangePasswordModal = useCallback(() => {
+    setShowChangePasswordModal(false);
+    setChangePasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    setPendingRoleRedirect(null);
+    clearUser();
+  }, [clearUser]);
+
+  useModalAccessibility(showForgotPasswordModal, forgotPasswordDialogRef, handleCloseForgotPasswordModal);
+  useModalAccessibility(showChangePasswordModal, changePasswordDialogRef, handleCloseChangePasswordModal);
 
   // Email validation function
   const isValidEmail = (email) => {
@@ -38,7 +139,11 @@ const Login = () => {
   // Handle Login Form Submit
   const handleLogin = async (e) => {
     e.preventDefault();
-    
+
+    if (isLoggingIn) {
+      return;
+    }
+
     // Clear previous errors
     setError(null);
     
@@ -60,7 +165,8 @@ const Login = () => {
     }
     
     
-    try{
+    try {
+      setIsLoggingIn(true);
       const response = await axiosInstance.post(API_PATHS.AUTH.LOGIN, {
         email,
         password,
@@ -86,6 +192,8 @@ const Login = () => {
       } else {
         setError("Something went wrong. Please try again.");
       }
+    } finally {
+      setIsLoggingIn(false);      
     }
   };
 
@@ -190,13 +298,47 @@ const Login = () => {
           </div>
 
           {error && (
-            <div className="rounded-2xl border border-rose-200 bg-rose-50/80 px-4 py-3 text-sm text-rose-600 shadow-sm">
+            <div
+              className="rounded-2xl border border-rose-200 bg-rose-50/80 px-4 py-3 text-sm text-rose-600 shadow-sm"
+              role="alert"
+            >
               {error}
             </div>
           )}
 
-          <button type="submit" className="auth-submit">
-            Continue to Workspace
+          <button
+            type="submit"
+            className="auth-submit flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-70"
+            disabled={isLoggingIn}
+            aria-busy={isLoggingIn}
+          >
+            {isLoggingIn ? (
+              <>
+                <svg
+                  className="h-4 w-4 animate-spin text-white"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <circle
+                    className="opacity-30"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    fill="none"
+                  />
+                  <path
+                    className="opacity-70"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                  />
+                </svg>
+                Signing in...
+              </>
+            ) : (
+              "Continue to Workspace"
+            )}
           </button>
         </form>
         
@@ -206,14 +348,24 @@ const Login = () => {
         </div>
         {showForgotPasswordModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-4">
-            <div className="w-full max-w-sm rounded-3xl bg-white p-6 text-center shadow-xl">
-              <h3 className="text-lg font-semibold text-slate-900">Need a password reset?</h3>
-              <p className="mt-2 text-sm text-slate-600">
+             <div
+              ref={forgotPasswordDialogRef}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="forgot-password-title"
+              aria-describedby="forgot-password-description"
+              tabIndex={-1}
+              className="w-full max-w-sm rounded-3xl bg-white p-6 text-center shadow-xl"
+            >
+              <h3 id="forgot-password-title" className="text-lg font-semibold text-slate-900">
+                Need a password reset?
+              </h3>
+              <p id="forgot-password-description" className="mt-2 text-sm text-slate-600">
                 Please contact your administrator to update or reset your password.
               </p>
               <button
                 type="button"
-                onClick={() => setShowForgotPasswordModal(false)}
+                onClick={handleCloseForgotPasswordModal}
                 className="mt-6 rounded-2xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(79,70,229,0.35)] transition hover:bg-indigo-500"
               >
                 Got it
@@ -223,9 +375,19 @@ const Login = () => {
         )}
         {showChangePasswordModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-4">
-            <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl">
-              <h3 className="text-lg font-semibold text-slate-900">Update your password</h3>
-              <p className="mt-1 text-sm text-slate-500">
+            <div
+              ref={changePasswordDialogRef}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="change-password-title"
+              aria-describedby="change-password-description"
+              tabIndex={-1}
+              className="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl"
+            >
+              <h3 id="change-password-title" className="text-lg font-semibold text-slate-900">
+                Update your password
+              </h3>
+              <p id="change-password-description" className="mt-1 text-sm text-slate-500">
                 For security, please replace the temporary password provided by your admin with one of your own.
               </p>
 
@@ -294,7 +456,10 @@ const Login = () => {
                 </div>
 
                 {changePasswordError && (
-                  <div className="rounded-2xl border border-rose-200 bg-rose-50/80 px-4 py-3 text-sm text-rose-600 shadow-sm">
+                  <div
+                    className="rounded-2xl border border-rose-200 bg-rose-50/80 px-4 py-3 text-sm text-rose-600 shadow-sm"
+                    role="alert"
+                  >
                     {changePasswordError}
                   </div>
                 )}
@@ -303,12 +468,7 @@ const Login = () => {
                   <button
                     type="button"
                     className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100"
-                    onClick={() => {
-                      setShowChangePasswordModal(false);
-                      setChangePasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
-                      setPendingRoleRedirect(null);
-                      clearUser();
-                    }}
+                    onClick={handleCloseChangePasswordModal}
                   >
                     Cancel
                   </button>

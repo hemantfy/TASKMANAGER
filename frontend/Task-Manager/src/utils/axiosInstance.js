@@ -176,9 +176,10 @@ axiosInstance.interceptors.response.use(
       if (error.response.status === 401) {
         const requestUrl = error.config && error.config.url ? error.config.url : "";
         const isAuthRequest = [API_PATHS.AUTH.LOGIN].some((path) => requestUrl.endsWith(path));
-        const isAlreadyOnLoginPage = window.location.pathname === "/login";
+        const isBrowser = typeof window !== "undefined" && typeof window.location !== "undefined";
+        const isAlreadyOnLoginPage = isBrowser && window.location.pathname === "/login";
 
-        if (!isAuthRequest && !isAlreadyOnLoginPage) {
+        if (isBrowser && !isAuthRequest && !isAlreadyOnLoginPage) {
           window.location.replace("/login");
         }
       } else if (error.response.status === 500) {

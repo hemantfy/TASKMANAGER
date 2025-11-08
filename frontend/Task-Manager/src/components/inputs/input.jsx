@@ -1,17 +1,16 @@
-import React, { useState } from "react";
+import React, { useId, useState } from "react";
 import { FaRegEye, FaRegEyeSlash } from "react-icons/fa6";
 
 const Input = ({ value, onChange, label, placeholder, type = "text", id, name, className = "", ...props }) => {
   const [showPassword, setShowPassword] = useState(false);
+  const generatedId = useId();
 
   const toggleShowPassword = () => {
     setShowPassword(!showPassword);
   };
 
   const inputType = type === "password" ? (showPassword ? "text" : "password") : type;
-    const fallbackId =
-    label?.toString().toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || undefined;
-  const inputId = id || fallbackId;
+  const inputId = id || generatedId;
   const inputName = name || inputId;
   const labelFor = inputId;
 
