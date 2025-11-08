@@ -1,6 +1,11 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LuFileSpreadsheet, LuUsers } from "react-icons/lu";
+import {
+  LuFileSpreadsheet,
+  LuKeyRound,
+  LuTrash2,
+  LuUsers,
+} from "react-icons/lu";
 import toast from "react-hot-toast";
 
 import UserCard from "../../components/Cards/UserCard.jsx";
@@ -720,6 +725,9 @@ const ManageEmployees = () => {
                     <thead className="bg-slate-50">
                       <tr className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500">
                         <th scope="col" className="px-4 py-3 text-left">
+                          S.No.
+                        </th>                        
+                        <th scope="col" className="px-4 py-3 text-left">
                           Employee
                         </th>
                         <th scope="col" className="px-4 py-3 text-left">
@@ -740,7 +748,7 @@ const ManageEmployees = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200 text-sm text-slate-600">
-                      {userManagementData.map(({ user, allowManagement }) => {
+                      {userManagementData.map(({ user, allowManagement }, index) => {
                         const pendingTasks = user?.pendingTasks ?? 0;
                         const inProgressTasks = user?.inProgressTasks ?? 0;
                         const completedTasks = user?.completedTasks ?? 0;
@@ -753,7 +761,22 @@ const ManageEmployees = () => {
                         );
 
                         return (
-                          <tr key={user._id} className="hover:bg-slate-50/70">
+                          <tr
+                            key={user._id}
+                            className="cursor-pointer hover:bg-slate-50/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+                            onClick={() => navigate(userDetailsPath)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                navigate(userDetailsPath);
+                              }
+                            }}
+                            role="button"
+                            tabIndex={0}
+                          >
+                            <td className="px-4 py-4 align-top text-sm font-semibold text-slate-900">
+                              {index + 1}
+                            </td>
                             <td className="px-4 py-4 align-top">
                               <div className="flex items-center gap-3">
                                 {user?.profileImageUrl ? (
@@ -791,28 +814,31 @@ const ManageEmployees = () => {
                             </td>
                             <td className="px-4 py-4 align-top">
                               <div className="flex flex-wrap gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => navigate(userDetailsPath)}
-                                  className="rounded-2xl border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-slate-600 transition hover:border-slate-300 hover:text-slate-800"
-                                >
-                                  View Profile
-                                </button>
                                 {allowManagement && (
                                   <>
                                     <button
                                       type="button"
-                                      onClick={() => openResetPasswordModal(user)}
-                                      className="rounded-2xl border border-indigo-200 bg-indigo-50/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-indigo-600 transition hover:border-indigo-300 hover:bg-indigo-100 hover:text-indigo-700"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        openResetPasswordModal(user);
+                                      }}
+                                      title="Change Password"
+                                      aria-label="Change Password"
+                                      className="rounded-full border border-indigo-200 bg-indigo-50/70 p-2 text-indigo-600 transition hover:border-indigo-300 hover:bg-indigo-100 hover:text-indigo-700"
                                     >
-                                      Change Password
+                                      <LuKeyRound className="h-4 w-4" />
                                     </button>
                                     <button
                                       type="button"
-                                      onClick={() => handleDeleteUser(user)}
-                                      className="rounded-2xl border border-rose-200 bg-rose-50/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-rose-500 transition hover:border-rose-300 hover:bg-rose-100 hover:text-rose-600"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        handleDeleteUser(user);
+                                      }}
+                                      title="Delete User"
+                                      aria-label="Delete User"
+                                      className="rounded-full border border-rose-200 bg-rose-50/70 p-2 text-rose-500 transition hover:border-rose-300 hover:bg-rose-100 hover:text-rose-600"
                                     >
-                                      Delete User
+                                      <LuTrash2 className="h-4 w-4" />
                                     </button>
                                   </>
                                 )}
