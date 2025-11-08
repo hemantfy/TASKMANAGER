@@ -28,6 +28,61 @@
       linear-gradient(180deg, #0f172a 0%, #020617 40%, #0f172a 100%);
     color: #e2e8f0;
   }
+
+  :where(button, [role="button"]) {
+    transition:
+      background-color 0.25s ease,
+      color 0.25s ease,
+      border-color 0.25s ease,
+      box-shadow 0.25s ease,
+      transform 0.22s ease;
+    transform-origin: center;
+    will-change: transform, box-shadow;
+  }
+
+  :where(button:disabled, [role="button"][aria-disabled="true"]) {
+    transform: none;
+    box-shadow: none;
+  }
+
+  :where(button:not(:disabled), [role="button"]:not([aria-disabled="true"])):hover {
+    transform: translateY(-2px);
+  }
+
+  :where(button:not(:disabled), [role="button"]:not([aria-disabled="true"])):active {
+    transform: translateY(0) scale(0.97);
+  }
+
+  :where(button, [role="button"]):focus-visible {
+    box-shadow: 0 10px 30px rgba(19, 104, 236, 0.18);
+  }
+}
+
+@keyframes dropdown-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@layer components {
+  .dropdown-panel {
+    animation: dropdown-fade-in 0.26s ease forwards;
+    transform-origin: top;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(button, [role="button"]),
+  .dropdown-panel {
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
+  }  
 }
 
 html.dark .app-header {

@@ -176,7 +176,7 @@ const NotificationBell = () => {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-3 w-80 overflow-hidden rounded-2xl border border-slate-200/70 bg-white/95 shadow-[0_18px_45px_rgba(15,23,42,0.12)] backdrop-blur">
+        <div className="dropdown-panel absolute right-0 mt-3 w-80 overflow-hidden rounded-2xl border border-slate-200/70 bg-white/95 shadow-[0_18px_45px_rgba(15,23,42,0.12)] backdrop-blur">
           <div className="flex items-center justify-between border-b border-slate-200/70 px-4 py-3">
             <h3 className="text-sm font-semibold text-slate-900">Notifications</h3>
             <div className="flex items-center gap-2">

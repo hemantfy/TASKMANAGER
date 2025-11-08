@@ -27,7 +27,7 @@ const SelectDropdown = ({ options, value, onChange, placeholder }) => {
           </button>
     
           {isOpen && (
-            <div className="absolute left-0 top-full z-20 mt-2 w-full overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_24px_48px_rgba(15,23,42,0.12)]">
+            <div className="dropdown-panel absolute left-0 top-full z-20 mt-2 w-full overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_24px_48px_rgba(15,23,42,0.12)]">
           {options.map((option) => (
             <button
               key={option.value}

@@ -164,7 +164,7 @@ const InvoiceCard = ({
               <div
                 role="menu"
                 data-invoice-actions-menu="true"
-                className="absolute right-0 z-20 mt-2 w-40 overflow-hidden rounded-xl border border-slate-200 bg-white text-sm shadow-lg dark:border-slate-700 dark:bg-slate-900"
+                className="dropdown-panel absolute right-0 z-20 mt-2 w-40 overflow-hidden rounded-xl border border-slate-200 bg-white text-sm shadow-lg dark:border-slate-700 dark:bg-slate-900"
               >
                 <button
                   type="button"
