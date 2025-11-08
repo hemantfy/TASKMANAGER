@@ -1,14 +1,17 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { LuFileSpreadsheet, LuUsers } from "react-icons/lu";
+import toast from "react-hot-toast";
+
+import UserCard from "../../components/Cards/UserCard.jsx";
+import LoadingOverlay from "../../components/LoadingOverlay.jsx";
+import ViewToggle from "../../components/ViewToggle.jsx";
 import DashboardLayout from "../../components/layouts/DashboardLayout.jsx";
+import { UserContext } from "../../context/userContext.jsx";
 import { API_PATHS } from "../../utils/apiPaths.js";
 import axiosInstance from "../../utils/axiosInstance.js";
-import { LuFileSpreadsheet, LuUsers } from "react-icons/lu";
-import UserCard from "../../components/Cards/UserCard.jsx";
-import toast from "react-hot-toast";
-import LoadingOverlay from "../../components/LoadingOverlay.jsx";
-import { UserContext } from "../../context/userContext.jsx";
 import { DEFAULT_OFFICE_LOCATIONS } from "../../utils/data.js";
-import { normalizeRole } from "../../utils/roleUtils.js";
+import { normalizeRole, resolvePrivilegedPath } from "../../utils/roleUtils.js";
 
 const ManageEmployees = () => {
   const { user: currentUser } = useContext(UserContext);
@@ -34,6 +37,9 @@ const ManageEmployees = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOffice, setSelectedOffice] = useState("All");
   const [isLoading, setIsLoading] = useState(true);
+  const [viewMode, setViewMode] = useState("grid");
+
+  const navigate = useNavigate();
 
   const getAllUsers = async () => {
     try {
@@ -138,6 +144,10 @@ const ManageEmployees = () => {
     () => normalizeRole(currentUser?.role),
     [currentUser?.role]
   );
+  const currentUserIdString = useMemo(
+    () => (currentUser?._id ? String(currentUser._id) : ""),
+    [currentUser?._id]
+  );
 
   const handleDeleteUser = async (user) => {
     const userId = typeof user === "object" ? user?._id : user;
@@ -156,9 +166,6 @@ const ManageEmployees = () => {
       return;
     }
 
-  const currentUserIdString = currentUser?._id
-      ? String(currentUser._id)
-      : "";
     if (
       normalizedCurrentUserRole === "super_admin" &&
       currentUserIdString &&
@@ -410,6 +417,20 @@ const ManageEmployees = () => {
     return matchesName && matchesOffice;
   });
 
+  const canManageSuperAdmin = normalizedCurrentUserRole === "super_admin";
+  const userManagementData = filteredUsers.map((user) => {
+    const normalizedRole = normalizeRole(user?.role);
+    const userIdString = user?._id ? String(user._id) : "";
+    const isCurrentUser =
+      userIdString && currentUserIdString && userIdString === currentUserIdString;
+    const preventSelfManagement = canManageSuperAdmin && isCurrentUser;
+    const allowManagement =
+      !preventSelfManagement &&
+      (canManageSuperAdmin || normalizedRole !== "super_admin");
+
+    return { user, allowManagement };
+  });
+
   return (
     <DashboardLayout activeMenu="Employees">
       <section className="relative overflow-hidden rounded-[32px] border border-white/60 bg-gradient-to-br from-primary via-indigo-500 to-purple-500 px-4 py-7 text-white shadow-[0_20px_45px_rgba(126,58,242,0.28)] sm:px-6 sm:py-8">
@@ -652,50 +673,158 @@ const ManageEmployees = () => {
                 </select>
               </div>
             </div>
+
+          <div className="flex items-center justify-end">
+            <ViewToggle value={viewMode} onChange={setViewMode} />
+          </div>            
         </div>
       </section>
 
       {isLoading ? (
         <LoadingOverlay message="Loading employees..." className="py-24" />
       ) : (
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {filteredUsers?.map((user) => {
-            const normalizedRole = normalizeRole(user?.role);
-            const canManageSuperAdmin = normalizedCurrentUserRole === "super_admin";
-            const userIdString = user?._id ? String(user._id) : "";
-            const currentUserIdString = currentUser?._id
-              ? String(currentUser._id)
-              : "";
-            const isCurrentUser =
-              userIdString &&
-              currentUserIdString &&
-              userIdString === currentUserIdString;
-            const preventSelfManagement =
-              canManageSuperAdmin && isCurrentUser;
-            const allowManagement =
-              !preventSelfManagement &&
-              (canManageSuperAdmin || normalizedRole !== "super_admin");
+        <section>
+          {viewMode === "grid" ? (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {userManagementData.map(({ user, allowManagement }) => (
+                <UserCard
+                  key={user._id}
+                  userInfo={user}
+                  onDelete={
+                    allowManagement ? () => handleDeleteUser(user) : undefined
+                  }
+                  onResetPassword={
+                    allowManagement
+                      ? () => openResetPasswordModal(user)
+                      : undefined
+                  }
+                />
+              ))}
+              {filteredUsers.length === 0 && (
+                <div className="md:col-span-2 xl:col-span-3">
+                  <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
+                    No accounts match your current search and filter settings.
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+              {filteredUsers.length === 0 ? (
+                <div className="p-8 text-center text-sm text-slate-500">
+                  No accounts match your current search and filter settings.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-slate-200">
+                    <thead className="bg-slate-50">
+                      <tr className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500">
+                        <th scope="col" className="px-4 py-3 text-left">
+                          Employee
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-left">
+                          Office
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-left">
+                          Pending Tasks
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-left">
+                          In Progress
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-left">
+                          Completed
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-left">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 text-sm text-slate-600">
+                      {userManagementData.map(({ user, allowManagement }) => {
+                        const pendingTasks = user?.pendingTasks ?? 0;
+                        const inProgressTasks = user?.inProgressTasks ?? 0;
+                        const completedTasks = user?.completedTasks ?? 0;
+                        const userInitial = (user?.name || "?")
+                          .charAt(0)
+                          .toUpperCase();
+                        const userDetailsPath = resolvePrivilegedPath(
+                          `/admin/users/${user?._id}`,
+                          currentUser?.role
+                        );
 
-            return (
-              <UserCard
-                key={user._id}
-                userInfo={user}
-                onDelete={
-                  allowManagement ? () => handleDeleteUser(user) : undefined
-                }
-                onResetPassword={
-                  allowManagement
-                    ? () => openResetPasswordModal(user)
-                    : undefined
-                }
-              />
-            );
-          })}
-          {filteredUsers.length === 0 && (
-            <div className="md:col-span-2 xl:col-span-3">
-              <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
-                No accounts match your current search and filter settings.
-              </div>
+                        return (
+                          <tr key={user._id} className="hover:bg-slate-50/70">
+                            <td className="px-4 py-4 align-top">
+                              <div className="flex items-center gap-3">
+                                {user?.profileImageUrl ? (
+                                  <img
+                                    src={user.profileImageUrl}
+                                    alt=""
+                                    className="h-10 w-10 rounded-2xl object-cover"
+                                  />
+                                ) : (
+                                  <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-100 text-sm font-semibold text-indigo-600">
+                                    {userInitial}
+                                  </span>
+                                )}
+                                <div>
+                                  <p className="text-sm font-semibold text-slate-900">
+                                    {user?.name}
+                                  </p>
+                                  <p className="text-xs text-slate-500">
+                                    {user?.email}
+                                  </p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-4 align-top text-sm text-slate-600">
+                              {user?.officeLocation || "—"}
+                            </td>
+                            <td className="px-4 py-4 align-top text-sm font-semibold text-slate-900">
+                              {pendingTasks}
+                            </td>
+                            <td className="px-4 py-4 align-top text-sm font-semibold text-slate-900">
+                              {inProgressTasks}
+                            </td>
+                            <td className="px-4 py-4 align-top text-sm font-semibold text-slate-900">
+                              {completedTasks}
+                            </td>
+                            <td className="px-4 py-4 align-top">
+                              <div className="flex flex-wrap gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => navigate(userDetailsPath)}
+                                  className="rounded-2xl border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-slate-600 transition hover:border-slate-300 hover:text-slate-800"
+                                >
+                                  View Profile
+                                </button>
+                                {allowManagement && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => openResetPasswordModal(user)}
+                                      className="rounded-2xl border border-indigo-200 bg-indigo-50/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-indigo-600 transition hover:border-indigo-300 hover:bg-indigo-100 hover:text-indigo-700"
+                                    >
+                                      Change Password
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteUser(user)}
+                                      className="rounded-2xl border border-rose-200 bg-rose-50/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-rose-500 transition hover:border-rose-300 hover:bg-rose-100 hover:text-rose-600"
+                                    >
+                                      Delete User
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
           </section>
