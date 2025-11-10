@@ -15,6 +15,46 @@ import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS, BASE_URL } from "../../utils/apiPaths";
 import { formatMediumDateTime } from "../../utils/dateUtils";
 
+const Panel = ({
+  children,
+  className = "",
+  tone = "default",
+  roundedClass = "rounded-3xl",
+}) => {
+  const toneClasses =
+    tone === "error"
+      ? "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/60 dark:bg-rose-500/10 dark:text-rose-100"
+      : "border-white/60 bg-white/80 dark:border-slate-700 dark:bg-slate-900/70";
+
+  return (
+    <div
+      className={`${roundedClass} border p-6 shadow-[0_18px_36px_rgba(15,23,42,0.08)] ${toneClasses} ${className}`}
+    >
+      {children}
+    </div>
+  );
+};
+
+const FolderSummary = ({ icon: Icon, title, subtitle, iconClassName = "" }) => (
+  <Panel>
+    <div className="flex items-center gap-3">
+      {Icon && (
+        <span
+          className={`inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary dark:bg-primary/20 ${iconClassName}`}
+        >
+          <Icon className="h-6 w-6" />
+        </span>
+      )}
+      <div>
+        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">{title}</h2>
+        {subtitle && (
+          <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">{subtitle}</div>
+        )}
+      </div>
+    </div>
+  </Panel>
+);
+
 const trimSlashes = (value, { keepLeading = false } = {}) => {
   if (typeof value !== "string") {
     return "";
@@ -93,6 +133,18 @@ const resolveDocumentUrl = (fileUrl) => {
   return `${normalizedBase}/${normalizedPath}`;
 };
 
+const safeDateValue = (value) => {
+  if (!value) {
+    return 0;
+  }
+
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? 0 : time;
+};
+
+const getDocumentTitle = (document) =>
+  document?.title || document?.fileName || document?.name || document?.originalName || "Untitled Document";
+
 const DocumentsWorkspace = ({ basePath = "" }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -104,6 +156,9 @@ const DocumentsWorkspace = ({ basePath = "" }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [documentSort, setDocumentSort] = useState("recent");
+  const [error, setError] = useState(null);
+  const [hasLoadedData, setHasLoadedData] = useState(false);
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const hasSearchQuery = normalizedSearchQuery.length > 0;  
@@ -129,6 +184,8 @@ const DocumentsWorkspace = ({ basePath = "" }) => {
   }, [basePath, location.pathname, matterId, caseId]);
 
   const fetchWorkspaceData = useCallback(async () => {
+    setError(null);
+
     try {
       const [mattersResponse, casesResponse, documentsResponse] = await Promise.all([
         axiosInstance.get(API_PATHS.MATTERS.GET_ALL),
@@ -149,26 +206,25 @@ const DocumentsWorkspace = ({ basePath = "" }) => {
       setMatters(fetchedMatters);
       setCases(fetchedCases);
       setDocuments(fetchedDocuments);
-    } catch (error) {
-      console.error("Failed to fetch document workspace data", error);
-      toast.error(
-        error.response?.data?.message ||
-          "We were unable to load the documents workspace. Please try again."
-      );
-      throw error;      
+      setHasLoadedData(true);
+      return true;
+    } catch (caughtError) {
+      console.error("Failed to fetch document workspace data", caughtError);
+      const message =
+        caughtError.response?.data?.message ||
+        "We were unable to load the documents workspace. Please try again.";
+
+      toast.error(message);
+      setError(message);
+      return false;   
     }
   }, []);
 
   useEffect(() => {
     const initialize = async () => {
       setIsLoading(true);
-      try {
-        await fetchWorkspaceData();
-      } catch {
-        // Error already handled in fetchWorkspaceData.
-      } finally {
-        setIsLoading(false);
-      }
+      await fetchWorkspaceData();
+      setIsLoading(false);
     };
 
     initialize();
@@ -181,10 +237,10 @@ const DocumentsWorkspace = ({ basePath = "" }) => {
 
     try {
       setIsRefreshing(true);
-      await fetchWorkspaceData();
-      toast.success("Workspace refreshed");
-    } catch {
-      // Error already surfaced in fetchWorkspaceData.
+      const success = await fetchWorkspaceData();
+      if (success) {
+        toast.success("Workspace refreshed");
+      }
     } finally {
       setIsRefreshing(false);
     }
@@ -432,125 +488,211 @@ const DocumentsWorkspace = ({ basePath = "" }) => {
 
   const filteredVisibleDocuments = useMemo(() => {
     const documentsToFilter = Array.isArray(visibleDocuments)
-      ? visibleDocuments
+      ? [...visibleDocuments]
       : [];
 
-    if (!normalizedSearchQuery) {
-      return documentsToFilter;
-    }
-
     const lowerQuery = normalizedSearchQuery;
+    const filtered = lowerQuery
+      ? documentsToFilter.filter((document) => {
+          const title = (document?.title || "").toLowerCase();
+          const fileName = (
+            document?.fileName ||
+            document?.name ||
+            document?.originalName ||
+            ""
+          ).toLowerCase();
+          const versionLabel = document?.version ? `v${document.version}` : "";
+          const versionText = versionLabel.toLowerCase();
 
-    return documentsToFilter.filter((document) => {
-      const title = (document?.title || "").toLowerCase();
-      const fileName = (
-        document?.fileName ||
-        document?.name ||
-        document?.originalName ||
-        ""
-      ).toLowerCase();
-      const versionLabel = document?.version ? `v${document.version}` : "";
-      const versionText = versionLabel.toLowerCase();
+          return (
+            title.includes(lowerQuery) ||
+            fileName.includes(lowerQuery) ||
+            versionText.includes(lowerQuery)
+          );
+        })
+      : documentsToFilter;
 
-      return (
-        title.includes(lowerQuery) ||
-        fileName.includes(lowerQuery) ||
-        versionText.includes(lowerQuery)
-      );
-    });
-  }, [normalizedSearchQuery, visibleDocuments]);
+    return filtered
+      .slice()
+      .sort((a, b) => {
+        if (documentSort === "az") {
+          const titleA = getDocumentTitle(a).toLowerCase();
+          const titleB = getDocumentTitle(b).toLowerCase();
+          return titleA.localeCompare(titleB);
+        }
+
+        const dateA = safeDateValue(a.updatedAt || a.createdAt);
+        const dateB = safeDateValue(b.updatedAt || b.createdAt);
+
+        if (documentSort === "oldest") {
+          return dateA - dateB;
+        }
+
+        // Default to most recent first.
+        return dateB - dateA;
+      });
+  }, [documentSort, normalizedSearchQuery, visibleDocuments]);
 
   const renderDocumentList = () => {
-    if (!filteredVisibleDocuments || filteredVisibleDocuments.length === 0) {
-      const hasAnyDocuments = Array.isArray(visibleDocuments)
-        ? visibleDocuments.length > 0
-        : false;
+    const hasAnyDocuments = Array.isArray(visibleDocuments)
+      ? visibleDocuments.length > 0
+      : false;
+    const totalDocuments = hasAnyDocuments ? visibleDocuments.length : 0;
+    const visibleDocumentsCount = filteredVisibleDocuments.length;
 
+    if (!filteredVisibleDocuments || visibleDocumentsCount === 0) {
       return (
-        <p className="rounded-2xl border border-dashed border-slate-300 p-6 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-          {hasSearchQuery && hasAnyDocuments
-            ? "No documents match your search."
-            : "No documents available in this folder yet."}
-        </p>
+        <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+          <p>
+            {hasSearchQuery && hasAnyDocuments
+              ? "No documents match your search."
+              : hasLoadedData
+                ? "No documents available in this folder yet."
+                : "We couldn't load documents for this folder."}
+          </p>
+        </div>
       );
     }
 
     return (
-      <ul className="space-y-3">
-        {filteredVisibleDocuments.map((document) => {
-          const documentId = document?._id || document?.id || document?.uuid;
-          const documentUrl = resolveDocumentUrl(document?.fileUrl);
-          const updatedLabel = formatMediumDateTime(document?.updatedAt, "Recently updated");
-
-          return (
-            <li
-              key={documentId || Math.random()}
-              className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white/80 p-4 text-sm shadow-sm transition hover:border-primary/40 hover:shadow-md dark:border-slate-700 dark:bg-slate-900/70 md:flex-row md:items-center md:justify-between"
-            >
-              <div className="flex items-start gap-3">
-                <span className="mt-1 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20">
-                  <LuFileText className="h-5 w-5" />
-                </span>
-                <div className="space-y-1">
-                  <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                    {document?.title || "Untitled Document"}
-                  </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{updatedLabel}</p>
-                  {document?.version && (
-                    <p className="text-xs uppercase tracking-[0.22em] text-slate-400">v{document.version}</p>
-                  )}
-                </div>
-              </div>
-              {documentUrl && (
-                <a
-                  href={documentUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center rounded-xl border border-primary/40 px-4 py-2 text-sm font-medium text-primary transition hover:bg-primary/10 dark:border-primary/50"
-                >
-                  Open document
-                </a>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-    );
-  };      
-
-  const renderMatterList = () => (
-    <div className="rounded-[30px] border border-white/60 bg-white/80 p-6 shadow-[0_18px_36px_rgba(15,23,42,0.08)] dark:border-slate-700 dark:bg-slate-900/70">
-      {filteredMatterFolders.length === 0 ? (
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          {matterFolders.length === 0
-            ? "No matter folders are available yet."
-            : hasSearchQuery
-              ? "No folders match your search."
-              : "No matter folders are available yet."}
+      <div className="space-y-4">
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          Showing {visibleDocumentsCount} of {totalDocuments} document{totalDocuments === 1 ? "" : "s"}
+          {hasSearchQuery && totalDocuments > 0 ? ` for “${searchQuery.trim()}”` : ""}.
         </p>
-      ) : (
         <ul className="space-y-3">
-          {filteredMatterFolders.map((folder) => (
-            <li key={folder.matter?._id || Math.random()}>
-              <button
-                type="button"
-                onClick={() => handleOpenMatter(folder.matter?._id)}
-                className="flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/70 px-4 py-4 text-left text-base font-medium text-slate-700 transition hover:border-primary/40 hover:bg-primary/10 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:border-primary/50 dark:hover:bg-slate-800/70"
+            {filteredVisibleDocuments.map((document, index) => {
+            const documentId = document?._id || document?.id || document?.uuid;
+            const documentUrl = resolveDocumentUrl(document?.fileUrl);
+            const updatedLabel = formatMediumDateTime(
+              document?.updatedAt || document?.createdAt,
+              "Recently updated"
+            );
+            const fileName = document?.fileName || document?.name || document?.originalName;
+            const documentKey =
+              documentId || documentUrl || `${getDocumentTitle(document)}-${index}`;
+
+            return (
+              <li
+                key={documentKey}
+                className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white/80 p-4 text-sm shadow-sm transition hover:border-primary/40 hover:shadow-md dark:border-slate-700 dark:bg-slate-900/70 md:flex-row md:items-center md:justify-between"
               >
-                <span className="flex items-center gap-3">
-                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20">
-                    <LuFolder className="h-5 w-5" />
+                <div className="flex items-start gap-3">
+                  <span className="mt-1 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20">
+                    <LuFileText className="h-5 w-5" />
                   </span>
-                  <span>{folder.matter?.title || "Untitled Matter"}</span>
-                </span>
-                <LuFolderTree className="h-5 w-5 text-slate-400" />
-              </button>
-            </li>
-          ))}
+                  <div className="space-y-1">
+                    <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                      {getDocumentTitle(document)}
+                    </p>
+                    {fileName && (
+                      <p className="text-xs text-slate-400 dark:text-slate-500">{fileName}</p>
+                    )}
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{updatedLabel}</p>
+                    {document?.version && (
+                      <p className="text-xs uppercase tracking-[0.22em] text-slate-400">v{document.version}</p>
+                    )}
+                  </div>
+                </div>
+                {documentUrl && (
+                  <a
+                    href={documentUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center rounded-xl border border-primary/40 px-4 py-2 text-sm font-medium text-primary transition hover:bg-primary/10 dark:border-primary/50"
+                  >
+                    Open document
+                  </a>
+                )}
+              </li>
+            );
+          })}
         </ul>
-      )}
-    </div>
-  );
+      </div>
+    );
+  };
+
+  const renderMatterList = () => {
+    const totalMatters = matterFolders.length;
+    const visibleMatters = filteredMatterFolders.length;
+
+    return (
+      <Panel roundedClass="rounded-[30px]">
+        <div className="mb-4 flex flex-col gap-1 text-xs text-slate-500 dark:text-slate-400 md:flex-row md:items-center md:justify-between">
+          <span>
+            {visibleMatters === totalMatters
+              ? `${totalMatters} matter ${totalMatters === 1 ? "folder" : "folders"}`
+              : `Showing ${visibleMatters} of ${totalMatters} matter folders`}
+            {hasSearchQuery && totalMatters > 0 ? ` for “${searchQuery.trim()}”` : ""}.
+          </span>
+          {hasSearchQuery && (
+            <span className="italic">
+              {visibleMatters > 0
+                ? "Search results are highlighted below."
+                : hasLoadedData
+                  ? "Try refining your search."
+                  : "We couldn't load folders to search."}
+            </span>
+          )}
+        </div>
+
+        {filteredMatterFolders.length === 0 ? (
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {hasLoadedData
+              ? hasSearchQuery
+                ? "No folders match your search."
+                : "No matter folders are available yet."
+              : "We couldn't load the matter folders just yet."}
+          </p>
+        ) : (
+          <ul className="space-y-3">
+            {filteredMatterFolders.map((folder, index) => {
+              const matterIdForKey = folder.matter?._id || folder.matter?.id;
+              const matterKey = matterIdForKey || `matter-${index}`;
+              const matterTitle = folder.matter?.title || "Untitled Matter";
+              const matterNumber = folder.matter?.matterNumber;
+              const clientName = folder.matter?.client?.name || folder.matter?.clientName;
+              const status = folder.matter?.status;
+              const matterMeta = [matterNumber, clientName, status].filter(Boolean).join(" • ");
+              const totalCaseCount = folder.cases.length;
+              const totalDocumentCount =
+                folder.documents.length +
+                folder.cases.reduce(
+                  (count, caseEntry) => count + (caseEntry.documents?.length || 0),
+                  0
+                );
+
+              return (
+                <li key={matterKey}>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenMatter(folder.matter?._id)}
+                    className="flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/70 px-4 py-4 text-left text-base font-medium text-slate-700 transition hover:border-primary/40 hover:bg-primary/10 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:border-primary/50 dark:hover:bg-slate-800/70"
+                  >
+                    <span className="flex items-start gap-3">
+                      <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20">
+                        <LuFolder className="h-5 w-5" />
+                      </span>
+                      <span className="flex flex-col text-left">
+                        <span>{matterTitle}</span>
+                        {matterMeta && (
+                          <span className="mt-1 text-xs font-normal text-slate-500 dark:text-slate-400">{matterMeta}</span>
+                        )}
+                        <span className="mt-1 text-xs font-normal text-slate-400 dark:text-slate-500">
+                          {totalCaseCount} {totalCaseCount === 1 ? "subfolder" : "subfolders"} • {totalDocumentCount} {totalDocumentCount === 1 ? "document" : "documents"}
+                        </span>
+                      </span>
+                    </span>
+                    <LuFolderTree className="h-5 w-5 text-slate-400" />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </Panel>
+    );
+  };        
 
   const renderMatterDetail = () => {
     if (!selectedMatter) {
@@ -560,6 +702,21 @@ const DocumentsWorkspace = ({ basePath = "" }) => {
     const caseEntries = selectedMatter.cases || [];
     const displayCases = filteredMatterCases;
     const hasCaseEntries = caseEntries.length > 0;
+    const sortedDisplayCases = displayCases
+      .slice()
+      .sort((a, b) => {
+        const titleA = (a.caseFile?.title || "").toLowerCase();
+        const titleB = (b.caseFile?.title || "").toLowerCase();
+        return titleA.localeCompare(titleB);
+      });
+    const matterTitle = selectedMatter.matter?.title || "Untitled Matter";
+    const matterNumber = selectedMatter.matter?.matterNumber;
+    const clientName = selectedMatter.matter?.client?.name || selectedMatter.matter?.clientName;
+    const status = selectedMatter.matter?.status;
+    const matterMeta = [matterNumber, clientName, status].filter(Boolean).join(" • ");
+    const matterDocumentTotal =
+      (selectedMatter.documents?.length || 0) +
+      caseEntries.reduce((count, caseEntry) => count + (caseEntry.documents?.length || 0), 0);    
 
     return (
       <div className="space-y-6">
@@ -572,68 +729,84 @@ const DocumentsWorkspace = ({ basePath = "" }) => {
           Back to all matters
         </button>
 
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-[0_18px_36px_rgba(15,23,42,0.08)] dark:border-slate-700 dark:bg-slate-900/70">
-          <div className="flex items-center gap-3">
-            <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary dark:bg-primary/20">
-              <LuFolder className="h-6 w-6" />
-            </span>
-            <div>
-              <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-                {selectedMatter.matter?.title || "Untitled Matter"}
-              </h2>
-            </div>
-          </div>
-        </div>
+        <FolderSummary
+          icon={LuFolder}
+          title={matterTitle}
+          subtitle={
+            <>
+              {matterMeta && <div>{matterMeta}</div>}
+              <div className="mt-1 text-xs uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">
+                {caseEntries.length} {caseEntries.length === 1 ? "subfolder" : "subfolders"} • {matterDocumentTotal} {matterDocumentTotal === 1 ? "document" : "documents"}
+              </div>
+            </>
+          }
+        />
 
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-[0_18px_36px_rgba(15,23,42,0.08)] dark:border-slate-700 dark:bg-slate-900/70">
-          <h3 className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
-            Subfolders
-          </h3>
-          {displayCases.length === 0 ? (
+        <Panel>
+          <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+            <h3 className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Subfolders</h3>
+            <span className="text-xs text-slate-400 dark:text-slate-500">
+              {sortedDisplayCases.length} of {caseEntries.length} subfolders showing
+              {hasSearchQuery && caseEntries.length > 0 ? ` for “${searchQuery.trim()}”` : ""}.
+            </span>
+          </div>
+          {sortedDisplayCases.length === 0 ? (
             <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
               {hasCaseEntries && hasSearchQuery
                 ? "No subfolders match your search."
-                : "No case subfolders are available for this matter."}
+                : hasCaseEntries
+                  ? "All subfolders are hidden by the current filters."
+                  : "No case subfolders are available for this matter."}
             </p>
           ) : (
             <ul className="mt-4 space-y-3">
-              {displayCases
-                .slice()
-                .sort((a, b) => {
-                  const titleA = a.caseFile?.title || "";
-                  const titleB = b.caseFile?.title || "";
-                  return titleA.localeCompare(titleB);
-                })
-                .map((caseEntry) => {
-                  const targetCaseId = caseEntry.caseFile?._id || caseEntry.caseFile?.id;
+              {sortedDisplayCases.map((caseEntry, index) => {
+                const targetCaseId = caseEntry.caseFile?._id || caseEntry.caseFile?.id;
+                const caseKey = targetCaseId || `case-${index}`;
+                const caseTitle = caseEntry.caseFile?.title || "Untitled Case";
+                const caseStatus = caseEntry.caseFile?.status;
+                const caseMeta = [caseStatus].filter(Boolean).join(" • ");
+                const caseDocumentCount = caseEntry.documents?.length || 0;
 
-                  return (
-                    <li key={targetCaseId || Math.random()}>
-                      <button
-                        type="button"
-                        onClick={() => handleOpenCase(targetCaseId)}
-                        className="flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/70 px-4 py-4 text-left text-base font-medium text-slate-700 transition hover:border-primary/40 hover:bg-primary/10 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:border-primary/50 dark:hover:bg-slate-800/70"
-                      >
-                        <span className="flex items-center gap-3">
-                          <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20">
-                            <LuFolderTree className="h-5 w-5" />
-                          </span>
-                          <span>{caseEntry.caseFile?.title || "Untitled Case"}</span>
+                return (
+                  <li key={caseKey}>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenCase(targetCaseId)}
+                      className="flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/70 px-4 py-4 text-left text-base font-medium text-slate-700 transition hover:border-primary/40 hover:bg-primary/10 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:border-primary/50 dark:hover:bg-slate-800/70"
+                    >
+                      <span className="flex items-start gap-3">
+                        <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20">
+                          <LuFolderTree className="h-5 w-5" />
                         </span>
-                      </button>
-                    </li>
-                  );
-                })}
+                        <span className="flex flex-col text-left">
+                          <span>{caseTitle}</span>
+                          {caseMeta && (
+                            <span className="mt-1 text-xs font-normal text-slate-500 dark:text-slate-400">{caseMeta}</span>
+                          )}
+                          <span className="mt-1 text-xs font-normal text-slate-400 dark:text-slate-500">
+                            {caseDocumentCount} {caseDocumentCount === 1 ? "document" : "documents"}
+                          </span>
+                        </span>
+                      </span>
+                      <LuFolderTree className="h-5 w-5 text-slate-400" />
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
-        </div>
+        </Panel>
 
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-[0_18px_36px_rgba(15,23,42,0.08)] dark:border-slate-700 dark:bg-slate-900/70">
-          <h3 className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
-            Documents in this folder
-          </h3>
+        <Panel>
+          <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+            <h3 className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Documents in this folder</h3>
+            <span className="text-xs text-slate-400 dark:text-slate-500">
+              Viewing matter-level documents only.
+            </span>
+          </div>
           <div className="mt-4">{renderDocumentList()}</div>
-        </div>        
+        </Panel>      
       </div>
     );
   };
@@ -642,6 +815,19 @@ const DocumentsWorkspace = ({ basePath = "" }) => {
     if (!selectedMatter || !selectedCase) {
       return null;
     }
+
+    const caseTitle = selectedCase.caseFile?.title || "Untitled Case";
+    const caseStatus = selectedCase.caseFile?.status;
+    const caseDocumentCount = selectedCase.documents?.length || 0;
+    const parentMatterTitle = selectedMatter.matter?.title || "Matter";
+    const caseSubtitle = (
+      <>
+        {caseStatus && <div>{caseStatus}</div>}
+        <div className="mt-1 text-xs uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">
+          {caseDocumentCount} {caseDocumentCount === 1 ? "document" : "documents"}
+        </div>
+      </>
+    );
 
     return (
      <div className="space-y-6">
@@ -664,25 +850,17 @@ const DocumentsWorkspace = ({ basePath = "" }) => {
           </button>
         </div>
 
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-[0_18px_36px_rgba(15,23,42,0.08)] dark:border-slate-700 dark:bg-slate-900/70">
-          <div className="flex items-center gap-3">
-             <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary dark:bg-primary/20">
-              <LuFolderTree className="h-6 w-6" />
-            </span>
-            <div>
-              <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-                {selectedCase.caseFile?.title || "Untitled Case"}
-              </h2>
-            </div>
-          </div>
-        </div>
+        <FolderSummary icon={LuFolderTree} title={caseTitle} subtitle={caseSubtitle} />
 
-        <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-[0_18px_36px_rgba(15,23,42,0.08)] dark:border-slate-700 dark:bg-slate-900/70">
-          <h3 className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
-            Documents in this subfolder
-          </h3>
+        <Panel>
+          <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+            <h3 className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Documents in this subfolder</h3>
+            <span className="text-xs text-slate-400 dark:text-slate-500">
+              Parent matter: {parentMatterTitle}
+            </span>
+          </div>
           <div className="mt-4">{renderDocumentList()}</div>
-        </div>
+        </Panel>
       </div>
     );
   };
@@ -697,6 +875,8 @@ const DocumentsWorkspace = ({ basePath = "" }) => {
 
   const isMatterView = Boolean(matterId);
   const isCaseView = Boolean(matterId && caseId);
+  const searchSummary = hasSearchQuery ? `Filtering workspace for “${searchQuery.trim()}”.` : "";
+  const showErrorPanel = Boolean(error);  
 
   return (
     <div className="space-y-6">
@@ -705,6 +885,9 @@ const DocumentsWorkspace = ({ basePath = "" }) => {
           <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
             Documents
           </h1>
+          {searchSummary && (
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{searchSummary}</p>
+          )}          
         </div>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3">
           <div className="relative w-full md:w-64">
@@ -719,6 +902,18 @@ const DocumentsWorkspace = ({ basePath = "" }) => {
             />
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            <label className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+              <span className="whitespace-nowrap">Sort</span>
+              <select
+                value={documentSort}
+                onChange={(event) => setDocumentSort(event.target.value)}
+                className="rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-600 transition focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200"
+              >
+                <option value="recent">Newest first</option>
+                <option value="oldest">Oldest first</option>
+                <option value="az">A → Z</option>
+              </select>
+            </label>            
             <button
               type="button"
               onClick={handleRefresh}
@@ -731,6 +926,26 @@ const DocumentsWorkspace = ({ basePath = "" }) => {
           </div>
         </div>
       </div>
+
+      {showErrorPanel && (
+        <Panel tone="error">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-sm font-semibold">We hit a snag loading your workspace.</p>
+              <p className="text-sm">{error}</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="inline-flex items-center gap-2 self-start rounded-xl border border-rose-300 bg-white/80 px-4 py-2 text-sm font-medium text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-500/60 dark:bg-transparent dark:text-rose-100"
+            >
+              <LuRefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+              Try again
+            </button>
+          </div>
+        </Panel>
+      )}
 
       {!isMatterView && renderMatterList()}
       {isMatterView && !isCaseView && renderMatterDetail()}
