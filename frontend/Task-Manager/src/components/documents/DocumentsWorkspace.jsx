@@ -1,11 +1,13 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   LuArrowLeft,
   LuFileText,
   LuFolder,
   LuFolderTree,
+  LuEllipsisVertical,  
   LuRefreshCw,
-  LuSearch,  
+  LuSearch,
+  LuTrash2,
 } from "react-icons/lu";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -145,6 +147,37 @@ const safeDateValue = (value) => {
 const getDocumentTitle = (document) =>
   document?.title || document?.fileName || document?.name || document?.originalName || "Untitled Document";
 
+const getDocumentOwnerDisplay = (document) => {
+  if (!document) {
+    return "";
+  }
+
+  const uploadedBy = document.uploadedBy || document.owner;
+  if (uploadedBy && typeof uploadedBy === "object") {
+    const name = uploadedBy.name || uploadedBy.fullName || uploadedBy.username;
+    const email = uploadedBy.email || uploadedBy.mail;
+
+    if (name && email) {
+      return `${name} (${email})`;
+    }
+
+    return name || email || "";
+  }
+
+  if (typeof uploadedBy === "string") {
+    return uploadedBy;
+  }
+
+  const fallbackFields = [
+    document.uploadedByName,
+    document.ownerName,
+    document.uploadedByEmail,
+    document.ownerEmail,
+  ];
+
+  return fallbackFields.find((value) => typeof value === "string" && value.trim().length > 0) || "";
+};
+
 const DocumentsWorkspace = ({ basePath = "" }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -159,9 +192,54 @@ const DocumentsWorkspace = ({ basePath = "" }) => {
   const [documentSort, setDocumentSort] = useState("recent");
   const [error, setError] = useState(null);
   const [hasLoadedData, setHasLoadedData] = useState(false);
+  const [activeDocumentMenu, setActiveDocumentMenu] = useState(null);  
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
-  const hasSearchQuery = normalizedSearchQuery.length > 0;  
+  const hasSearchQuery = normalizedSearchQuery.length > 0;
+
+  const documentMenuRefs = useRef(new Map());
+
+  const registerDocumentMenuRef = useCallback((key, node) => {
+    if (!key) {
+      return;
+    }
+
+    if (node) {
+      documentMenuRefs.current.set(key, node);
+    } else {
+      documentMenuRefs.current.delete(key);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!activeDocumentMenu) {
+      return undefined;
+    }
+
+    const handleClickOutside = (event) => {
+      const menuElement = documentMenuRefs.current.get(activeDocumentMenu);
+
+      if (menuElement && menuElement.contains(event.target)) {
+        return;
+      }
+
+      setActiveDocumentMenu(null);
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setActiveDocumentMenu(null);
+      }
+    };
+
+    document.addEventListener("click", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [activeDocumentMenu]);
 
   const baseRoute = useMemo(() => {
     if (basePath) {
@@ -474,6 +552,64 @@ const DocumentsWorkspace = ({ basePath = "" }) => {
     navigate(joinPaths(baseRoute, matterId));
   };
 
+  const handleOpenDocument = (documentUrl) => {
+    if (!documentUrl) {
+      toast.error("Document link is unavailable.");
+      return;
+    }
+
+    window.open(documentUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const handleDocumentKeyDown = (event, documentUrl) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      handleOpenDocument(documentUrl);
+    }
+  };
+
+  const handleToggleDocumentMenu = (event, documentKey) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    setActiveDocumentMenu((current) => (current === documentKey ? null : documentKey));
+  };
+
+  const handleDeleteDocument = async (event, documentId) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!documentId) {
+      toast.error("Unable to delete this document.");
+      return;
+    }
+
+    const confirmed = window.confirm("Are you sure you want to delete this document?");
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await axiosInstance.delete(API_PATHS.DOCUMENTS.DELETE(documentId));
+      toast.success("Document deleted");
+      setDocuments((prevDocuments) =>
+        Array.isArray(prevDocuments)
+          ? prevDocuments.filter((entry) => {
+              const entryId = entry?._id || entry?.id || entry?.uuid;
+              return entryId !== documentId;
+            })
+          : prevDocuments
+      );
+    } catch (caughtError) {
+      console.error("Failed to delete document", caughtError);
+      const message =
+        caughtError.response?.data?.message || "We were unable to delete the document. Please try again.";
+      toast.error(message);
+    } finally {
+      setActiveDocumentMenu(null);
+    }
+  };
+
   const visibleDocuments = useMemo(() => {
     if (caseId && selectedCase) {
       return selectedCase.documents;
@@ -569,41 +705,75 @@ const DocumentsWorkspace = ({ basePath = "" }) => {
               "Recently updated"
             );
             const fileName = document?.fileName || document?.name || document?.originalName;
-            const documentKey =
-              documentId || documentUrl || `${getDocumentTitle(document)}-${index}`;
+            const documentKey = documentId || documentUrl || `${getDocumentTitle(document)}-${index}`;
+            const ownerDisplay = getDocumentOwnerDisplay(document);
+            const isMenuOpen = activeDocumentMenu === documentKey;
+            const canOpenDocument = Boolean(documentUrl);
 
             return (
-              <li
-                key={documentKey}
-                className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white/80 p-4 text-sm shadow-sm transition hover:border-primary/40 hover:shadow-md dark:border-slate-700 dark:bg-slate-900/70 md:flex-row md:items-center md:justify-between"
-              >
-                <div className="flex items-start gap-3">
-                  <span className="mt-1 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20">
-                    <LuFileText className="h-5 w-5" />
-                  </span>
-                  <div className="space-y-1">
-                    <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                      {getDocumentTitle(document)}
-                    </p>
-                    {fileName && (
-                      <p className="text-xs text-slate-400 dark:text-slate-500">{fileName}</p>
-                    )}
-                    <p className="text-xs text-slate-500 dark:text-slate-400">{updatedLabel}</p>
-                    {document?.version && (
-                      <p className="text-xs uppercase tracking-[0.22em] text-slate-400">v{document.version}</p>
+              <li key={documentKey}>
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleOpenDocument(documentUrl)}
+                  onKeyDown={(event) => handleDocumentKeyDown(event, documentUrl)}
+                  className={`group flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white/80 p-4 text-left text-sm shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 dark:border-slate-700 dark:bg-slate-900/70 md:flex-row md:items-center md:justify-between ${
+                    canOpenDocument ? "cursor-pointer hover:border-primary/40 hover:shadow-md" : "cursor-default"
+                  }`}
+                >
+                  <div className="flex flex-1 items-start gap-3">
+                    <span className="mt-1 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-primary/20">
+                      <LuFileText className="h-5 w-5" />
+                    </span>
+                    <div className="space-y-1">
+                      <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                        {getDocumentTitle(document)}
+                      </p>
+                      {fileName && (
+                        <p className="text-xs text-slate-400 dark:text-slate-500">{fileName}</p>
+                      )}
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{updatedLabel}</p>
+                      {ownerDisplay && (
+                        <p className="text-xs text-slate-400 dark:text-slate-500">Uploaded by {ownerDisplay}</p>
+                      )}
+                      {document?.version && (
+                        <p className="text-xs uppercase tracking-[0.22em] text-slate-400">v{document.version}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div
+                    className="relative flex shrink-0 items-start md:self-center"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <button
+                      type="button"
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-transparent text-slate-400 transition hover:border-slate-200 hover:bg-slate-100 hover:text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 dark:text-slate-500 dark:hover:border-slate-700 dark:hover:bg-slate-800/70 dark:hover:text-slate-200"
+                      onClick={(event) => handleToggleDocumentMenu(event, documentKey)}
+                      onMouseDown={(event) => event.stopPropagation()}
+                      aria-haspopup="menu"
+                      aria-expanded={isMenuOpen}
+                      aria-label="Document options"
+                    >
+                      <LuEllipsisVertical className="h-4 w-4" />
+                    </button>
+                    {isMenuOpen && (
+                      <div
+                        ref={(node) => registerDocumentMenuRef(documentKey, node)}
+                        className="absolute right-0 top-10 z-20 w-40 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left text-sm shadow-xl dark:border-slate-700 dark:bg-slate-800"
+                        role="menu"
+                      >
+                        <button
+                          type="button"
+                          className="flex w-full items-center gap-2 px-4 py-2 text-left text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700"
+                          onClick={(event) => handleDeleteDocument(event, documentId)}
+                        >
+                          <LuTrash2 className="h-4 w-4" />
+                          Delete
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
-                {documentUrl && (
-                  <a
-                    href={documentUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center rounded-xl border border-primary/40 px-4 py-2 text-sm font-medium text-primary transition hover:bg-primary/10 dark:border-primary/50"
-                  >
-                    Open document
-                  </a>
-                )}
               </li>
             );
           })}
