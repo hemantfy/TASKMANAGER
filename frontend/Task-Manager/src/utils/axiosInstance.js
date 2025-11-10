@@ -103,9 +103,42 @@ const mergeUrl = (url, baseUrl) => {
   }
 
   const sanitizedBase = normalizeBaseUrl(baseUrl || BASE_URL);
-  const sanitizedPath = url.startsWith("/") ? url.slice(1) : url;
 
-  return `${sanitizedBase}/${sanitizedPath}`;
+  if (!sanitizedBase) {
+    return url.startsWith("/") ? url : `/${url}`;
+  }
+
+  if (ABSOLUTE_URL_REGEX.test(sanitizedBase)) {
+    const baseForUrl = sanitizedBase.endsWith("/")
+      ? sanitizedBase
+      : `${sanitizedBase}/`;
+    const normalizedPath = url.startsWith("/") ? url : `/${url}`;
+
+    try {
+      return new URL(normalizedPath, baseForUrl).toString();
+    } catch (error) {
+      const fallbackBase = sanitizedBase.replace(/\/+$/g, "");
+      const fallbackPath = normalizedPath.replace(/^\/+/, "");
+
+      return `${fallbackBase}/${fallbackPath}`;
+    }
+  }
+
+  const normalizedBase = sanitizedBase.replace(/\/+$/g, "");
+  const trimmedBase = normalizedBase.replace(/^\/+/, "");
+  const trimmedPath = url.replace(/^\/+/, "");
+
+  if (url.startsWith("/")) {
+    return `/${trimmedPath}`;
+  }
+
+  if (trimmedBase && trimmedPath.startsWith(`${trimmedBase}/`)) {
+    return `/${trimmedPath}`;
+  }
+
+  const segments = [trimmedBase, trimmedPath].filter(Boolean);
+
+  return `/${segments.join("/")}`.replace(/\/+$/g, "");
 };
 
 const initialBaseUrl = resolveBaseUrl();
