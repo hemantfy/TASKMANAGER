@@ -245,4 +245,55 @@ const updateUserProfile = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser, getUserProfile, updateUserProfile };
+// @desc    Reset password using the admin invite token
+// @route   POST /api/auth/reset-password/admin-token
+// @access  Public (requires admin invite token)
+const resetPasswordWithAdminToken = async (req, res) => {
+  try {
+    const { email, newPassword, adminInviteToken } = req.body || {};
+
+    const trimmedEmail = typeof email === "string" ? email.trim() : "";
+    const trimmedToken =
+      typeof adminInviteToken === "string" ? adminInviteToken.trim() : "";
+    const normalizedPassword =
+      typeof newPassword === "string" ? newPassword : "";
+
+    if (!trimmedEmail || !normalizedPassword || !trimmedToken) {
+      return res.status(400).json({
+        message:
+          "Email, new password, and admin invite token are required to reset the password",
+      });
+    }
+
+    if (trimmedToken !== process.env.ADMIN_INVITE_TOKEN) {
+      return res.status(403).json({ message: "Invalid admin invite token" });
+    }
+
+    const user = await User.findOne({ email: trimmedEmail });
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ message: "No account found with the provided email address" });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(normalizedPassword, salt);
+    user.mustChangePassword = false;
+    await user.save();
+
+    return res.json({ message: "Password reset successfully" });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: "Server Error", error: error.message });
+  }
+};
+
+module.exports = {
+  registerUser,
+  loginUser,
+  getUserProfile,
+  updateUserProfile,
+  resetPasswordWithAdminToken,
+};
