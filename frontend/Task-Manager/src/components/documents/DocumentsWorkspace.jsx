@@ -12,7 +12,7 @@ import toast from "react-hot-toast";
 
 import LoadingOverlay from "../LoadingOverlay";
 import axiosInstance from "../../utils/axiosInstance";
-import { API_PATHS } from "../../utils/apiPaths";
+import { API_PATHS, BASE_URL } from "../../utils/apiPaths";
 import { formatMediumDateTime } from "../../utils/dateUtils";
 
 const trimSlashes = (value, { keepLeading = false } = {}) => {
@@ -74,8 +74,16 @@ const resolveDocumentUrl = (fileUrl) => {
     return fileUrl;
   }
 
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
-  const normalizedBase = baseUrl.replace(/\/+$/g, "");
+  const envBaseUrl =
+    (typeof import.meta !== "undefined" && import.meta?.env?.VITE_API_BASE_URL) || "";
+  const axiosBaseUrl =
+    (axiosInstance?.defaults && typeof axiosInstance.defaults.baseURL === "string"
+      ? axiosInstance.defaults.baseURL
+      : "");
+  const selectedBaseUrl =
+    envBaseUrl.trim() || axiosBaseUrl.trim() || (BASE_URL ? BASE_URL.trim() : "");
+
+  const normalizedBase = selectedBaseUrl.replace(/\/+$/g, "");
   const normalizedPath = fileUrl.replace(/^\/+/, "");
 
   if (!normalizedBase) {
