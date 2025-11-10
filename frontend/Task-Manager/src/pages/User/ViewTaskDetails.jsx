@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS, BASE_URL } from "../../utils/apiPaths";
@@ -18,6 +18,19 @@ const ViewTaskDetails = ({ activeMenu = "My Tasks" }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);  
   const { user } = useContext(UserContext);
+
+  const tasksRoute = useMemo(() => {
+    const role = user?.role;
+
+    switch (role) {
+      case "admin":
+        return "/admin/tasks";
+      case "super_admin":
+        return "/super-admin/tasks";
+      default:
+        return "/user/tasks";
+    }
+  }, [user?.role]);
 
   const getStatusTagColor = (status) => {
     switch (status) {
@@ -409,7 +422,7 @@ const ViewTaskDetails = ({ activeMenu = "My Tasks" }) => {
                   Track status, due dates and collaboration at a glance.
                 </p>
                 <Link
-                  to="/user/tasks"
+                  to={tasksRoute}
                   className="inline-flex items-center justify-center gap-2 rounded-full border border-white/60 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600 transition hover:-translate-y-0.5 hover:bg-gradient-to-r hover:from-slate-900 hover:to-indigo-600 hover:text-white"
                 >
                   Back to Tasks
