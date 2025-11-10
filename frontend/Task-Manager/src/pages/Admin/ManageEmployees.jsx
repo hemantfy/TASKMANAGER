@@ -240,6 +240,7 @@ const ManageEmployees = () => {
     event.preventDefault();
     if (!selectedUser || isResettingPassword) return;
 
+    const selectedUserRole = normalizeRole(selectedUser?.role);    
     if (selectedUserRole === "super_admin" && normalizedCurrentUserRole !== "super_admin") {
       toast.error("Only Super Admins can reset passwords for Super Admin accounts.");
       toast.error("Only owners can reset passwords for owner accounts.");
