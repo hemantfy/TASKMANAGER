@@ -1,4 +1,5 @@
 import {
+  LuBell,  
   LuClipboardCheck,
   LuFileStack,
   LuFolderTree,
@@ -24,30 +25,36 @@ export const SIDE_MENU_DATA = [
   },
   {
     id: "03",
+    label: "Notifications",
+    icon: LuBell,
+    path: "/notifications",
+  },
+  {
+    id: "04",    
     label: "Matters",
     icon: LuFolderTree,
     path: "/admin/matters",
   },
   {
-    id: "04",
+    id: "05",
     label: "Invoices",
     icon: LuReceipt,
     path: "/admin/invoices",
   },
   {
-    id: "05",    
+    id: "06",    
     label: "Employees",
     icon: LuUsers,
     path: "/admin/employees",
   },
   {
-    id: "06",
+    id: "07",
     label: "Clients",
     icon: LuUserCheck,
     path: "/admin/clients",
   },
   {
-    id: "07",    
+    id: "08",    
     label: "Documents",
     icon: LuFileStack,
     path: "/admin/documents",
@@ -69,12 +76,18 @@ export const SIDE_MENU_USER_DATA = [
   },
   {
     id: "03",
+    label: "Notifications",
+    icon: LuBell,
+    path: "/notifications",
+  },
+  {
+    id: "04",    
     label: "Matters",
     icon: LuFolderTree,
     path: "/user/matters",
   },
   {
-    id: "04",
+    id: "05",
     label: "Documents",
     icon: LuFileStack,
     path: "/user/documents",
@@ -90,6 +103,12 @@ export const SIDE_MENU_CLIENT_DATA = [
   },
   {
     id: "02",
+    label: "Notifications",
+    icon: LuBell,
+    path: "/notifications",
+  },
+  {
+    id: "03",    
     label: "Invoices",
     icon: LuReceipt,
     path: "/client/invoices",

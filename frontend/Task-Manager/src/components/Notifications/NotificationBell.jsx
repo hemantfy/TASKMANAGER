@@ -6,6 +6,7 @@ import React, {
   useState,
 } from "react";
 import { LuBell, LuLoader } from "react-icons/lu";
+import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { UserContext } from "../../context/userContext.jsx";
@@ -31,6 +32,7 @@ const parseNotificationDate = (notification) => {
 
 const NotificationBell = () => {
   const { user } = useContext(UserContext);
+  const navigate = useNavigate(); 
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [notifications, setNotifications] = useState([]);
@@ -69,7 +71,7 @@ const NotificationBell = () => {
 
   const fetchNotifications = useCallback(
     async (shouldUpdateBadge = true) => {
-      if (!user) return;
+      if (!user || !lastSeenReady) return;
 
       try {
         setLoading(true);
@@ -95,15 +97,19 @@ const NotificationBell = () => {
         setLoading(false);
       }
     },
-    [user]
+    [lastSeenReady, user]
   );
 
   useEffect(() => {
+    if (!user || !lastSeenReady) {
+      return;
+    }
+
     fetchNotifications();
   }, [fetchNotifications, lastSeenReady, user]);
 
   useEffect(() => {
-    if (!isPrivilegedUser || !user) {
+    if (!isPrivilegedUser || !user || !lastSeenReady) {
       return undefined;
     }
 
@@ -112,7 +118,7 @@ const NotificationBell = () => {
     }, 15000);
 
     return () => clearInterval(intervalId);
-  }, [fetchNotifications, isPrivilegedUser, user]);
+  }, [fetchNotifications, isPrivilegedUser, lastSeenReady, user]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -160,6 +166,21 @@ const NotificationBell = () => {
   const displayBadgeValue = badgeCount > 9 ? "9+" : badgeCount;
   const visibleNotifications = notifications.slice(0, isPrivilegedUser ? 10 : 5);
 
+  const markNotificationsAsSeen = useCallback(() => {
+    const now = Date.now();
+    lastSeenRef.current = now;
+    if (typeof window !== "undefined" && storageKey) {
+      window.localStorage.setItem(storageKey, new Date(now).toISOString());
+    }
+    setBadgeCount(0);
+  }, [storageKey]);
+
+  const handleOpenNotificationCenter = () => {
+    markNotificationsAsSeen();
+    setOpen(false);
+    navigate("/notifications");
+  };
+
   return (
     <div className="relative" ref={dropdownRef}>
       <button
@@ -194,10 +215,10 @@ const NotificationBell = () => {
               )}
               <button
                 type="button"
-                onClick={() => fetchNotifications(false)}
+                onClick={handleOpenNotificationCenter}
                 className="text-xs font-medium text-primary transition hover:text-primary/80"
               >
-                Refresh
+                See all
               </button>
             </div>
           </div>

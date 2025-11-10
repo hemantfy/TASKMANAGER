@@ -36,6 +36,9 @@ const ClientHome = React.lazy(() => import("./pages/Client/Home"));
 const ClientProjects = React.lazy(() => import("./pages/Client/ClientProjects"));
 const ClientViewTaskDetails = React.lazy(() => import("./pages/Client/ViewTaskDetails"));
 const ClientInvoices = React.lazy(() => import("./pages/Client/Invoices"));
+const NotificationCenter = React.lazy(() =>
+  import("./pages/Notifications/NotificationCenter.jsx")
+);
 
 const App = () => {
   return (
@@ -131,6 +134,10 @@ const App = () => {
                   <Route path="task-details/:id" element={<ClientViewTaskDetails />} />
                   <Route path="profile-settings" element={<ProfileSettings />} />
                 </Route>
+              </Route>
+
+              <Route element={<PrivateRoute />}>
+                <Route path="/notifications" element={<NotificationCenter />} />
               </Route>
 
               <Route path="/unauthorized" element={<Unauthorized />} />
