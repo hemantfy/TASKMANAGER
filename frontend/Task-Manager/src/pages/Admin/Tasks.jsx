@@ -180,11 +180,11 @@ const Tasks = () => {
                           type="text"
                           value={searchQuery}
                           onChange={(event) => setSearchQuery(event.target.value)}
-                          placeholder="Search by task name..."
+                          placeholder="Search"
                           className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 transition-colors duration-300 dark:border-slate-700/70 dark:bg-slate-900/60 dark:text-slate-200 outline-none transition group-focus-within:border-primary group-focus-within:ring-2 group-focus-within:ring-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
                         />
                         <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400 dark:text-slate-500">
-                          <LuSearch className="text-base" />
+                          <LuSearch className="text" />
                         </span>
                       </div>
                     </label>
@@ -199,10 +199,10 @@ const Tasks = () => {
                     </label>
                   </div>
 
-                  <div className="flex justify-end">
-                    <label className="flex flex-col text-xs uppercase tracking-[0.24em] text-slate-400 transition-colors duration-300 dark:text-slate-500">
+                  <div className="flex items-center justify-end gap-3">
+                    <span className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400 transition-colors duration-300 dark:text-slate-500">
                       View
-                    </label>
+                    </span>
                     <ViewToggle
                       value={viewMode}
                       onChange={setViewMode}
