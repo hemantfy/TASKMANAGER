@@ -14,6 +14,8 @@ import TaskStatusTabs from "../../components/TaskStatusTabs";
 import TaskCard from "../../components/Cards/TaskCard";
 import LoadingOverlay from "../../components/LoadingOverlay";
 import TaskFormModal from "../../components/TaskFormModal";
+import ViewToggle from "../../components/ViewToggle";
+import TaskListTable from "../../components/TaskListTable";
 import useTasks from "../../hooks/useTasks";
 import axiosInstance from "../../utils/axiosInstance";
 
@@ -28,6 +30,7 @@ const Tasks = () => {
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const [activeTaskId, setActiveTaskId] = useState(null);
   const [taskScope, setTaskScope] = useState("All Tasks");
+  const [viewMode, setViewMode] = useState("grid");  
 
   const { tasks, tabs, isLoading, refetch } = useTasks({
     statusFilter: filterStatus,
@@ -197,51 +200,75 @@ const Tasks = () => {
                 </div>
               </div>
 
-              {hasActiveFilters && (
-                <button
-                  type="button"
-                  className="inline-flex items-center justify-center gap-2 self-end rounded-full border border-white/60 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600 transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-gradient-to-r hover:from-primary/90 hover:to-sky-500 hover:text-white dark:border-slate-700/60 dark:bg-slate-900/60 dark:text-slate-200"
-                  onClick={handleResetFilters}
-                >
-                  <LuRotateCcw className="text-base" /> Reset Filters
-                </button>
-              )}
+              <div
+                className={`flex flex-wrap items-center gap-3 ${
+                  hasActiveFilters ? "justify-between" : "justify-end"
+                }`}
+              >
+                {hasActiveFilters && (
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center gap-2 rounded-full border border-white/60 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600 transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-gradient-to-r hover:from-primary/90 hover:to-sky-500 hover:text-white dark:border-slate-700/60 dark:bg-slate-900/60 dark:text-slate-200"
+                    onClick={handleResetFilters}
+                  >
+                    <LuRotateCcw className="text-base" /> Reset Filters
+                  </button>
+                )}
+
+                <ViewToggle value={viewMode} onChange={setViewMode} />
+              </div>
             </div>
           )}
 
-          <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {filteredTasks?.map((item) => (
-              <TaskCard
-                key={item._id}
-                title={item.title}
-                description={item.description}
-                priority={item.priority}
-                status={item.status}
-                progress={item.progress}
-                createdAt={item.createdAt}
-                dueDate={item.dueDate}
-                assignedTo={Array.isArray(item.assignedTo)
-                  ? item.assignedTo
-                  : item.assignedTo
-                  ? [item.assignedTo]
-                  : []}
-                attachmentCount={(item.attachments?.length || 0) + (item.relatedDocuments?.length || 0)}
-                completedTodoCount={item.completedTodoCount || 0}
-                todoChecklist={item.todoChecklist || []}
-                matter={item.matter}
-                caseFile={item.caseFile}                
-                onClick={() => handleTaskCardClick(item._id)}
-              />
-            ))}
+          {viewMode === "grid" ? (
+            <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {filteredTasks?.map((item) => (
+                <TaskCard
+                  key={item._id}
+                  title={item.title}
+                  description={item.description}
+                  priority={item.priority}
+                  status={item.status}
+                  progress={item.progress}
+                  createdAt={item.createdAt}
+                  dueDate={item.dueDate}
+                  assignedTo={Array.isArray(item.assignedTo)
+                    ? item.assignedTo
+                    : item.assignedTo
+                    ? [item.assignedTo]
+                    : []}
+                  attachmentCount={(item.attachments?.length || 0) + (item.relatedDocuments?.length || 0)}
+                  completedTodoCount={item.completedTodoCount || 0}
+                  todoChecklist={item.todoChecklist || []}
+                  matter={item.matter}
+                  caseFile={item.caseFile}
+                  onClick={() => handleTaskCardClick(item._id)}
+                />
+              ))}
 
-            {!filteredTasks.length && (
-              <div className="md:col-span-2 xl:col-span-3">
+              {!filteredTasks.length && (
+                <div className="md:col-span-2 xl:col-span-3">
+                  <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500 transition-colors duration-300 dark:border-slate-700/60 dark:bg-slate-900/60 dark:text-slate-300">
+                    No tasks match the selected filters.
+                  </div>
+                </div>
+              )}
+            </section>
+          ) : (
+            <section className="mt-6">
+              {filteredTasks.length ? (
+                <TaskListTable
+                  tableData={filteredTasks}
+                  onTaskClick={(task) => handleTaskCardClick(task?._id)}
+                  className="mt-0"
+                />
+              ) : (
                 <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500 transition-colors duration-300 dark:border-slate-700/60 dark:bg-slate-900/60 dark:text-slate-300">
                   No tasks match the selected filters.
                 </div>
-              </div>
-            )}
-          </section>
+              )}
+            </section>
+          )}
         </>
       )}
 

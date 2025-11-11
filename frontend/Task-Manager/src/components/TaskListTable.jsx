@@ -2,12 +2,13 @@ import React from "react";
 import { LuCalendar, LuClock3, LuUser } from "react-icons/lu";
 import { formatDateLabel } from "../utils/dateUtils";
 
-const TaskListTable = ({ tableData }) => {
+const TaskListTable = ({ tableData, onTaskClick, className = "" }) => {
   const safeTableData = Array.isArray(tableData)
     ? tableData
     : tableData?.tasks && Array.isArray(tableData.tasks)
     ? tableData.tasks
     : [];
+
   const getStatusBadgeColor = (status) => {
     switch (status) {
       case "Completed":
@@ -60,8 +61,47 @@ const TaskListTable = ({ tableData }) => {
 
   const formatDate = (value) => formatDateLabel(value);
 
+ const handleTaskActivation = (task) => {
+    if (typeof onTaskClick === "function" && task) {
+      onTaskClick(task);
+    }
+  };
+
+  const interactiveRowProps = (task) => {
+    if (typeof onTaskClick !== "function") {
+      return {};
+    }
+
+    return {
+      onClick: () => handleTaskActivation(task),
+      onKeyDown: (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          handleTaskActivation(task);
+        }
+      },
+      role: "button",
+      tabIndex: 0,
+    };
+  };
+
+  const getInteractiveRowClasses = (baseClasses) => {
+    if (typeof onTaskClick !== "function") {
+      return baseClasses;
+    }
+
+    return `${baseClasses} cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60`;
+  };
+
+  const containerClassName = [
+    "mt-4 overflow-hidden rounded-[28px] border border-white/60 bg-white/80 shadow-[0_20px_45px_rgba(15,23,42,0.08)]",
+    className,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <div className="mt-4 overflow-hidden rounded-[28px] border border-white/60 bg-white/80 shadow-[0_20px_45px_rgba(15,23,42,0.08)]">
+    <div className={containerClassName}>
       <div className="hidden overflow-x-auto md:block">
         <table className="min-w-full divide-y divide-white/60">
           <thead className="bg-white/70">
@@ -78,9 +118,12 @@ const TaskListTable = ({ tableData }) => {
             {safeTableData.map((task, index) => (
               <tr
                 key={task._id}
-                className={`text-sm text-slate-600 transition hover:bg-white ${
-                  index % 2 === 0 ? "bg-white/80" : "bg-white/60"
-                }`}
+                className={getInteractiveRowClasses(
+                  `text-sm text-slate-600 transition hover:bg-white ${
+                    index % 2 === 0 ? "bg-white/80" : "bg-white/60"
+                  }`
+                )}
+                {...interactiveRowProps(task)}
               >
                 <td className="px-6 py-4 text-[13px] font-medium text-slate-900">
                   <span className="line-clamp-1">{task.title}</span>
@@ -123,7 +166,10 @@ const TaskListTable = ({ tableData }) => {
           safeTableData.map((task) => (
             <article
               key={task._id}
-              className="rounded-2xl border border-white/70 bg-white/95 p-4 shadow-[0_12px_28px_rgba(15,23,42,0.08)]"
+              className={getInteractiveRowClasses(
+                "rounded-2xl border border-white/70 bg-white/95 p-4 shadow-[0_12px_28px_rgba(15,23,42,0.08)]"
+              )}
+              {...interactiveRowProps(task)}
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <h3 className="text-sm font-semibold text-slate-900">

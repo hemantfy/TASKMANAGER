@@ -9,6 +9,8 @@ import { API_PATHS } from "../../utils/apiPaths";
 import TaskCard from "../../components/Cards/TaskCard";
 import LoadingOverlay from "../../components/LoadingOverlay";
 import TaskFormModal from "../../components/TaskFormModal";
+import ViewToggle from "../../components/ViewToggle";
+import TaskListTable from "../../components/TaskListTable";
 import useTasks from "../../hooks/useTasks";
 
 const Tasks = () => {
@@ -16,6 +18,7 @@ const Tasks = () => {
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const [activeTaskId, setActiveTaskId] = useState(null);
   const [taskScope, setTaskScope] = useState("All Tasks");
+  const [viewMode, setViewMode] = useState("grid");
 
   const { tasks: tasksData, isLoading, refetch } = useTasks({
     scope: taskScope === "My Task" ? "my" : "all",
@@ -123,39 +126,59 @@ const Tasks = () => {
             </div>
           )}
 
-          <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {allTasks?.map((item) => (
-              <TaskCard
-                key={item._id}
-                title={item.title}
-                description={item.description}
-                priority={item.priority}
-                status={item.status}
-                progress={item.progress}
-                createdAt={item.createdAt}
-                dueDate={item.dueDate}
-                assignedTo={Array.isArray(item.assignedTo)
-                  ? item.assignedTo
-                  : item.assignedTo
-                  ? [item.assignedTo]
-                  : []}
-                attachmentCount={(item.attachments?.length || 0) + (item.relatedDocuments?.length || 0)}
-                completedTodoCount={item.completedTodoCount || 0}
-                todoChecklist={item.todoChecklist || []}
-                matter={item.matter}
-                caseFile={item.caseFile}                
-                onClick={() => handleTaskCardClick(item._id)}
-              />
-            ))}
+          <div className="mt-6 flex justify-end">
+            <ViewToggle value={viewMode} onChange={setViewMode} />
+          </div>
 
-            {!allTasks.length && (
-              <div className="md:col-span-2 xl:col-span-3">
+          {viewMode === "grid" ? (
+            <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {allTasks?.map((item) => (
+                <TaskCard
+                  key={item._id}
+                  title={item.title}
+                  description={item.description}
+                  priority={item.priority}
+                  status={item.status}
+                  progress={item.progress}
+                  createdAt={item.createdAt}
+                  dueDate={item.dueDate}
+                  assignedTo={Array.isArray(item.assignedTo)
+                    ? item.assignedTo
+                    : item.assignedTo
+                    ? [item.assignedTo]
+                    : []}
+                  attachmentCount={(item.attachments?.length || 0) + (item.relatedDocuments?.length || 0)}
+                  completedTodoCount={item.completedTodoCount || 0}
+                  todoChecklist={item.todoChecklist || []}
+                  matter={item.matter}
+                  caseFile={item.caseFile}
+                  onClick={() => handleTaskCardClick(item._id)}
+                />
+              ))}
+
+              {!allTasks.length && (
+                <div className="md:col-span-2 xl:col-span-3">
+                  <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500 transition-colors duration-300 dark:border-slate-700/60 dark:bg-slate-900/60 dark:text-slate-300">
+                    No tasks available at the moment.
+                  </div>
+                </div>
+              )}
+            </section>
+          ) : (
+            <section className="mt-6">
+              {allTasks.length ? (
+                <TaskListTable
+                  tableData={allTasks}
+                  onTaskClick={(task) => handleTaskCardClick(task?._id)}
+                  className="mt-0"
+                />
+              ) : (
                 <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500 transition-colors duration-300 dark:border-slate-700/60 dark:bg-slate-900/60 dark:text-slate-300">
                   No tasks available at the moment.
                 </div>
-              </div>
-            )}
-          </section>
+              )}
+            </section>
+          )}
         </>
       )}
 
