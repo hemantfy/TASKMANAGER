@@ -38,6 +38,14 @@ const normalizeObjectId = (value) => {
     if (value.id) {
       return value.id.toString();
     }
+    
+    if (typeof value.toString === "function") {
+      const stringValue = value.toString();
+
+      if (typeof stringValue === "string" && stringValue !== "[object Object]") {
+        return stringValue;
+      }
+    }    
   }
 
   if (typeof value === "string" || typeof value === "number") {
