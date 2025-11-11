@@ -1086,11 +1086,17 @@ const getDashboardData = async (req, res, next) => {
       const potentialTeamMembers = await User.find()
         .select("name role profileImageUrl officeLocation");
 
-      const teamMembers = potentialTeamMembers.filter((user) =>
-        matchesRole(user.role, "admin") ||
-        matchesRole(user.role, "member") ||
-        matchesRole(user.role, "client")
-      );
+      const teamMembers = potentialTeamMembers.filter((user) => {
+        if (matchesRole(user.role, "super_admin")) {
+          return false;
+        }
+
+        return (
+          matchesRole(user.role, "admin") ||
+          matchesRole(user.role, "member") ||
+          matchesRole(user.role, "client")
+        );
+      });
 
       const relevantUserIds = teamMembers.map((user) => user._id);
       const now = new Date();
