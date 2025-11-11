@@ -3,6 +3,10 @@ import Progress from "../Progress";
 import AvatarGroup from "../AvatarGroup";
 import { LuPaperclip } from "react-icons/lu";
 import { formatDateLabel } from "../../utils/dateUtils";
+import {
+  calculateTaskCompletion,
+  getProgressBarColor,
+} from "../../utils/taskProgress";
 
 const TaskCard = ({
   title,
@@ -72,6 +76,20 @@ const caseLabel = (() => {
 
   return caseFile.title || caseFile.name || caseFile.caseNumber || "";
 })();
+
+const completionPercentage = calculateTaskCompletion({
+  progress,
+  completedTodoCount,
+  todoChecklist,
+});
+
+const { colorClass: progressBarColor } = getProgressBarColor({
+  percentage: completionPercentage,
+  status,
+  dueDate,
+});
+
+const roundedCompletion = Math.round(completionPercentage);
 
   const getStatusAccent = () => {
     switch (status) {
@@ -147,7 +165,7 @@ const caseLabel = (() => {
           <span className="text-lg font-semibold text-slate-900 transition-colors duration-300 dark:text-slate-100">{completedTodoCount}</span> / {todoChecklist.length || 0}
         </p>
         <div className="mt-3">
-          <Progress progress={progress} status={status} />
+          <Progress progress={completionPercentage} status={status} />
         </div>
       </div>
 
@@ -176,7 +194,21 @@ const caseLabel = (() => {
           <LuPaperclip className="text-base text-slate-500 dark:text-slate-300" />
           {totalAttachments}
         </div>
+      </div>
+
+      <div className="mt-6 space-y-2">
+        <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 transition-colors duration-300 dark:text-slate-500">
+          <span>Progress</span>
+          <span>{roundedCompletion}%</span>
         </div>
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200/80 transition-colors duration-300 dark:bg-slate-800/60">
+          <div
+            className={`${progressBarColor} h-full transition-all duration-500`}
+            style={{ width: `${completionPercentage}%` }}
+            aria-hidden="true"
+          />        
+        </div>
+      </div>    
     </div>
     );
 };

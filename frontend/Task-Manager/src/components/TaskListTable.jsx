@@ -1,6 +1,10 @@
 import React from "react";
 import { LuCalendar, LuClock3, LuUser } from "react-icons/lu";
 import { formatDateLabel } from "../utils/dateUtils";
+import {
+  calculateTaskCompletion,
+  getProgressBarColor,
+} from "../utils/taskProgress";
 
 const TaskListTable = ({ tableData, onTaskClick, className = "" }) => {
   const safeTableData = Array.isArray(tableData)
@@ -93,6 +97,26 @@ const TaskListTable = ({ tableData, onTaskClick, className = "" }) => {
     return `${baseClasses} cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60`;
   };
 
+  const getProgressMeta = (task) => {
+    const percentage = calculateTaskCompletion({
+      progress: task?.progress,
+      completedTodoCount: task?.completedTodoCount,
+      todoChecklist: task?.todoChecklist,
+    });
+
+    const { colorClass } = getProgressBarColor({
+      percentage,
+      status: task?.status,
+      dueDate: task?.dueDate,
+    });
+
+    return {
+      percentage,
+      colorClass,
+      rounded: Math.round(percentage),
+    };
+  };
+
   const containerClassName = [
     "mt-4 overflow-hidden rounded-[28px] border border-white/60 bg-white/80 shadow-[0_20px_45px_rgba(15,23,42,0.08)]",
     className,
@@ -115,18 +139,36 @@ const TaskListTable = ({ tableData, onTaskClick, className = "" }) => {
             </tr>
           </thead>
           <tbody className="divide-y divide-white/50 bg-white/60">
-            {safeTableData.map((task, index) => (
-              <tr
-                key={task._id}
-                className={getInteractiveRowClasses(
-                  `text-sm text-slate-600 transition hover:bg-white ${
-                    index % 2 === 0 ? "bg-white/80" : "bg-white/60"
-                  }`
-                )}
-                {...interactiveRowProps(task)}
-              >
+            {safeTableData.map((task, index) => {
+              const progressMeta = getProgressMeta(task);
+
+              return (
+                <tr
+                  key={task._id}
+                  className={getInteractiveRowClasses(
+                    `text-sm text-slate-600 transition hover:bg-white ${
+                      index % 2 === 0 ? "bg-white/80" : "bg-white/60"
+                    }`
+                  )}
+                  {...interactiveRowProps(task)}
+                >
                 <td className="px-6 py-4 text-[13px] font-medium text-slate-900">
-                  <span className="line-clamp-1">{task.title}</span>
+                  <div className="space-y-2">
+                    <span className="line-clamp-1">{task.title}</span>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                        <span>Progress</span>
+                        <span>{progressMeta.rounded}%</span>
+                      </div>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200/80">
+                        <div
+                          className={`${progressMeta.colorClass} h-full transition-all duration-500`}
+                          style={{ width: `${progressMeta.percentage}%` }}
+                          aria-hidden="true"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </td>
                 <td className="px-6 py-4">
                   <span
@@ -156,65 +198,84 @@ const TaskListTable = ({ tableData, onTaskClick, className = "" }) => {
                   {formatDate(task.createdAt)}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
 
       <div className="space-y-3 p-4 md:hidden">
         {safeTableData.length ? (
-          safeTableData.map((task) => (
-            <article
-              key={task._id}
-              className={getInteractiveRowClasses(
-                "rounded-2xl border border-white/70 bg-white/95 p-4 shadow-[0_12px_28px_rgba(15,23,42,0.08)]"
-              )}
-              {...interactiveRowProps(task)}
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <h3 className="text-sm font-semibold text-slate-900">
-                  {task.title}
-                </h3>
-                <span
-                  className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${getStatusBadgeColor(
-                    task.status
-                  )}`}
-                >
-                  {task.status}
-                </span>
-              </div>
+          safeTableData.map((task) => {
+            const progressMeta = getProgressMeta(task);
 
-              <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/80 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-600">
-                {task.priority}
-              </div>
+            return (
+              <article
+                key={task._id}
+                className={getInteractiveRowClasses(
+                  "rounded-2xl border border-white/70 bg-white/95 p-4 shadow-[0_12px_28px_rgba(15,23,42,0.08)]"
+                )}
+                {...interactiveRowProps(task)}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <h3 className="text-sm font-semibold text-slate-900">
+                    {task.title}
+                  </h3>
+                  <span
+                    className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${getStatusBadgeColor(
+                      task.status
+                    )}`}
+                  >
+                    {task.status}
+                  </span>
+                </div>
 
-              <dl className="mt-4 space-y-2 text-xs text-slate-500">
-                <div className="flex items-center gap-2">
-                  <LuCalendar className="text-slate-400" />
-                  <dt className="font-semibold uppercase tracking-[0.24em] text-slate-400">
-                    Due
-                  </dt>
-                  <dd className="text-slate-600">{formatDate(task.dueDate)}</dd>
+                <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/80 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-600">
+                  {task.priority}
                 </div>
-                <div className="flex items-center gap-2">
-                  <LuUser className="text-slate-400" />
-                  <dt className="font-semibold uppercase tracking-[0.24em] text-slate-400">
-                    Assignees
-                  </dt>
-                  <dd className="text-slate-600">
-                    {getAssigneeNames(task.assignedTo)}
-                  </dd>
+                
+                <div className="mt-4 space-y-1">
+                  <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    <span>Progress</span>
+                    <span>{progressMeta.rounded}%</span>
+                  </div>
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200/80">
+                    <div
+                      className={`${progressMeta.colorClass} h-full transition-all duration-500`}
+                      style={{ width: `${progressMeta.percentage}%` }}
+                      aria-hidden="true"
+                    />
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <LuClock3 className="text-slate-400" />
-                  <dt className="font-semibold uppercase tracking-[0.24em] text-slate-400">
-                    Created
-                  </dt>
-                  <dd className="text-slate-600">{formatDate(task.createdAt)}</dd>
-                </div>
-              </dl>
-            </article>
-          ))
+
+                <dl className="mt-4 space-y-2 text-xs text-slate-500">
+                  <div className="flex items-center gap-2">
+                    <LuCalendar className="text-slate-400" />
+                    <dt className="font-semibold uppercase tracking-[0.24em] text-slate-400">
+                      Due
+                    </dt>
+                    <dd className="text-slate-600">{formatDate(task.dueDate)}</dd>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <LuUser className="text-slate-400" />
+                    <dt className="font-semibold uppercase tracking-[0.24em] text-slate-400">
+                      Assignees
+                    </dt>
+                    <dd className="text-slate-600">
+                      {getAssigneeNames(task.assignedTo)}
+                    </dd>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <LuClock3 className="text-slate-400" />
+                    <dt className="font-semibold uppercase tracking-[0.24em] text-slate-400">
+                      Created
+                    </dt>
+                    <dd className="text-slate-600">{formatDate(task.createdAt)}</dd>
+                  </div>
+                </dl>
+              </article>
+            );
+          })
         ) : (
           <p className="rounded-2xl border border-dashed border-slate-200 bg-white/90 py-6 text-center text-sm text-slate-500">
             No tasks available yet.
