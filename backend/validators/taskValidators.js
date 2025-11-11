@@ -63,7 +63,10 @@ const normalizeAssigneeIds = (assignedTo) => {
   return normalized;
 };
 
-const normalizeChecklist = (checklist) => {
+const normalizeChecklist = (
+  checklist,
+  { requireText = true, allowPartialUpdate = false } = {}
+) => {
   if (checklist === undefined) {
     return undefined;
   }
@@ -91,21 +94,21 @@ const normalizeChecklist = (checklist) => {
       );
     }
 
-    const text = isNonEmptyString(item.text) ? item.text.trim() : "";
-    if (!text) {
-      throw createHttpError(
-        `todoChecklist[${index}].text must be provided`,
-        400
-      );
-    }
+    const normalizedItem = {};
 
-    const normalizedItem = { text };
+    const hasId =
+      item._id !== undefined && item._id !== null && item._id !== "";
 
-    if (item._id !== undefined && item._id !== null && item._id !== "") {
+    if (hasId) {
       normalizedItem._id = normalizeRequiredId(
         item._id,
         `todoChecklist[${index}]._id`
       );
+    } else if (allowPartialUpdate) {
+      throw createHttpError(
+        `todoChecklist[${index}]._id is required when updating the checklist`,
+        400
+      );      
     }
 
     if (item.assignedTo !== undefined && item.assignedTo !== null) {
@@ -117,6 +120,33 @@ const normalizeChecklist = (checklist) => {
 
     if (item.completed !== undefined) {
       normalizedItem.completed = Boolean(item.completed);
+    }
+
+    if (item.text !== undefined) {
+      const text = isNonEmptyString(item.text) ? item.text.trim() : "";
+
+      if (!text && requireText && !allowPartialUpdate) {
+        throw createHttpError(
+          `todoChecklist[${index}].text must be provided`,
+          400
+        );
+      }
+
+      if (text) {
+        normalizedItem.text = text;
+      }
+    } else if (requireText && !allowPartialUpdate) {
+      throw createHttpError(
+        `todoChecklist[${index}].text must be provided`,
+        400
+      );
+    }
+
+    if (!Object.keys(normalizedItem).length) {
+      throw createHttpError(
+        `todoChecklist[${index}] must include at least one updatable field`,
+        400
+      );
     }
 
     return normalizedItem;
@@ -345,7 +375,10 @@ const validateChecklistPayload = (payload) => {
   }
 
   return {
-    todoChecklist: normalizeChecklist(payload.todoChecklist),
+    todoChecklist: normalizeChecklist(payload.todoChecklist, {
+      requireText: false,
+      allowPartialUpdate: true,
+    }),
   };
 };
 

@@ -132,6 +132,38 @@ describe("taskValidators", () => {
     );
   });
 
+  test("validateChecklistPayload accepts partial checklist updates", () => {
+    const payload = {
+      todoChecklist: [
+        { _id: "item-1", completed: true },
+        { _id: "item-2", completed: false },
+      ],
+    };
+
+    const result = validateChecklistPayload(payload);
+
+    assert.deepEqual(result, {
+      todoChecklist: [
+        { _id: "item-1", completed: true },
+        { _id: "item-2", completed: false },
+      ],
+    });
+  });
+
+  test("validateChecklistPayload requires identifiers for partial updates", () => {
+    assert.throws(
+      () =>
+        validateChecklistPayload({
+          todoChecklist: [{ completed: true }],
+        }),
+      (error) =>
+        error instanceof HttpError &&
+        /todoChecklist\[0\]._id is required when updating the checklist/.test(
+          error.message
+        )
+    );
+  });
+
   test("validateTaskQuery drops unknown and empty filters", () => {
     const result = validateTaskQuery({
       status: "Pending",
