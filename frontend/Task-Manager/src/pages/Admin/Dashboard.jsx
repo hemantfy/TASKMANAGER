@@ -15,7 +15,11 @@ import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { addThousandsSeparator } from "../../utils/helper";
 import { DEFAULT_OFFICE_LOCATIONS } from "../../utils/data";
-import { getPrivilegedBasePath } from "../../utils/roleUtils";
+import {
+  getPrivilegedBasePath,
+  matchesRole,
+  normalizeRole
+} from "../../utils/roleUtils";
 import InfoCard from "../../components/Cards/infoCard";
 import {
   LuArrowRight,
@@ -421,14 +425,21 @@ const Dashboard = () => {
       return [];
     }
 
-    const internalTeamMembers = dashboardData.leaderboard.filter((entry) => {
-      const normalizedRole =
-        typeof entry?.role === "string" ? entry.role.trim().toLowerCase() : "";
+    const normalizedEntries = dashboardData.leaderboard
+      .map((entry) => {
+        const normalizedRole = normalizeRole(entry?.role);
 
-      return normalizedRole !== "client";
-    });
+        return {
+          ...entry,
+          role: typeof normalizedRole === "string" ? normalizedRole : ""
+        };
+      })
+      .filter(
+        (entry) =>
+          matchesRole(entry.role, "admin") || matchesRole(entry.role, "member")
+      );
 
-    return [...internalTeamMembers].sort((a, b) => {
+    const sortedEntries = [...normalizedEntries].sort((a, b) => {
       if (a?.rank && b?.rank) {
         return a.rank - b.rank;
       }
@@ -443,6 +454,11 @@ const Dashboard = () => {
 
       return Number(b?.score || 0) - Number(a?.score || 0);
     });
+
+    return sortedEntries.map((entry, index) => ({
+      ...entry,
+      rank: index + 1
+    }));    
   }, [dashboardData?.leaderboard]);
 
   const filteredLeaderboard = useMemo(() => {
@@ -456,12 +472,12 @@ const Dashboard = () => {
         : "";
 
     return safeLeaderboardData.filter((entry) => {
-      const matchesRole =
+      const matchesRoleFilter =
         normalizedRoleFilter === "all" || !normalizedRoleFilter
           ? true
           : normalizedRoleFilter === "admin"
-          ? entry.role === "admin"
-          : entry.role === "member";
+          ? matchesRole(entry.role, "admin")
+          : matchesRole(entry.role, "member");
 
       const entryOffice = (entry.officeLocation || "")
         .toString()
@@ -472,7 +488,7 @@ const Dashboard = () => {
           ? true
           : entryOffice === normalizedOfficeFilter;
 
-      return matchesRole && matchesOffice;
+      return matchesRoleFilter && matchesOffice;
     });
   }, [
     leaderboardFilter,
