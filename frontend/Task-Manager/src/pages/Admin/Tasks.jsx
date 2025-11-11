@@ -171,41 +171,48 @@ const Tasks = () => {
                 setActiveTab={setFilterStatus}
               />
 
-              <div className="rounded-3xl border border-white/70 bg-white/90 p-4 shadow-[0_15px_30px_rgba(15,23,42,0.06)] transition-colors duration-300 dark:border-slate-800/60 dark:bg-slate-900/60 dark:shadow-[0_22px_50px_rgba(2,6,23,0.55)]">
-                <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                  <label className="group flex flex-col text-xs font-semibold uppercase tracking-[0.24em] text-slate-400 transition-colors duration-300 dark:text-slate-500">
-                    Search Task
-                    <div className="relative mt-2">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="grid flex-1 gap-4 sm:grid-cols-2">
+                    <label className="group flex flex-col text-xs font-semibold uppercase tracking-[0.24em] text-slate-400 transition-colors duration-300 dark:text-slate-500">
+                      Search Task
+                      <div className="relative mt-2">
+                        <input
+                          type="text"
+                          value={searchQuery}
+                          onChange={(event) => setSearchQuery(event.target.value)}
+                          placeholder="Search by task name..."
+                          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 transition-colors duration-300 dark:border-slate-700/70 dark:bg-slate-900/60 dark:text-slate-200 outline-none transition group-focus-within:border-primary group-focus-within:ring-2 group-focus-within:ring-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                        />
+                        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400 dark:text-slate-500">
+                          <LuSearch className="text-base" />
+                        </span>
+                      </div>
+                    </label>
+                    <label className="flex flex-col text-xs uppercase tracking-[0.24em] text-slate-400 transition-colors duration-300 dark:text-slate-500">
+                      Due Date
                       <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(event) => setSearchQuery(event.target.value)}
-                        placeholder="Search by task name..."
-                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 transition-colors duration-300 dark:border-slate-700/70 dark:bg-slate-900/60 dark:text-slate-200 outline-none transition group-focus-within:border-primary group-focus-within:ring-2 group-focus-within:ring-primary/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                        type="date"
+                        value={selectedDate}
+                        onChange={(event) => setSelectedDate(event.target.value)}
+                        className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm capitalize text-slate-600 transition-colors duration-300 dark:border-slate-700/70 dark:bg-slate-900/60 dark:text-slate-200 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
                       />
-                      <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400 dark:text-slate-500">
-                        <LuSearch className="text-base" />
-                      </span>
-                    </div>
-                  </label>
-                  <label className="flex flex-col text-xs uppercase tracking-[0.24em] text-slate-400 transition-colors duration-300 dark:text-slate-500">
-                    Due Date
-                    <input
-                      type="date"
-                      value={selectedDate}
-                      onChange={(event) => setSelectedDate(event.target.value)}
-                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm capitalize text-slate-600 transition-colors duration-300 dark:border-slate-700/70 dark:bg-slate-900/60 dark:text-slate-200 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-                    />
-                  </label>
-                </div>
-              </div>
+                    </label>
+                  </div>
 
-              <div
-                className={`flex flex-wrap items-center gap-3 ${
-                  hasActiveFilters ? "justify-between" : "justify-end"
-                }`}
-              >
-                {hasActiveFilters && (
+                  <div className="flex justify-end">
+                    <label className="flex flex-col text-xs uppercase tracking-[0.24em] text-slate-400 transition-colors duration-300 dark:text-slate-500">
+                      View
+                    </label>
+                    <ViewToggle
+                      value={viewMode}
+                      onChange={setViewMode}
+                      className="self-end lg:self-auto"
+                    />
+                  </div>
+                </div>
+
+              {hasActiveFilters && (
+                <div className="flex justify-end">
                   <button
                     type="button"
                     className="inline-flex items-center justify-center gap-2 rounded-full border border-white/60 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600 transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-gradient-to-r hover:from-primary/90 hover:to-sky-500 hover:text-white dark:border-slate-700/60 dark:bg-slate-900/60 dark:text-slate-200"
@@ -213,10 +220,8 @@ const Tasks = () => {
                   >
                     <LuRotateCcw className="text-base" /> Reset Filters
                   </button>
-                )}
-
-                <ViewToggle value={viewMode} onChange={setViewMode} />
-              </div>
+                </div>
+              )}
             </div>
           )}
 
