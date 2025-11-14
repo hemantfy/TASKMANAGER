@@ -33,6 +33,7 @@ const notificationSchema = new mongoose.Schema(
         "document",
         "member",
         "client",
+        "invoice",        
       ],
     },
     action: {
