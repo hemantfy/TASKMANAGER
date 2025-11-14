@@ -144,14 +144,14 @@ const normalizeInvoicePayload = async (payload = {}) => {
 
   const professionalTotal = computeTotal(professionalFees);
   const expensesTotal = computeTotal(expenses);
-  const governmentTotal = computeTotal(governmentFees);
-  const totalAmount = professionalTotal + expensesTotal + governmentTotal;
+  const governmentFeesTotal = computeTotal(governmentFees);
+  const totalAmount = professionalTotal + expensesTotal + governmentFeesTotal;
 
   const invoiceDate = parseDate(payload.invoiceDate) || new Date();
   const dueDate = parseDate(payload.dueDate);
 
   const balanceDue = Math.max(
-    parseNumber(payload.balanceDue, totalAmount) || totalAmount,
+    parseNumber(payload.balanceDue, totalAmount),
     0
   );
   const paidAmount = Math.max(parseNumber(payload.paidAmount, 0), 0);
