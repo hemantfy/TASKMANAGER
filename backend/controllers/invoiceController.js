@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Invoice = require("../models/Invoice");
 const Matter = require("../models/Matter");
 const {
@@ -98,9 +99,34 @@ const handleErrorResponse = (res, error) => {
   });
 };
 
+const resolveObjectId = (value) => {
+  if (!value) {
+    return null;
+  }
+
+  if (
+    typeof value === "string" ||
+    value instanceof mongoose.Types.ObjectId ||
+    mongoose.Types.ObjectId.isValid(value)
+  ) {
+    return value.toString();
+  }
+
+  if (typeof value === "object") {
+    return (
+      resolveObjectId(value._id) ||
+      resolveObjectId(value.id) ||
+      resolveObjectId(value.value) ||
+      null
+    );
+  }
+
+  return null;
+};
+
 const normalizeInvoicePayload = async (payload = {}) => {
-  const matterId = payload.matterId || payload.matter;
-  if (!matterId) {
+  const matterId = resolveObjectId(payload.matterId || payload.matter);
+  if (!matterId || !mongoose.Types.ObjectId.isValid(matterId)) {
     throw buildHttpError("A valid matter is required for invoices.");
   }
 
