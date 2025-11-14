@@ -19,6 +19,7 @@ const noticeRoutes = require("./routes/noticeRoutes")
 const matterRoutes = require("./routes/matterRoutes")
 const caseRoutes = require("./routes/caseRoutes")
 const documentRoutes = require("./routes/documentRoutes")
+const invoiceRoutes = require("./routes/invoiceRoutes")
 
 
 const app = express();
@@ -53,6 +54,7 @@ app.use("/api/notices", noticeRoutes);
 app.use("/api/matters", matterRoutes);
 app.use("/api/cases", caseRoutes);
 app.use("/api/documents", documentRoutes);
+app.use("/api/invoices", invoiceRoutes);
 
 //Serve uploads folder
 app.use("/uploads", express.static(path.join(__dirname, "uploads")))

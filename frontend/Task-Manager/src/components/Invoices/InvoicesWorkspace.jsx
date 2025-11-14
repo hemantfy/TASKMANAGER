@@ -26,20 +26,18 @@ import axiosInstance from "../../utils/axiosInstance.js";
 import { API_PATHS } from "../../utils/apiPaths.js";
 import {
   computeCollectionRate,
-  deriveInvoicesFromMatters,
   filterInvoices,
+  filterInvoicesForViewer,  
   formatCurrency,
   getStatusMeta,
+  normalizeInvoiceRecord,  
   sortInvoicesByDueDate,
   STATUS_FILTERS,
   summarizeInvoices,
 } from "../../utils/invoiceUtils.js";
 import { getPrivilegedBasePath, resolvePrivilegedPath } from "../../utils/roleUtils.js";
 import InvoiceModal from "../modals/InvoiceModal.jsx";
-import {
-  buildInvoiceEntryFromPayload,
-  buildInvoiceModalInitialValues,
-} from "../../utils/invoiceEditing.js";
+import { buildInvoiceModalInitialValues } from "../../utils/invoiceEditing.js";
 
 const SummaryCard = ({ icon: Icon, title, value, hint, accent }) => (
   <div className="relative overflow-hidden rounded-3xl border border-white/60 bg-white/80 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.08)] transition dark:border-slate-700/60 dark:bg-slate-900/60">
@@ -274,33 +272,40 @@ const InvoicesWorkspace = ({
 
   const fetchInvoices = useCallback(async () => {
     try {
-      const response = await axiosInstance.get(API_PATHS.MATTERS.GET_ALL);
-      const matters = Array.isArray(response.data?.matters)
-        ? response.data.matters
+      const params = {};
+      if (viewerRole === "client" && user?._id) {
+        params.clientId = user._id;
+      }
+
+      const response = await axiosInstance.get(API_PATHS.INVOICES.GET_ALL, {
+        params,
+      });
+
+      const fetchedInvoices = Array.isArray(response.data?.invoices)
+        ? response.data.invoices
         : [];
 
-      const derived = deriveInvoicesFromMatters(matters, {
+      const normalized = fetchedInvoices
+        .map((invoice) =>
+          normalizeInvoiceRecord(invoice, invoice?.matter || null)
+        )
+        .filter(Boolean);
+
+      const scopedInvoices = filterInvoicesForViewer(normalized, {
         viewerRole,
         viewerId: user?._id,
       });
 
-      const matterMap = matters.reduce((accumulator, matter) => {
-        const key = matter?._id?.toString() || matter?.id?.toString();
-        if (!key) {
-          return accumulator;
+      const lookup = scopedInvoices.reduce((accumulator, invoice) => {
+        if (invoice?.matterId) {
+          accumulator[invoice.matterId] =
+            invoice.rawMatter || accumulator[invoice.matterId] || null;
         }
-
-        accumulator[key] = matter;
         return accumulator;
       }, {});
 
-      const sorted = sortInvoicesByDueDate(derived).map((invoice) => ({
-        ...invoice,
-        rawMatter: matterMap[invoice.matterId] || null,
-      }));
-
-      setMatterLookup(matterMap);
-      setInvoices(sorted);
+      setMatterLookup(lookup);
+      setInvoices(sortInvoicesByDueDate(scopedInvoices));
     } catch (error) {
       console.error("Failed to load invoices", error);
       toast.error(
@@ -449,10 +454,14 @@ const InvoicesWorkspace = ({
 
       setOpenInvoiceActionsId(null);
 
-      if (!invoice.matterId) {
-        toast.error(
-          "We couldn't determine which matter this invoice belongs to."
-        );
+      const invoiceId =
+        invoice?.raw?._id ||
+        invoice?._id ||
+        invoice?.id ||
+        invoice?.invoiceId;
+
+      if (!invoiceId) {
+        toast.error("We couldn't determine which invoice to delete.");
         return;
       }
 
@@ -468,25 +477,11 @@ const InvoicesWorkspace = ({
         setIsInvoiceModalOpen(false);
       }
 
-      const payload = {
-        billing: {
-          invoiceSuppressed: true,
-          invoiceSuppressedAt: new Date().toISOString(),
-        },
-      };
-
-      if (user?._id) {
-        payload.billing.invoiceSuppressedBy = user._id;
-      }
-
       try {
-        await axiosInstance.put(
-          API_PATHS.MATTERS.UPDATE(invoice.matterId),
-          payload
-        );
-        toast.success("Invoice removed from list.");
+        await axiosInstance.delete(API_PATHS.INVOICES.DELETE(invoiceId));
+        toast.success("Invoice deleted successfully.");
       } catch (error) {
-        console.error("Failed to remove invoice", error);
+        console.error("Failed to delete invoice", error);
         toast.error(
           error.response?.data?.message ||
             "We couldn't remove this invoice. Please try again."
@@ -502,7 +497,7 @@ const InvoicesWorkspace = ({
         }
       }
     },
-    [invoiceBeingEdited, user?._id]
+    [invoiceBeingEdited]
   );
 
   const handleInvoiceModalClose = useCallback(() => {
@@ -511,69 +506,77 @@ const InvoicesWorkspace = ({
   }, []);
 
   const handleInvoiceDrafted = useCallback(
-    (invoiceData) => {
-      if (!invoiceBeingEdited) {
-        setIsInvoiceModalOpen(false);
-        return;
-      }
+    async (invoiceData) => {
+      const isEditing = Boolean(invoiceBeingEdited);
+      const invoiceId =
+        invoiceBeingEdited?.raw?._id ||
+        invoiceBeingEdited?._id ||
+        invoiceBeingEdited?.id ||
+        invoiceData?.invoiceId;
 
-      const updatedEntry = buildInvoiceEntryFromPayload(invoiceData, {
-        fallbackInvoice: invoiceBeingEdited,
-      });
+      try {
+        let response;
 
-      const relatedMatter =
-        matterLookup[invoiceBeingEdited.matterId] ||
-        invoiceBeingEdited.rawMatter ||
-        null;
+        if (isEditing && invoiceId) {
+          response = await axiosInstance.put(
+            API_PATHS.INVOICES.UPDATE(invoiceId),
+            invoiceData
+          );
+        } else {
+          response = await axiosInstance.post(
+            API_PATHS.INVOICES.CREATE,
+            invoiceData
+          );
+        }
 
-      const mergedEntry = {
-        ...invoiceBeingEdited,
-        ...updatedEntry,
-        rawMatter: relatedMatter,
-        client: invoiceBeingEdited.client ?? updatedEntry.client ?? null,
-        leadAttorney:
-          invoiceBeingEdited.leadAttorney ?? updatedEntry.leadAttorney ?? null,
-        matterTitle:
-          updatedEntry.matterTitle ?? invoiceBeingEdited.matterTitle ?? "",
-        practiceArea:
-          updatedEntry.practiceArea ?? invoiceBeingEdited.practiceArea ?? "",
-        matterId:
-          invoiceBeingEdited.matterId || updatedEntry.matterId || "",
-        progress:
-          typeof invoiceBeingEdited.progress === "number"
-            ? invoiceBeingEdited.progress
-            : typeof updatedEntry.progress === "number"
-              ? updatedEntry.progress
-              : 0,
-        openTasks:
-          typeof invoiceBeingEdited.openTasks === "number"
-            ? invoiceBeingEdited.openTasks
-            : updatedEntry.openTasks ?? 0,
-        closedTasks:
-          typeof invoiceBeingEdited.closedTasks === "number"
-            ? invoiceBeingEdited.closedTasks
-            : updatedEntry.closedTasks ?? 0,
-        totalTasks:
-          typeof invoiceBeingEdited.totalTasks === "number"
-            ? invoiceBeingEdited.totalTasks
-            : updatedEntry.totalTasks ?? 0,
-      };
+        const savedInvoice = response.data?.invoice;
 
-      setInvoices((previous) => {
-        const next = previous.map((entry) =>
-          entry.id === invoiceBeingEdited.id ? mergedEntry : entry
+        if (!savedInvoice) {
+          throw new Error("Invoice response missing required data");
+        }
+
+        const normalized = normalizeInvoiceRecord(
+          savedInvoice,
+          savedInvoice?.matter || invoiceBeingEdited?.rawMatter || null
         );
 
-        return sortInvoicesByDueDate(next);
-      });
+        setInvoices((previous) => {
+          const next = isEditing
+            ? previous.map((entry) =>
+                entry.id === normalized.id || entry.raw?._id === savedInvoice._id
+                  ? normalized
+                  : entry
+              )
+            : [...previous, normalized];
 
-      toast.success("Invoice updated successfully.");
+          return sortInvoicesByDueDate(next);
+        });
 
-      setIsInvoiceModalOpen(false);
-      setInvoiceBeingEdited(null);
-      setOpenInvoiceActionsId(null);
+        if (normalized?.matterId && normalized.rawMatter) {
+          setMatterLookup((prev) => ({
+            ...prev,
+            [normalized.matterId]: normalized.rawMatter,
+          }));
+        }
+
+        toast.success(
+          isEditing
+            ? "Invoice updated successfully."
+            : "Invoice created successfully."
+        );
+      } catch (error) {
+        console.error("Failed to save invoice", error);
+        toast.error(
+          error.response?.data?.message ||
+            "We couldn't save this invoice. Please try again."
+        );
+      } finally {
+        setIsInvoiceModalOpen(false);
+        setInvoiceBeingEdited(null);
+        setOpenInvoiceActionsId(null);
+      }
     },
-    [invoiceBeingEdited, matterLookup]
+    [invoiceBeingEdited]
   );
 
   const invoiceModalInitialValues = useMemo(

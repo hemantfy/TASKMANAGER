@@ -22,16 +22,12 @@ import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { formatDateLabel, formatMediumDateTime } from "../../utils/dateUtils";
 import {
-  deriveInvoicesFromMatters,
   formatCurrency,
   getStatusMeta,
+  normalizeInvoiceRecord,  
   sortInvoicesByDueDate,
 } from "../../utils/invoiceUtils";
-import {
-  buildInvoiceEntryFromPayload,
-  buildInvoiceModalInitialValues,
-  inferInvoiceStatus,
-} from "../../utils/invoiceEditing.js";
+import { buildInvoiceModalInitialValues } from "../../utils/invoiceEditing.js";
 import MatterFormModal from "./MatterFormModal";
 import CaseFormModal from "./CaseFormModal";
 import CaseDocumentModal from "./CaseDocumentModal";
@@ -119,92 +115,6 @@ const renderChipList = (items = []) => {
       ))}
     </div>
   );
-};
-
-const normalizeInvoiceEntry = (invoice, index, matter = {}) => {
-  const rawStatus =
-    typeof invoice?.status === "string"
-      ? invoice.status
-      : typeof invoice?.invoiceStatus === "string"
-        ? invoice.invoiceStatus
-        : typeof invoice?.state === "string"
-          ? invoice.state
-          : "";
-  const normalizedStatus = typeof rawStatus === "string" ? rawStatus.trim() : "";
-  const issuedOn =
-    invoice?.invoiceDate ||
-    invoice?.issuedOn ||
-    invoice?.createdAt ||
-    matter.updatedAt ||
-    matter.openedDate ||
-    null;
-  const dueDate = invoice?.dueDate || invoice?.paymentDueDate || invoice?.dueOn || null;
-
-  const totalAmountCandidate =
-    Number(
-      invoice?.totalAmount ??
-        invoice?.amount ??
-        invoice?.grandTotal ??
-        invoice?.balanceDue ??
-        0
-    );
-  const totalAmount = Number.isFinite(totalAmountCandidate)
-    ? totalAmountCandidate
-    : 0;
-
-  const balanceDueCandidate =
-    Number(invoice?.balanceDue ?? invoice?.outstanding ?? invoice?.amountDue ?? totalAmount);
-  const balanceDue = Number.isFinite(balanceDueCandidate)
-    ? balanceDueCandidate
-    : totalAmount;
-
-  return {
-    id:
-      invoice?._id?.toString() ||
-      invoice?.id?.toString() ||
-      invoice?.invoiceId?.toString() ||
-      `invoice-${index}`,
-    invoiceNumber:
-      invoice?.invoiceNumber ||
-      invoice?.number ||
-      invoice?.reference ||
-      `Invoice ${index + 1}`,
-    issuedOn,
-    issuedOnLabel: formatDateLabel(issuedOn, "Not set"),
-    dueDate,
-    dueDateLabel: formatDateLabel(dueDate, "Not set"),
-    totalAmount: Math.max(totalAmount, 0),
-    balanceDue: Math.max(balanceDue, 0),
-    status:
-      normalizedStatus ||
-      inferInvoiceStatus({ totalAmount: Math.max(balanceDue, 0), dueDate }),
-    raw: invoice,
-  };
-};
-
-const transformInvoicesFromMatter = (matter) => {
-  if (!matter) {
-    return [];
-  }
-
-  if (Array.isArray(matter.invoices) && matter.invoices.length > 0) {
-    return matter.invoices.map((invoice, index) =>
-      normalizeInvoiceEntry(invoice, index, matter)
-    );
-  }
-
-  return deriveInvoicesFromMatters([matter]).map((invoice) => ({
-    id: invoice.id,
-    invoiceNumber: invoice.invoiceNumber,
-    issuedOn: invoice.issuedOn,
-    issuedOnLabel: invoice.issuedOnLabel,
-    dueDate: invoice.dueDate,
-    dueDateLabel: invoice.dueDateLabel,
-    totalAmount: Math.max(Number(invoice.totalAmount) || 0, 0),
-    balanceDue: Math.max(Number(invoice.balanceDue) || 0, 0),
-    status: invoice.status,
-    raw: invoice,
-  }));
 };
 
 const MattersWorkspace = ({ basePath = "" }) => {
@@ -519,6 +429,8 @@ const MattersWorkspace = ({ basePath = "" }) => {
     );
   }, [caseId, selectedMatter]);
 
+  const selectedMatterId = selectedMatter?.matter?._id;
+
   const filteredMatterCases = useMemo(() => {
     if (!selectedMatter) {
       return [];
@@ -547,22 +459,67 @@ const MattersWorkspace = ({ basePath = "" }) => {
     });
   }, [normalizedSearchQuery, selectedMatter]);
 
-    useEffect(() => {
-    if (!selectedMatter?.matter) {
-      setMatterInvoices([]);
-      setInvoiceBeingEdited(null);
-      setOpenInvoiceActionsId(null);
-      return;
-    }
+  useEffect(() => {
+    let isCancelled = false;
 
-    const nextInvoices = sortInvoicesByDueDate(
-      transformInvoicesFromMatter(selectedMatter.matter)
-    );
+    const loadInvoices = async () => {
+      if (!selectedMatterId) {
+        setMatterInvoices([]);
+        setInvoiceBeingEdited(null);
+        setOpenInvoiceActionsId(null);
+        return;
+      }
 
-    setMatterInvoices(nextInvoices);
-    setInvoiceBeingEdited(null);
-    setOpenInvoiceActionsId(null);
-  }, [selectedMatter]);
+      try {
+        const response = await axiosInstance.get(
+          API_PATHS.INVOICES.GET_ALL,
+          {
+            params: { matterId: selectedMatterId },
+          }
+        );
+
+        if (isCancelled) {
+          return;
+        }
+
+        const invoices = Array.isArray(response.data?.invoices)
+          ? response.data.invoices
+          : [];
+
+        const normalized = invoices
+          .map((invoice) =>
+            normalizeInvoiceRecord(
+              invoice,
+              invoice?.matter || selectedMatter?.matter || null
+            )
+          )
+          .filter(Boolean);
+
+        setMatterInvoices(sortInvoicesByDueDate(normalized));
+        setInvoiceBeingEdited(null);
+        setOpenInvoiceActionsId(null);
+      } catch (error) {
+        if (isCancelled) {
+          return;
+        }
+
+        console.error("Failed to load matter invoices", error);
+        toast.error(
+          error.response?.data?.message ||
+            "We couldn't load invoices for this matter. Please try again."
+        );
+        setMatterInvoices([]);
+        setInvoiceBeingEdited(null);
+        setOpenInvoiceActionsId(null);
+      }
+    };
+
+    loadInvoices();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [selectedMatterId, selectedMatter?.matter]);
 
   useEffect(() => {
     if (!isLoading && matterId && !selectedMatter) {
@@ -711,17 +668,59 @@ const MattersWorkspace = ({ basePath = "" }) => {
     setIsInvoiceModalOpen(true);
   }, []);
 
-  const handleInvoiceDelete = useCallback((invoice) => {
-    if (!invoice) {
-      return;
-    }
+  const handleInvoiceDelete = useCallback(
+    async (invoice) => {
+      if (!invoice) {
+        return;
+      }
 
-    setMatterInvoices((previous) =>
-      previous.filter((entry) => entry.id !== invoice.id)
-    );
-    setOpenInvoiceActionsId(null);
-    toast.success("Invoice removed from matter.");
-  }, []);
+      setOpenInvoiceActionsId(null);
+
+      const invoiceId =
+        invoice?.raw?._id ||
+        invoice?._id ||
+        invoice?.id ||
+        invoice?.invoiceId;
+
+      if (!invoiceId) {
+        toast.error("We couldn't determine which invoice to delete.");
+        return;
+      }
+
+      const invoiceEntry = invoice;
+      const wasEditing = invoiceBeingEdited?.id === invoice.id;
+
+      setMatterInvoices((previous) =>
+        previous.filter((entry) => entry.id !== invoice.id)
+      );
+
+      if (wasEditing) {
+        setInvoiceBeingEdited(null);
+        setIsInvoiceModalOpen(false);
+      }
+
+      try {
+        await axiosInstance.delete(API_PATHS.INVOICES.DELETE(invoiceId));
+        toast.success("Invoice removed from matter.");
+      } catch (error) {
+        console.error("Failed to delete invoice", error);
+        toast.error(
+          error.response?.data?.message ||
+            "We couldn't remove this invoice. Please try again."
+        );
+
+        setMatterInvoices((previous) =>
+          sortInvoicesByDueDate([...previous, invoiceEntry])
+        );
+
+        if (wasEditing) {
+          setInvoiceBeingEdited(invoiceEntry);
+          setIsInvoiceModalOpen(true);
+        }
+      }
+    },
+    [invoiceBeingEdited]
+  );
 
   const handleInvoiceModalClose = useCallback(() => {
     setIsInvoiceModalOpen(false);
@@ -1346,32 +1345,85 @@ const MattersWorkspace = ({ basePath = "" }) => {
   const isCaseView = Boolean(matterId && caseId);
 
   const handleInvoiceDrafted = useCallback(
-    (invoiceData) => {
-      const updatedEntry = buildInvoiceEntryFromPayload(invoiceData, {
-        fallbackInvoice: invoiceBeingEdited || undefined,
-      });
+    async (invoiceData) => {
+      const isEditing = Boolean(invoiceBeingEdited);
+      const invoiceId =
+        invoiceBeingEdited?.raw?._id ||
+        invoiceBeingEdited?._id ||
+        invoiceBeingEdited?.id ||
+        invoiceData?.invoiceId;
 
-      setMatterInvoices((previous) => {
-        const next = invoiceBeingEdited
-          ? previous.map((invoice) =>
-              invoice.id === invoiceBeingEdited.id ? updatedEntry : invoice
-            )
-          : [...previous, updatedEntry];
+      const payload = {
+        ...invoiceData,
+        matterId:
+          invoiceData?.matterId ||
+          invoiceBeingEdited?.matterId ||
+          selectedMatter?.matter?._id,
+      };
 
-        return sortInvoicesByDueDate(next);
-      });
+      if (!payload.matterId) {
+        toast.error(
+          "We couldn't determine which matter this invoice belongs to."
+        );
+        return;
+      }
 
-      toast.success(
-        invoiceBeingEdited
-          ? "Invoice updated successfully."
-          : "Invoice draft saved."
-      );
+      try {
+        let response;
 
-      setIsInvoiceModalOpen(false);
-      setInvoiceBeingEdited(null);
-      setOpenInvoiceActionsId(null);
+        if (isEditing && invoiceId) {
+          response = await axiosInstance.put(
+            API_PATHS.INVOICES.UPDATE(invoiceId),
+            payload
+          );
+        } else {
+          response = await axiosInstance.post(
+            API_PATHS.INVOICES.CREATE,
+            payload
+          );
+        }
+
+        const savedInvoice = response.data?.invoice;
+
+        if (!savedInvoice) {
+          throw new Error("Invoice response missing required data");
+        }
+
+        const normalized = normalizeInvoiceRecord(
+          savedInvoice,
+          savedInvoice?.matter || selectedMatter?.matter || null
+        );
+
+        setMatterInvoices((previous) => {
+          const next = isEditing
+            ? previous.map((invoice) =>
+                invoice.id === normalized.id || invoice.raw?._id === savedInvoice._id
+                  ? normalized
+                  : invoice
+              )
+            : [...previous, normalized];
+
+          return sortInvoicesByDueDate(next);
+        });
+
+        toast.success(
+          isEditing
+            ? "Invoice updated successfully."
+            : "Invoice created successfully."
+        );
+      } catch (error) {
+        console.error("Failed to save invoice", error);
+        toast.error(
+          error.response?.data?.message ||
+            "We couldn't save this invoice. Please try again."
+        );
+      } finally {
+        setIsInvoiceModalOpen(false);
+        setInvoiceBeingEdited(null);
+        setOpenInvoiceActionsId(null);
+      }
     },
-    [invoiceBeingEdited]
+    [invoiceBeingEdited, selectedMatter?.matter]
   );
 
   const invoiceModalInitialValues = useMemo(

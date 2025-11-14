@@ -382,3 +382,298 @@ export const getStatusMeta = (status) => {
       "border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-500/40 dark:bg-slate-800/70 dark:text-slate-200",
   };
 };
+
+const resolveClientFromInvoice = (invoice = {}, matter = {}) => {
+  const matterClient = matter?.client;
+
+  if (matterClient && typeof matterClient === "object") {
+    return {
+      id:
+        matterClient._id ||
+        matterClient.id ||
+        matterClient.clientId ||
+        null,
+      name:
+        matterClient.name ||
+        matterClient.fullName ||
+        matterClient.displayName ||
+        matter?.clientName ||
+        invoice?.clientName ||
+        "",
+      email:
+        matterClient.email ||
+        matterClient.contactEmail ||
+        invoice?.clientEmail ||
+        "",
+    };
+  }
+
+  if (matterClient) {
+    return {
+      id: matterClient,
+      name: matter?.clientName || invoice?.clientName || "",
+      email: invoice?.clientEmail || "",
+    };
+  }
+
+  if (invoice?.client && typeof invoice.client === "object") {
+    return {
+      id:
+        invoice.client._id ||
+        invoice.client.id ||
+        invoice.client.clientId ||
+        invoice.clientId ||
+        null,
+      name:
+        invoice.client.name ||
+        invoice.client.fullName ||
+        invoice.client.displayName ||
+        invoice.clientName ||
+        matter?.clientName ||
+        "",
+      email: invoice.client.email || invoice.clientEmail || "",
+    };
+  }
+
+  return {
+    id: invoice?.clientId || null,
+    name: invoice?.clientName || matter?.clientName || "",
+    email: invoice?.clientEmail || "",
+  };
+};
+
+const resolveLeadAttorneyFromInvoice = (invoice = {}, matter = {}) => {
+  const matterLead = matter?.leadAttorney;
+
+  if (matterLead && typeof matterLead === "object") {
+    return {
+      id: matterLead._id || matterLead.id || matterLead.leadAttorneyId || null,
+      name:
+        matterLead.name ||
+        matterLead.fullName ||
+        matterLead.displayName ||
+        matter?.leadAttorneyName ||
+        invoice?.leadAttorneyName ||
+        "",
+      email: matterLead.email || matter?.leadAttorneyEmail || "",
+    };
+  }
+
+  if (matterLead) {
+    return {
+      id: matterLead,
+      name:
+        matter?.leadAttorneyName ||
+        invoice?.leadAttorneyName ||
+        "",
+      email: matter?.leadAttorneyEmail || "",
+    };
+  }
+
+  if (invoice?.leadAttorney && typeof invoice.leadAttorney === "object") {
+    return {
+      id:
+        invoice.leadAttorney._id ||
+        invoice.leadAttorney.id ||
+        invoice.leadAttorney.leadAttorneyId ||
+        null,
+      name:
+        invoice.leadAttorney.name ||
+        invoice.leadAttorney.fullName ||
+        invoice.leadAttorney.displayName ||
+        invoice.leadAttorneyName ||
+        "",
+      email: invoice.leadAttorney.email || "",
+    };
+  }
+
+  if (invoice?.leadAttorneyId || invoice?.leadAttorneyName) {
+    return {
+      id: invoice.leadAttorneyId || null,
+      name: invoice.leadAttorneyName || "",
+      email: invoice.leadAttorneyEmail || "",
+    };
+  }
+
+  return { id: null, name: "", email: "" };
+};
+
+const resolveMatterReference = (invoice = {}, fallbackMatter = null) => {
+  if (invoice?.matter && typeof invoice.matter === "object") {
+    return invoice.matter;
+  }
+
+  if (fallbackMatter && typeof fallbackMatter === "object") {
+    return fallbackMatter;
+  }
+
+  return null;
+};
+
+const resolveMatterId = (invoice = {}, matter = null) => {
+  if (typeof invoice?.matter === "string" && invoice.matter.trim().length > 0) {
+    return invoice.matter;
+  }
+
+  if (invoice?.matterId) {
+    return invoice.matterId;
+  }
+
+  if (matter?.id) {
+    return matter.id.toString();
+  }
+
+  if (matter?._id) {
+    return matter._id.toString();
+  }
+
+  return "";
+};
+
+export const normalizeInvoiceRecord = (invoice, fallbackMatter = null) => {
+  if (!invoice) {
+    return null;
+  }
+
+  const matter = resolveMatterReference(invoice, fallbackMatter);
+  const matterId = resolveMatterId(invoice, matter);
+
+  const issuedOn =
+    invoice?.invoiceDate ||
+    invoice?.issuedOn ||
+    invoice?.createdAt ||
+    (matter?.updatedAt || matter?.openedDate || null);
+  const dueDate = invoice?.dueDate || invoice?.paymentDueDate || invoice?.dueOn || null;
+
+  const professionalTotal = Number(invoice?.professionalFeesTotal ?? 0);
+  const expensesTotal = Number(invoice?.expensesTotal ?? 0);
+  const governmentTotal = Number(invoice?.governmentFeesTotal ?? 0);
+
+  const totalAmountCandidate = Number(
+    invoice?.totalAmount ??
+      (Number.isFinite(professionalTotal + expensesTotal + governmentTotal)
+        ? professionalTotal + expensesTotal + governmentTotal
+        : invoice?.balanceDue ?? 0)
+  );
+
+  const totalAmount = Number.isFinite(totalAmountCandidate)
+    ? Math.max(totalAmountCandidate, 0)
+    : 0;
+
+  let paidAmount = Number(invoice?.paidAmount ?? invoice?.amountPaid ?? 0);
+  if (!Number.isFinite(paidAmount)) {
+    paidAmount = 0;
+  }
+
+  let balanceDue = Number(
+    invoice?.balanceDue ??
+      invoice?.amountDue ??
+      (Number.isFinite(totalAmount - paidAmount)
+        ? totalAmount - paidAmount
+        : totalAmount)
+  );
+
+  if (!Number.isFinite(balanceDue)) {
+    balanceDue = totalAmount;
+  }
+
+  balanceDue = Math.max(balanceDue, 0);
+
+  const normalizedStatus = typeof invoice?.status === "string"
+    ? invoice.status.trim()
+    : typeof invoice?.invoiceStatus === "string"
+      ? invoice.invoiceStatus.trim()
+      : "";
+
+  const status = normalizedStatus || resolveInvoiceStatus({
+    balanceDue,
+    totalAmount,
+    dueDate,
+  });
+
+  const client = resolveClientFromInvoice(invoice, matter || {});
+  const leadAttorney = resolveLeadAttorneyFromInvoice(invoice, matter || {});
+
+  const openTasksCandidate = Number(
+    invoice?.openTasks ?? matter?.stats?.openTaskCount ?? 0
+  );
+  const closedTasksCandidate = Number(
+    invoice?.closedTasks ?? matter?.stats?.closedTaskCount ?? 0
+  );
+
+  const openTasks = Number.isFinite(openTasksCandidate)
+    ? Math.max(openTasksCandidate, 0)
+    : 0;
+  const closedTasks = Number.isFinite(closedTasksCandidate)
+    ? Math.max(closedTasksCandidate, 0)
+    : 0;
+  const totalTasksCandidate = Number(invoice?.totalTasks);
+  const totalTasks = Number.isFinite(totalTasksCandidate)
+    ? Math.max(totalTasksCandidate, 0)
+    : Math.max(openTasks + closedTasks, 0);
+
+  const progress = totalAmount > 0
+    ? clamp(Math.max(totalAmount - balanceDue, 0) / totalAmount, 0, 1)
+    : 0;
+
+  return {
+    id:
+      invoice?._id?.toString() ||
+      invoice?.id?.toString() ||
+      invoice?.invoiceId?.toString() ||
+      (typeof invoice?.invoiceNumber === "string" && invoice.invoiceNumber
+        ? invoice.invoiceNumber
+        : `invoice-${Date.now()}`),
+    invoiceNumber:
+      invoice?.invoiceNumber ||
+      invoice?.number ||
+      invoice?.reference ||
+      `Invoice ${new Date().getFullYear()}`,
+    issuedOn,
+    issuedOnLabel: formatDateLabel(issuedOn, "Not set"),
+    dueDate,
+    dueDateLabel: formatDateLabel(dueDate, "Not set"),
+    totalAmount,
+    paidAmount: Math.max(paidAmount, 0),
+    balanceDue,
+    status,
+    progress,
+    openTasks,
+    closedTasks,
+    totalTasks,
+    matterId,
+    matterTitle: matter?.title || invoice?.matterTitle || "Untitled Matter",
+    matterStatus: matter?.status || invoice?.matterStatus || "",
+    practiceArea: matter?.practiceArea || invoice?.practiceArea || "",
+    client,
+    leadAttorney,
+    raw: invoice,
+    rawMatter: matter || null,
+  };
+};
+
+export const filterInvoicesForViewer = (
+  invoices = [],
+  { viewerRole = "admin", viewerId } = {}
+) => {
+  if (viewerRole !== "client") {
+    return invoices;
+  }
+
+  if (!viewerId) {
+    return [];
+  }
+
+  return invoices.filter((invoice) => {
+    const clientId = invoice?.client?.id || invoice?.clientId;
+    if (!clientId) {
+      return false;
+    }
+
+    try {
+      return clientId.toString() === viewerId.toString();
+    } catch (error) {
+      return clientId === viewerId;
+    }
+  });  
+};

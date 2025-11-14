@@ -77,6 +77,14 @@ export const API_PATHS = {
     DELETE: (documentId) => `/api/documents/${documentId}`,
   },
   
+  INVOICES: {
+    GET_ALL: "/api/invoices",
+    GET_BY_ID: (invoiceId) => `/api/invoices/${invoiceId}`,
+    CREATE: "/api/invoices",
+    UPDATE: (invoiceId) => `/api/invoices/${invoiceId}`,
+    DELETE: (invoiceId) => `/api/invoices/${invoiceId}`,
+  },
+  
   IMAGE: {
     UPLOAD_IMAGE: "api/auth/upload-image",
   },
