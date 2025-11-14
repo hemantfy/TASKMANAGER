@@ -6,6 +6,7 @@ import Modal from "../Modal";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { getRoleLabel, normalizeRole } from "../../utils/roleUtils";
+import SearchableSelect from "../SearchableSelect";
 
 const MATTER_STATUSES = ["Intake", "Active", "On Hold", "Closed"];
 
@@ -243,22 +244,69 @@ const MatterFormModal = ({ isOpen, onClose, onSuccess, matter }) => {
     setTeamMembers(selected);
   };
 
+  const getClientOptionValue = useCallback(
+    (client) => client?._id || client?.id || "",
+    []
+  );
+
+  const getClientOptionLabel = useCallback((client) => {
+    if (!client) {
+      return "";
+    }
+
+    if (client?.name && client?.email) {
+      return `${client.name} (${client.email})`;
+    }
+
+    return client?.name || client?.email || "";
+  }, []);
+
+  const getClientSearchLabel = useCallback(
+    (client) =>
+      [client?.name, client?.email]
+        .filter(Boolean)
+        .join(" ")
+        .trim(),
+    []
+  );
+
   const leadAttorneyOptions = useMemo(() => users, [users]);
+
+  const getUserOptionValue = useCallback(
+    (user) => user?._id || user?.id || "",
+    []
+  );
+
+  const getUserOptionLabel = useCallback((user) => {
+    if (!user) {
+      return "";
+    }
+
+    const baseLabel = user?.name || user?.email || "";
+    const roleLabel = getRoleLabel(user?.role);
+
+    return roleLabel ? `${baseLabel} • ${roleLabel}` : baseLabel;
+  }, []);
+
+  const getUserSearchLabel = useCallback(
+    (user) =>
+      [user?.name, user?.email, getRoleLabel(user?.role)]
+        .filter(Boolean)
+        .join(" ")
+        .trim(),
+    []
+  );
 
   const filteredClients = useMemo(
     () =>
       filterOptions(
         clients,
         clientSearchTerm,
-        (client) => client?._id || client?.id || "",
-        (client) =>
-          [client?.name, client?.email]
-            .filter(Boolean)
-            .join(" ")
-            .trim(),
+        getClientOptionValue,
+        getClientSearchLabel,
         formData.client
       ),
-    [clientSearchTerm, clients, formData.client]
+    [clientSearchTerm, clients, formData.client, getClientOptionValue, getClientSearchLabel]
   );
 
   const filteredLeadAttorneys = useMemo(
@@ -266,15 +314,17 @@ const MatterFormModal = ({ isOpen, onClose, onSuccess, matter }) => {
       filterOptions(
         leadAttorneyOptions,
         leadAttorneySearchTerm,
-        (user) => user?._id || user?.id || "",
-        (user) =>
-          [user?.name, user?.email, getRoleLabel(user?.role)]
-            .filter(Boolean)
-            .join(" ")
-            .trim(),
+        getUserOptionValue,
+        getUserSearchLabel,
         formData.leadAttorney
       ),
-    [formData.leadAttorney, leadAttorneyOptions, leadAttorneySearchTerm]
+    [
+      formData.leadAttorney,
+      getUserOptionValue,
+      getUserSearchLabel,
+      leadAttorneyOptions,
+      leadAttorneySearchTerm,
+    ]
   );
 
   const filteredTeamMembers = useMemo(
@@ -282,15 +332,17 @@ const MatterFormModal = ({ isOpen, onClose, onSuccess, matter }) => {
       filterOptions(
         users,
         teamMemberSearchTerm,
-        (user) => user?._id || user?.id || "",
-        (user) =>
-          [user?.name, user?.email, getRoleLabel(user?.role)]
-            .filter(Boolean)
-            .join(" ")
-            .trim(),
+        getUserOptionValue,
+        getUserSearchLabel,
         teamMembers
       ),
-    [teamMemberSearchTerm, teamMembers, users]
+    [
+      getUserOptionValue,
+      getUserSearchLabel,
+      teamMemberSearchTerm,
+      teamMembers,
+      users,
+    ]
   );
 
   const teamMemberHelperText = useMemo(() => {
@@ -483,80 +535,51 @@ const MatterFormModal = ({ isOpen, onClose, onSuccess, matter }) => {
 
             <label className="flex flex-col gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
               Client
-              <div className="space-y-2">
-                <input
-                  type="search"
-                  value={clientSearchTerm}
-                  onChange={(event) => setClientSearchTerm(event.target.value)}
-                  placeholder="Search clients"
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200"
-                />
-                <select
-                  value={formData.client}
-                  onChange={(event) => handleValueChange("client", event.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200"
-                  required
-                >
-                  <option value="" disabled>
-                    Select a client
-                  </option>
-                  {filteredClients.map((client) => (
-                    <option key={client._id} value={client._id}>
-                      {client.name || client.email}
-                      {client.email && client.name ? ` (${client.email})` : ""}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {clientSearchTerm.trim() && filteredClients.length === 0 && clients.length > 0 && (
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  No clients match your search.
-                </p>
-              )}
-              {!clients.length && (
+              <SearchableSelect
+                value={formData.client}
+                onChange={(nextValue) => handleValueChange("client", nextValue)}
+                options={clients}
+                filteredOptions={filteredClients}
+                getOptionValue={getClientOptionValue}
+                getOptionLabel={getClientOptionLabel}
+                placeholder="Select a client"
+                searchTerm={clientSearchTerm}
+                onSearchTermChange={setClientSearchTerm}
+                searchPlaceholder="Search clients"
+                noResultsMessage={
+                  clients.length
+                    ? "No clients match your search."
+                    : "No client accounts available."
+                }
+              />
+              {!clients.length ? (
                 <p className="text-xs font-medium text-amber-600">
                   No client accounts available. Create a client user first.
                 </p>
-              )}
+              ) : null}
             </label>
 
             <label className="flex flex-col gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
               Lead Attorney
-              <div className="space-y-2">
-                <input
-                  type="search"
-                  value={leadAttorneySearchTerm}
-                  onChange={(event) => setLeadAttorneySearchTerm(event.target.value)}
-                  placeholder="Search team members"
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200"
-                />
-                <div className="relative">
-                  <LuUser className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <select
-                    value={formData.leadAttorney}
-                    onChange={(event) => handleValueChange("leadAttorney", event.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3 py-2 text-sm text-slate-700 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200"
-                  >
-                    <option value="">Unassigned</option>
-                    {filteredLeadAttorneys.map((user) => {
-                      const roleLabel = getRoleLabel(user?.role);
-                      return (
-                        <option key={user._id} value={user._id}>
-                          {user.name || user.email}
-                          {roleLabel ? ` • ${roleLabel}` : ""}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-              </div>
-              {leadAttorneySearchTerm.trim() &&
-                filteredLeadAttorneys.length === 0 &&
-                users.length > 0 && (
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    No team members match your search.
-                  </p>
-                )}              
+              <SearchableSelect
+                value={formData.leadAttorney}
+                onChange={(nextValue) => handleValueChange("leadAttorney", nextValue)}
+                options={leadAttorneyOptions}
+                filteredOptions={filteredLeadAttorneys}
+                getOptionValue={getUserOptionValue}
+                getOptionLabel={getUserOptionLabel}
+                placeholder="Select a lead attorney"
+                searchTerm={leadAttorneySearchTerm}
+                onSearchTermChange={setLeadAttorneySearchTerm}
+                searchPlaceholder="Search team members"
+                noResultsMessage={
+                  users.length
+                    ? "No team members match your search."
+                    : "No team members available."
+                }
+                icon={LuUser}
+                staticOptions={[{ value: "", label: "Unassigned" }]}
+              />              
             </label>
 
             <label className="flex flex-col gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">

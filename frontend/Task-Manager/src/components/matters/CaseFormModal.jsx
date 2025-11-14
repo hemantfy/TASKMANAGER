@@ -13,6 +13,7 @@ import Modal from "../Modal";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import { getRoleLabel, normalizeRole } from "../../utils/roleUtils";
+import SearchableSelect from "../SearchableSelect";
 
 const CASE_STATUSES = ["Pre-Filing", "Active", "Discovery", "Trial", "Closed"];
 
@@ -234,20 +235,47 @@ const CaseFormModal = ({
 
   const leadCounselOptions = useMemo(() => users, [users]);
 
+  const getUserOptionValue = useCallback(
+    (user) => user?._id || user?.id || "",
+    []
+  );
+
+  const getUserOptionLabel = useCallback((user) => {
+    if (!user) {
+      return "";
+    }
+
+    const baseLabel = user?.name || user?.email || "";
+    const roleLabel = getRoleLabel(user?.role);
+
+    return roleLabel ? `${baseLabel} • ${roleLabel}` : baseLabel;
+  }, []);
+
+  const getUserSearchLabel = useCallback(
+    (user) =>
+      [user?.name, user?.email, getRoleLabel(user?.role)]
+        .filter(Boolean)
+        .join(" ")
+        .trim(),
+    []
+  );
+
   const filteredLeadCounselOptions = useMemo(
     () =>
       filterOptions(
         leadCounselOptions,
         leadCounselSearchTerm,
-        (user) => user?._id || user?.id || "",
-        (user) =>
-          [user?.name, user?.email, getRoleLabel(user?.role)]
-            .filter(Boolean)
-            .join(" ")
-            .trim(),
+        getUserOptionValue,
+        getUserSearchLabel,
         formData.leadCounsel
       ),
-    [formData.leadCounsel, leadCounselOptions, leadCounselSearchTerm]
+    [
+      formData.leadCounsel,
+      getUserOptionValue,
+      getUserSearchLabel,
+      leadCounselOptions,
+      leadCounselSearchTerm,
+    ]
   );
 
   const handleSubmit = async (event) => {
@@ -433,41 +461,25 @@ const CaseFormModal = ({
 
             <label className="flex flex-col gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
               Lead Counsel
-              <div className="space-y-2">
-                <input
-                  type="search"
-                  value={leadCounselSearchTerm}
-                  onChange={(event) => setLeadCounselSearchTerm(event.target.value)}
-                  placeholder="Search team members"
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200"
-                />
-                <div className="relative">
-                  <LuUser className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <select
-                    value={formData.leadCounsel}
-                    onChange={(event) => handleValueChange("leadCounsel", event.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 pl-10 text-sm text-slate-700 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200"
-                  >
-                    <option value="">Unassigned</option>
-                    {filteredLeadCounselOptions.map((user) => {
-                      const roleLabel = getRoleLabel(user?.role);
-                      return (
-                        <option key={user._id} value={user._id}>
-                          {user.name || user.email}
-                          {roleLabel ? ` • ${roleLabel}` : ""}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-              </div>
-              {leadCounselSearchTerm.trim() &&
-                filteredLeadCounselOptions.length === 0 &&
-                users.length > 0 && (
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    No team members match your search.
-                  </p>
-                )}              
+              <SearchableSelect
+                value={formData.leadCounsel}
+                onChange={(nextValue) => handleValueChange("leadCounsel", nextValue)}
+                options={leadCounselOptions}
+                filteredOptions={filteredLeadCounselOptions}
+                getOptionValue={getUserOptionValue}
+                getOptionLabel={getUserOptionLabel}
+                placeholder="Select a lead counsel"
+                searchTerm={leadCounselSearchTerm}
+                onSearchTermChange={setLeadCounselSearchTerm}
+                searchPlaceholder="Search team members"
+                noResultsMessage={
+                  users.length
+                    ? "No team members match your search."
+                    : "No team members available."
+                }
+                icon={LuUser}
+                staticOptions={[{ value: "", label: "Unassigned" }]}
+              />
             </label>
 
             <label className="flex flex-col gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
