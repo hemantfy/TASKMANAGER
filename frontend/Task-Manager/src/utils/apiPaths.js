@@ -39,11 +39,6 @@ export const API_PATHS = {
     UPDATE_TODO_CHECKLIST: (taskId) => `/api/tasks/${taskId}/todo`, // Update todo checklist
     UPLOAD_DOCUMENT: (taskId) => `/api/tasks/${taskId}/documents`,    
   },
-  REPORTS: {
-    EXPORT_TASKS: "/api/reports/export/tasks", // Download all tasks as an Excel/PDF report
-    EXPORT_USERS: "/api/reports/export/users", // Download user-task report
-  },
-  
   NOTICES: {
     PUBLISH: "/api/notices",
     GET_ACTIVE: "/api/notices/active",
@@ -84,7 +79,7 @@ export const API_PATHS = {
     UPDATE: (invoiceId) => `/api/invoices/${invoiceId}`,
     DELETE: (invoiceId) => `/api/invoices/${invoiceId}`,
   },
-  
+
   IMAGE: {
     UPLOAD_IMAGE: "api/auth/upload-image",
   },

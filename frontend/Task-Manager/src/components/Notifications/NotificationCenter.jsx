@@ -23,7 +23,7 @@ import { UserContext } from "../../context/userContext.jsx";
 import { getRoleLabel } from "../../utils/roleUtils";
 import { useUserAuth } from "../../hooks/useUserAuth.jsx";
 
-const ITEMS_PER_PAGE = 25;
+const ITEMS_PER_PAGE = 10;
 
 const STATUS_VARIANTS = {
   info: {

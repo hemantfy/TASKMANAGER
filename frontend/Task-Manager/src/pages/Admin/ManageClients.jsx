@@ -1,11 +1,6 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  LuFileSpreadsheet,
-  LuKeyRound,
-  LuTrash2,
-  LuUsers,
-} from "react-icons/lu";
+import { LuKeyRound, LuTrash2, LuUsers } from "react-icons/lu";
 import toast from "react-hot-toast";
 
 import UserCard from "../../components/Cards/UserCard";
@@ -275,28 +270,6 @@ const ManageClients = () => {
     }
   };
 
-  // download task report
-  const handleDownloadReport = async () => {
-    try {
-      const response = await axiosInstance.get(API_PATHS.REPORTS.EXPORT_USERS, {
-        responseType: "blob",
-      });
-    
-      // Create a URL for the blob
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", "user_details.xlsx");
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Error downloading expense details:", error);
-      toast.error("Failed to download client report. Please try again later.");
-    }    
-  };
-
   useEffect(() => {
     getAllUsers();
 
@@ -440,9 +413,6 @@ const ManageClients = () => {
               onClick={() => setShowCreateForm((prev) => !prev)}
             >
               {showCreateForm ? "Close" : "Add Client"}
-            </button>
-            <button className="download-btn" onClick={handleDownloadReport}>
-              <LuFileSpreadsheet className="text-lg" /> Export Clients
             </button>
           </div>
         </div>

@@ -1,15 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import {
-  LuFileSpreadsheet,
-  LuPlus,
-  LuRotateCcw,
-  LuSearch,
-} from "react-icons/lu";
-import toast from "react-hot-toast";
+import { LuPlus, LuRotateCcw, LuSearch } from "react-icons/lu";
 
 import DashboardLayout from "../../components/layouts/DashboardLayout";
-import { API_PATHS } from "../../utils/apiPaths";
 import TaskStatusTabs from "../../components/TaskStatusTabs";
 import TaskCard from "../../components/Cards/TaskCard";
 import LoadingOverlay from "../../components/LoadingOverlay";
@@ -17,7 +10,6 @@ import TaskFormModal from "../../components/TaskFormModal";
 import ViewToggle from "../../components/ViewToggle";
 import TaskListTable from "../../components/TaskListTable";
 import useTasks from "../../hooks/useTasks";
-import axiosInstance from "../../utils/axiosInstance";
 
 const Tasks = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -45,26 +37,6 @@ const Tasks = () => {
     setFilterStatus("All");
     setSearchQuery("");
     setSelectedDate("");
-  };
-
-  const handleDownloadReport = async () => {
-    try {
-      const response = await axiosInstance.get(API_PATHS.REPORTS.EXPORT_TASKS, {
-        responseType: "blob",
-      });
-
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", "task_details.xlsx");
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Error downloading task report:", error);
-      toast.error("Failed to download task report. Please try again later.");
-    }
   };
 
   const openTaskForm = (taskId = null) => {
@@ -151,9 +123,6 @@ const Tasks = () => {
               onClick={() => openTaskForm()}
             >
               <LuPlus className="text-base" /> Create
-            </button>
-            <button className="download-btn" onClick={handleDownloadReport}>
-              <LuFileSpreadsheet className="text-lg" /> Export Snapshot
             </button>
           </div>
         </div>
