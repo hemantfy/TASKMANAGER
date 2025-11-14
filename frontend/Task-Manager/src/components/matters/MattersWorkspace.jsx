@@ -1071,6 +1071,11 @@ const MattersWorkspace = ({ basePath = "" }) => {
                         <span className="text-xs text-slate-500 dark:text-slate-400">
                           Balance {formatCurrency(invoice.balanceDue)}
                         </span>
+                        {invoice.advanceAmount > 0 && (
+                          <span className="text-xs text-slate-500 dark:text-slate-400">
+                            Advance balance {formatCurrency(invoice.advanceBalance)}
+                          </span>
+                        )}                        
                       </div>
                     </div>
                   </li>

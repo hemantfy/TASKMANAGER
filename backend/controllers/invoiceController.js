@@ -145,7 +145,13 @@ const normalizeInvoicePayload = async (payload = {}) => {
   const professionalTotal = computeTotal(professionalFees);
   const expensesTotal = computeTotal(expenses);
   const governmentFeesTotal = computeTotal(governmentFees);
-  const totalAmount = professionalTotal + expensesTotal + governmentFeesTotal;
+
+  const advanceAmount = Math.max(parseNumber(payload.advanceAmount, 0), 0);
+  const advanceApplied = Math.min(advanceAmount, expensesTotal);
+  const advanceBalance = Math.max(advanceAmount - advanceApplied, 0);
+  const netExpensesTotal = Math.max(expensesTotal - advanceApplied, 0);
+  const grossTotalAmount = professionalTotal + expensesTotal + governmentFeesTotal;
+  const totalAmount = professionalTotal + governmentFeesTotal + netExpensesTotal;
 
   const invoiceDate = parseDate(payload.invoiceDate) || new Date();
   const dueDate = parseDate(payload.dueDate);
@@ -166,7 +172,9 @@ const normalizeInvoicePayload = async (payload = {}) => {
       matter: matter._id,
       recipient: sanitizeString(payload.recipient),
       matterAdvance: sanitizeString(payload.matterAdvance),
-      advanceAmount: parseNumber(payload.advanceAmount, 0),
+      advanceAmount,
+      advanceApplied,
+      advanceBalance,
       invoiceNumber: sanitizeString(payload.invoiceNumber),
       billingAddress: sanitizeString(payload.billingAddress),
       invoiceDate,
@@ -179,8 +187,10 @@ const normalizeInvoicePayload = async (payload = {}) => {
       professionalFeesTotal: professionalTotal,
       expensesTotal,
       governmentFeesTotal,
+      netExpensesTotal,      
       totalAmount,
       balanceDue,
+      grossTotalAmount,
       paidAmount,
       status: status || "paymentDue",
       accountHolder: sanitizeString(payload.accountHolder),
@@ -195,12 +205,53 @@ const buildInvoiceResponse = (invoice) => {
 
   const plainInvoice = { ...invoice };
   const total = Math.max(Number(plainInvoice.totalAmount) || 0, 0);
+  const grossTotal = Math.max(
+    Number(
+      plainInvoice.grossTotalAmount !== undefined
+        ? plainInvoice.grossTotalAmount
+        : total
+    ) || 0,
+    0
+  );
+  const expensesTotal = Math.max(Number(plainInvoice.expensesTotal) || 0, 0);
+  const advanceAmount = Math.max(Number(plainInvoice.advanceAmount) || 0, 0);
+  const inferredAdvanceApplied = Math.min(advanceAmount, expensesTotal);
+  const advanceApplied = Math.max(
+    Number(
+      plainInvoice.advanceApplied !== undefined
+        ? plainInvoice.advanceApplied
+        : inferredAdvanceApplied
+    ) || 0,
+    0
+  );
+  const advanceBalance = Math.max(
+    Number(
+      plainInvoice.advanceBalance !== undefined
+        ? plainInvoice.advanceBalance
+        : advanceAmount - advanceApplied
+    ) || 0,
+    0
+  );
+  const netExpensesTotal = Math.max(
+    Number(
+      plainInvoice.netExpensesTotal !== undefined
+        ? plainInvoice.netExpensesTotal
+        : expensesTotal - advanceApplied
+    ) || 0,
+    0
+  );  
   const balance = Math.max(Number(plainInvoice.balanceDue) || 0, 0);
   const paid = Math.max(Number(plainInvoice.paidAmount) || 0, 0);
   const progress = total > 0 ? clamp((total - balance) / total, 0, 1) : 0;
 
   return {
     ...plainInvoice,
+    totalAmount: total,
+    grossTotalAmount: grossTotal,
+    netExpensesTotal,
+    advanceAmount,
+    advanceApplied,
+    advanceBalance,    
     progress,
   };
 };

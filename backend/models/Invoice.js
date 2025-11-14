@@ -19,6 +19,8 @@ const invoiceSchema = new mongoose.Schema(
     recipient: { type: String, trim: true },
     matterAdvance: { type: String, trim: true },
     advanceAmount: { type: Number, default: 0 },
+    advanceApplied: { type: Number, default: 0 },
+    advanceBalance: { type: Number, default: 0 },    
     invoiceNumber: { type: String, trim: true },
     billingAddress: { type: String, trim: true },
     invoiceDate: { type: Date },
@@ -31,7 +33,9 @@ const invoiceSchema = new mongoose.Schema(
     professionalFeesTotal: { type: Number, default: 0 },
     expensesTotal: { type: Number, default: 0 },
     governmentFeesTotal: { type: Number, default: 0 },
+    netExpensesTotal: { type: Number, default: 0 },    
     totalAmount: { type: Number, default: 0 },
+    grossTotalAmount: { type: Number, default: 0 },    
     balanceDue: { type: Number, default: 0 },
     paidAmount: { type: Number, default: 0 },
     status: {

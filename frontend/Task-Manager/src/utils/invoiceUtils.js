@@ -549,16 +549,48 @@ export const normalizeInvoiceRecord = (invoice, fallbackMatter = null) => {
   const expensesTotal = Number(invoice?.expensesTotal ?? 0);
   const governmentTotal = Number(invoice?.governmentFeesTotal ?? 0);
 
-  const totalAmountCandidate = Number(
-    invoice?.totalAmount ??
+  const advanceAmount = Math.max(Number(invoice?.advanceAmount ?? 0) || 0, 0);
+  const inferredAdvanceApplied = Math.min(advanceAmount, Math.max(expensesTotal, 0));
+  const advanceAppliedCandidate = Number(
+    invoice?.advanceApplied ?? inferredAdvanceApplied
+  );
+  const advanceApplied = Number.isFinite(advanceAppliedCandidate)
+    ? Math.max(advanceAppliedCandidate, 0)
+    : Math.max(inferredAdvanceApplied, 0);
+  const advanceBalanceCandidate = Number(
+    invoice?.advanceBalance ?? advanceAmount - advanceApplied
+  );
+  const advanceBalance = Number.isFinite(advanceBalanceCandidate)
+    ? Math.max(advanceBalanceCandidate, 0)
+    : Math.max(advanceAmount - advanceApplied, 0);
+
+  const netExpensesCandidate = Number(
+    invoice?.netExpensesTotal ?? expensesTotal - advanceApplied
+  );
+  const netExpensesTotal = Number.isFinite(netExpensesCandidate)
+    ? Math.max(netExpensesCandidate, 0)
+    : Math.max(expensesTotal - advanceApplied, 0);
+
+  const grossTotalCandidate = Number(
+    invoice?.grossTotalAmount ??
       (Number.isFinite(professionalTotal + expensesTotal + governmentTotal)
         ? professionalTotal + expensesTotal + governmentTotal
+        : 0)
+  );
+  const grossTotalAmount = Number.isFinite(grossTotalCandidate)
+    ? Math.max(grossTotalCandidate, 0)
+    : Math.max(professionalTotal + expensesTotal + governmentTotal, 0);
+
+  const totalAmountCandidate = Number(
+    invoice?.totalAmount ??
+      (Number.isFinite(professionalTotal + governmentTotal + netExpensesTotal)
+        ? professionalTotal + governmentTotal + netExpensesTotal        
         : invoice?.balanceDue ?? 0)
   );
 
   const totalAmount = Number.isFinite(totalAmountCandidate)
     ? Math.max(totalAmountCandidate, 0)
-    : 0;
+   : Math.max(professionalTotal + governmentTotal + netExpensesTotal, 0);
 
   let paidAmount = Number(invoice?.paidAmount ?? invoice?.amountPaid ?? 0);
   if (!Number.isFinite(paidAmount)) {
@@ -647,6 +679,11 @@ export const normalizeInvoiceRecord = (invoice, fallbackMatter = null) => {
     practiceArea: matter?.practiceArea || invoice?.practiceArea || "",
     client,
     leadAttorney,
+    advanceAmount,
+    advanceApplied,
+    advanceBalance,
+    netExpensesTotal,
+    grossTotalAmount,    
     raw: invoice,
     rawMatter: matter || null,
   };

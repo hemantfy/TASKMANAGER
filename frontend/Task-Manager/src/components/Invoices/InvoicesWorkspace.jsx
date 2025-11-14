@@ -143,6 +143,11 @@ const InvoiceCard = ({
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
               Balance {formatCurrency(invoice.balanceDue)}
             </p>
+            {invoice.advanceAmount > 0 && (
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Advance balance {formatCurrency(invoice.advanceBalance)}
+              </p>
+            )}            
           </div>
           <div
             className="relative flex-shrink-0"

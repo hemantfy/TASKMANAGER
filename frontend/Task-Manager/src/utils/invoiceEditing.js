@@ -62,8 +62,21 @@ export const buildInvoiceEntryFromPayload = (payload, { fallbackInvoice } = {}) 
   const governmentTotal = computeLineItemsTotal(payload?.governmentFees);
   const hasLineItems = professionalTotal > 0 || expensesTotal > 0 || governmentTotal > 0;
 
+  const fallbackAdvanceAmount = Number(fallbackInvoice?.advanceAmount ?? 0);
+  const advanceAmount = Math.max(
+    Number(payload?.advanceAmount ?? fallbackAdvanceAmount) || 0,
+    0
+  );
+  const fallbackExpensesTotal = Number(fallbackInvoice?.expensesTotal ?? 0);
+  const advanceApplied = hasLineItems
+    ? Math.min(advanceAmount, expensesTotal)
+    : Math.min(advanceAmount, Math.max(fallbackExpensesTotal, 0));
+  const netExpensesTotal = hasLineItems
+    ? Math.max(expensesTotal - advanceApplied, 0)
+    : Math.max(Number(fallbackInvoice?.netExpensesTotal ?? 0), 0);
+
   const fallbackTotal = Math.max(Number(fallbackInvoice?.totalAmount) || 0, 0);
-  const calculatedTotal = professionalTotal + expensesTotal + governmentTotal;
+  const calculatedTotal = professionalTotal + governmentTotal + netExpensesTotal;
   const totalAmount = hasLineItems ? calculatedTotal : fallbackTotal;
   const fallbackBalance = Math.max(Number(fallbackInvoice?.balanceDue) || fallbackTotal, 0);
   const balanceDue = hasLineItems ? Math.max(calculatedTotal, 0) : fallbackBalance;
