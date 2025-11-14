@@ -93,6 +93,8 @@ const resolveBaseUrl = () => {
   return normalizeBaseUrl(BASE_URL);
 };
 
+const fallbackBaseUrl = normalizeBaseUrl(BASE_URL);
+
 const mergeUrl = (url, baseUrl) => {
   if (!url) {
     return url;
@@ -102,7 +104,7 @@ const mergeUrl = (url, baseUrl) => {
     return url;
   }
 
-  const sanitizedBase = normalizeBaseUrl(baseUrl || BASE_URL);
+  const sanitizedBase = normalizeBaseUrl(baseUrl || fallbackBaseUrl || BASE_URL);
 
   if (!sanitizedBase) {
     return url.startsWith("/") ? url : `/${url}`;
@@ -141,7 +143,7 @@ const mergeUrl = (url, baseUrl) => {
   return `/${segments.join("/")}`.replace(/\/+$/g, "");
 };
 
-const initialBaseUrl = resolveBaseUrl();
+const initialBaseUrl = resolveBaseUrl() || fallbackBaseUrl;
 
 const resolveTimeout = () => {
   let envTimeout;
@@ -169,7 +171,7 @@ const resolveTimeout = () => {
 };
 
 const axiosInstance = axios.create({
-  baseURL: initialBaseUrl,
+  baseURL: initialBaseUrl || undefined,
   timeout: resolveTimeout(),
   headers: {
     "Content-Type": "application/json",
@@ -186,10 +188,25 @@ axiosInstance.interceptors.request.use(
     }
 
     const computedBaseUrl =
-      normalizeBaseUrl(config.baseURL) || axiosInstance.defaults.baseURL || initialBaseUrl;
+      normalizeBaseUrl(config.baseURL) ||
+      normalizeBaseUrl(axiosInstance.defaults.baseURL) ||
+      initialBaseUrl ||
+      fallbackBaseUrl;
 
-    config.url = mergeUrl(config.url, computedBaseUrl);
-    config.baseURL = undefined;
+    if (typeof config.url === "string") {
+      const trimmedUrl = config.url.trim();
+      const finalUrl = mergeUrl(trimmedUrl, computedBaseUrl);
+
+      config.url = finalUrl;
+
+      if (!ABSOLUTE_URL_REGEX.test(finalUrl) && computedBaseUrl) {
+        config.baseURL = computedBaseUrl;
+      } else {
+        config.baseURL = undefined;
+      }
+    } else if (computedBaseUrl) {
+      config.baseURL = computedBaseUrl;
+    }
 
     return config;
   },
