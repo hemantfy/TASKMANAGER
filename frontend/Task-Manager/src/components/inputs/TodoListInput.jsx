@@ -8,7 +8,8 @@ const TodoListInput = ({
   disabled = false,
 }) => {
   const [option, setOption] = useState("");
-    const [selectedAssignee, setSelectedAssignee] = useState("");
+  const [selectedAssignee, setSelectedAssignee] = useState("");
+  const [assigneeSearchTerm, setAssigneeSearchTerm] = useState("");
 
   const availableAssignees = useMemo(() => {
     if (!Array.isArray(assignedUsers)) {
@@ -34,6 +35,46 @@ const TodoListInput = ({
       .filter(Boolean);
   }, [assignedUsers]);
 
+  const selectedAssigneeIds = useMemo(() => {
+    const ids = new Set();
+
+    if (selectedAssignee) {
+      ids.add(selectedAssignee);
+    }
+
+    (Array.isArray(todoList) ? todoList : []).forEach((item) => {
+      if (item?.assignedTo) {
+        ids.add(item.assignedTo.toString());
+      }
+    });
+
+    return ids;
+  }, [selectedAssignee, todoList]);
+
+  const filteredAssignees = useMemo(() => {
+    const normalizedQuery = assigneeSearchTerm.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return availableAssignees;
+    }
+
+    const matches = availableAssignees.filter((assignee) =>
+      assignee.name.toLowerCase().includes(normalizedQuery)
+    );
+
+    if (!selectedAssigneeIds.size) {
+      return matches;
+    }
+
+    const missingSelected = availableAssignees.filter(
+      (assignee) =>
+        selectedAssigneeIds.has(assignee.id) &&
+        !matches.some((match) => match.id === assignee.id)
+    );
+
+    return [...missingSelected, ...matches];
+  }, [assigneeSearchTerm, availableAssignees, selectedAssigneeIds]);
+
   useEffect(() => {
     if (!availableAssignees.length) {
       if (selectedAssignee) {
@@ -50,6 +91,12 @@ const TodoListInput = ({
       setSelectedAssignee(availableAssignees[0].id);
     }
   }, [availableAssignees, selectedAssignee]);
+
+  useEffect(() => {
+    if (!availableAssignees.length) {
+      setAssigneeSearchTerm("");
+    }
+  }, [availableAssignees]);
 
   const handleAddOption = () => {
     const trimmedOption = option.trim();
@@ -100,6 +147,22 @@ const TodoListInput = ({
       )}
 
       <div className="space-y-3">
+        <div>
+          <label className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+            Search members
+          </label>
+          <input
+            type="search"
+            value={assigneeSearchTerm}
+            onChange={({ target }) => setAssigneeSearchTerm(target.value)}
+            placeholder="Filter assigned members"
+            className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+            disabled={disabled || !hasAssignees}
+          />
+        </div>
+        {assigneeSearchTerm.trim() && filteredAssignees.length === 0 && hasAssignees && (
+          <p className="text-xs text-slate-500">No members match your search.</p>
+        )}        
         {normalizedTodoList.map((item, index) => {
           const itemKey = item?._id || `${item?.text || "todo"}_${index}`;
           const itemAssigned = item?.assignedTo
@@ -142,7 +205,7 @@ const TodoListInput = ({
                   <option value="">
                     {hasAssignees ? "Select member" : "No members available"}
                   </option>
-                  {availableAssignees.map((assignee) => (
+                  {filteredAssignees.map((assignee) => (
                     <option key={assignee.id} value={assignee.id}>
                       {assignee.name}
                     </option>
@@ -173,7 +236,7 @@ const TodoListInput = ({
              <option value="">
               {hasAssignees ? "Assign to member" : "No members available"}
             </option>
-            {availableAssignees.map((assignee) => (
+            {filteredAssignees.map((assignee) => (
               <option key={`new_${assignee.id}`} value={assignee.id}>
                 {assignee.name}
               </option>

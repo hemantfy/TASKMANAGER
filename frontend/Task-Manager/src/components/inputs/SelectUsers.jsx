@@ -15,6 +15,7 @@ const SelectUsers = ({
   const [allUsers, setAllUsers] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tempSelectedUsers, setTempSelectedUsers] = useState([]);
+  const [userSearchTerm, setUserSearchTerm] = useState("");
 
   const getAllUsers = async () => {
     try {
@@ -77,6 +78,55 @@ const SelectUsers = ({
     [allUsers, selectedUsers]
   );
 
+  const selectedUserIdSet = useMemo(() => {
+    const ids = new Set();
+    [...selectedUsers, ...tempSelectedUsers].forEach((userId) => {
+      if (["string", "number"].includes(typeof userId)) {
+        ids.add(userId.toString());
+      }
+    });
+    return ids;
+  }, [selectedUsers, tempSelectedUsers]);
+
+  const filteredUsers = useMemo(() => {
+    const normalizedQuery = userSearchTerm.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return allUsers;
+    }
+
+    const matches = allUsers.filter((user) => {
+      if (!user) {
+        return false;
+      }
+
+      const roleLabel = getRoleLabel(normalizeRole(user?.role));
+      const searchableText = [user.name, user.email, roleLabel]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return searchableText.includes(normalizedQuery);
+    });
+
+    if (!selectedUserIdSet.size) {
+      return matches;
+    }
+
+    const missingSelected = allUsers.filter((user) => {
+      if (!user) {
+        return false;
+      }
+
+      return (
+        selectedUserIdSet.has(user._id?.toString()) &&
+        !matches.some((match) => match?._id === user._id)
+      );
+    });
+
+    return [...missingSelected, ...matches];
+  }, [allUsers, selectedUserIdSet, userSearchTerm]);
+
   const selectedUserAvatars = selectedUserDetails.map((user) => ({
     profileImageUrl: user.profileImageUrl,
     name: user.name
@@ -104,6 +154,12 @@ const SelectUsers = ({
     onSelectedUsersDetails(details);
   }, [allUsers, onSelectedUsersDetails, selectedUsers]);
     
+  useEffect(() => {
+    if (!isModalOpen) {
+      setUserSearchTerm("");
+    }
+  }, [isModalOpen]);
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
@@ -147,57 +203,71 @@ const SelectUsers = ({
           </p>
 
           <div className="space-y-3 overflow-y-auto rounded-2xl border border-slate-200/80 bg-slate-50 p-3">
-          {allUsers.map((user) => {
-            const normalizedRole = normalizeRole(user?.role);
-            const roleLabel = getRoleLabel(normalizedRole);
-            const normalizedGender =
-              typeof user?.gender === "string"
-                ? user.gender.trim().toLowerCase()
-                : "";
+            <div className="sticky top-0 z-10 rounded-xl bg-slate-50 pb-2">
+              <input
+                type="search"
+                value={userSearchTerm}
+                onChange={(event) => setUserSearchTerm(event.target.value)}
+                placeholder="Search team members"
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
 
-              return (
-                <div
-                  key={user._id}
-                  className="flex items-center gap-4 rounded-xl bg-white px-4 py-3 shadow-[0_12px_24px_rgba(15,23,42,0.08)]"
-                >
-                  {user.profileImageUrl ? (
-                    <img
-                      src={user.profileImageUrl}
-                      alt={user.name}
-                      className="h-10 w-10 rounded-full object-cover"
-                    />
-                  ) : (
-                    <span
-                      className={`flex h-10 w-10 items-center justify-center rounded-full ${
-                        normalizedGender === "female"
-                          ? "bg-rose-50 text-rose-400"
-                          : normalizedGender === "male"
-                          ? "bg-blue-50 text-primary"
-                          : "bg-slate-100 text-slate-500"
-                      }`}
-                    >
-                      <FaUser className="text-base" />
-                    </span>
-                  )}
-                  <div className="flex-1">
-                    <p className="font-medium text-slate-800">{user.name}</p>
-                    <p className="text-xs text-slate-500">{user.email}</p>
-                    {roleLabel && (
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-slate-400">
-                        {roleLabel}
-                      </p>
+            {filteredUsers.length === 0 ? (
+              <p className="px-1 text-sm text-slate-500">No team members found.</p>
+            ) : (
+              filteredUsers.map((user) => {
+                const normalizedRole = normalizeRole(user?.role);
+                const roleLabel = getRoleLabel(normalizedRole);
+                const normalizedGender =
+                  typeof user?.gender === "string"
+                    ? user.gender.trim().toLowerCase()
+                    : "";
+
+                return (
+                  <div
+                    key={user._id}
+                    className="flex items-center gap-4 rounded-xl bg-white px-4 py-3 shadow-[0_12px_24px_rgba(15,23,42,0.08)]"
+                  >
+                    {user.profileImageUrl ? (
+                      <img
+                        src={user.profileImageUrl}
+                        alt={user.name}
+                        className="h-10 w-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <span
+                        className={`flex h-10 w-10 items-center justify-center rounded-full ${
+                          normalizedGender === "female"
+                            ? "bg-rose-50 text-rose-400"
+                            : normalizedGender === "male"
+                            ? "bg-blue-50 text-primary"
+                            : "bg-slate-100 text-slate-500"
+                        }`}
+                      >
+                        <FaUser className="text-base" />
+                      </span>
                     )}
-                  </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-slate-800">{user.name}</p>
+                      <p className="text-xs text-slate-500">{user.email}</p>
+                      {roleLabel && (
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-slate-400">
+                          {roleLabel}
+                        </p>
+                      )}
+                    </div>
 
-                  <input
-                    type="checkbox"
-                    checked={tempSelectedUsers.includes(user._id)}
-                    onChange={() => toggleUserSelection(user._id)}
-                    className="h-4 w-4 rounded-sm border-slate-300 text-primary focus:ring-primary"
-                  />
-                </div>
-              );
-            })}
+                    <input
+                      type="checkbox"
+                      checked={tempSelectedUsers.includes(user._id)}
+                      onChange={() => toggleUserSelection(user._id)}
+                      className="h-4 w-4 rounded-sm border-slate-300 text-primary focus:ring-primary"
+                    />
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 

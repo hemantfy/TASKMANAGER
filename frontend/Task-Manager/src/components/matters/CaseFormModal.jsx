@@ -16,6 +16,68 @@ import { getRoleLabel, normalizeRole } from "../../utils/roleUtils";
 
 const CASE_STATUSES = ["Pre-Filing", "Active", "Discovery", "Trial", "Closed"];
 
+const filterOptions = (
+  items,
+  searchTerm,
+  getId,
+  getLabel,
+  selectedValues = []
+) => {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
+  const normalizedQuery = searchTerm.trim().toLowerCase();
+
+  const matches = !normalizedQuery
+    ? items
+    : items.filter((item) => {
+        const label = getLabel(item) || "";
+        return label.toLowerCase().includes(normalizedQuery);
+      });
+
+  const normalizedSelected = Array.isArray(selectedValues)
+    ? selectedValues
+        .filter((value) =>
+          ["string", "number"].includes(typeof value) && value !== ""
+        )
+        .map((value) => value.toString())
+    : [selectedValues]
+        .filter((value) =>
+          ["string", "number"].includes(typeof value) && value !== ""
+        )
+        .map((value) => value.toString());
+
+  if (!normalizedSelected.length || !normalizedQuery) {
+    return matches;
+  }
+
+  const matchesById = new Set(
+    matches
+      .map((item) => {
+        const id = getId(item);
+        return ["string", "number"].includes(typeof id)
+          ? id.toString()
+          : "";
+      })
+      .filter(Boolean)
+  );
+
+  const missingSelected = items.filter((item) => {
+    const id = getId(item);
+    if (!["string", "number"].includes(typeof id) || id === "") {
+      return false;
+    }
+
+    const normalizedId = id.toString();
+    return (
+      normalizedSelected.includes(normalizedId) && !matchesById.has(normalizedId)
+    );
+  });
+
+  return [...missingSelected, ...matches];
+};
+
 const defaultFormState = {
   title: "",
   caseNumber: "",
@@ -61,6 +123,7 @@ const CaseFormModal = ({
   const [users, setUsers] = useState([]);
   const [isLoadingMetadata, setIsLoadingMetadata] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [leadCounselSearchTerm, setLeadCounselSearchTerm] = useState("");
 
   const isEditMode = Boolean(caseFile?._id);
   const caseId = caseFile?._id;
@@ -77,6 +140,7 @@ const CaseFormModal = ({
     resetForm();
     setUsers([]);
     setIsLoadingMetadata(false);
+    setLeadCounselSearchTerm("");    
     onClose?.();
   }, [isSubmitting, onClose, resetForm]);
 
@@ -169,6 +233,22 @@ const CaseFormModal = ({
   };
 
   const leadCounselOptions = useMemo(() => users, [users]);
+
+  const filteredLeadCounselOptions = useMemo(
+    () =>
+      filterOptions(
+        leadCounselOptions,
+        leadCounselSearchTerm,
+        (user) => user?._id || user?.id || "",
+        (user) =>
+          [user?.name, user?.email, getRoleLabel(user?.role)]
+            .filter(Boolean)
+            .join(" ")
+            .trim(),
+        formData.leadCounsel
+      ),
+    [formData.leadCounsel, leadCounselOptions, leadCounselSearchTerm]
+  );
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -353,25 +433,41 @@ const CaseFormModal = ({
 
             <label className="flex flex-col gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
               Lead Counsel
-              <div className="relative">
-                <LuUser className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <select
-                  value={formData.leadCounsel}
-                  onChange={(event) => handleValueChange("leadCounsel", event.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 pl-10 text-sm text-slate-700 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200"
-                >
-                  <option value="">Unassigned</option>
-                  {leadCounselOptions.map((user) => {
-                    const roleLabel = getRoleLabel(user?.role);
-                    return (
-                      <option key={user._id} value={user._id}>
-                        {user.name || user.email}
-                        {roleLabel ? ` • ${roleLabel}` : ""}
-                      </option>
-                    );
-                  })}
-                </select>
+              <div className="space-y-2">
+                <input
+                  type="search"
+                  value={leadCounselSearchTerm}
+                  onChange={(event) => setLeadCounselSearchTerm(event.target.value)}
+                  placeholder="Search team members"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200"
+                />
+                <div className="relative">
+                  <LuUser className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <select
+                    value={formData.leadCounsel}
+                    onChange={(event) => handleValueChange("leadCounsel", event.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 pl-10 text-sm text-slate-700 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200"
+                  >
+                    <option value="">Unassigned</option>
+                    {filteredLeadCounselOptions.map((user) => {
+                      const roleLabel = getRoleLabel(user?.role);
+                      return (
+                        <option key={user._id} value={user._id}>
+                          {user.name || user.email}
+                          {roleLabel ? ` • ${roleLabel}` : ""}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
               </div>
+              {leadCounselSearchTerm.trim() &&
+                filteredLeadCounselOptions.length === 0 &&
+                users.length > 0 && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    No team members match your search.
+                  </p>
+                )}              
             </label>
 
             <label className="flex flex-col gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
