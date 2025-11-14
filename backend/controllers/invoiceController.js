@@ -268,7 +268,13 @@ const getInvoices = async (req, res) => {
 
 const getInvoiceById = async (req, res) => {
   try {
-    const invoice = await Invoice.findById(req.params.id)
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid invoice id" });
+    }
+
+    const invoice = await Invoice.findById(id)
       .populate({
         path: "matter",
         select:
@@ -337,7 +343,13 @@ const createInvoice = async (req, res) => {
 
 const updateInvoice = async (req, res) => {
   try {
-    const existing = await Invoice.findById(req.params.id);
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid invoice id" });
+    }
+
+    const existing = await Invoice.findById(id);
 
     if (!existing) {
       return res.status(404).json({ message: "Invoice not found" });
@@ -390,7 +402,13 @@ const updateInvoice = async (req, res) => {
 
 const deleteInvoice = async (req, res) => {
   try {
-    const invoice = await Invoice.findById(req.params.id);
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid invoice id" });
+    }
+
+    const invoice = await Invoice.findById(id);
 
     if (!invoice) {
       return res.status(404).json({ message: "Invoice not found" });
