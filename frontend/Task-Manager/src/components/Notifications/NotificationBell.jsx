@@ -164,7 +164,7 @@ const NotificationBell = () => {
   const hasNotifications = notifications.length > 0;
   const showBadge = badgeCount > 0;
   const displayBadgeValue = badgeCount > 9 ? "9+" : badgeCount;
-  const visibleNotifications = notifications.slice(0, isPrivilegedUser ? 10 : 5);
+  const visibleNotifications = notifications.slice(0, 5);
 
   const markNotificationsAsSeen = useCallback(() => {
     const now = Date.now();

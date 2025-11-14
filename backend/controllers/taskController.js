@@ -863,118 +863,123 @@ if (isPrivileged(req.user.role)) {
     deleted: "danger",
   };
 
-  const titleCase = (value = "") =>
-    value
-      .toString()
-      .replace(/_/g, " ")
-      .replace(/\b\w/g, (char) => char.toUpperCase());
+      const titleCase = (value = "") =>
+        value
+          .toString()
+          .replace(/_/g, " ")
+          .replace(/\b\w/g, (char) => char.toUpperCase());
 
-  const activityFeed = await Notification.find({})
-    .sort({ createdAt: -1 })
-    .limit(20)
-    .lean();
+      const activityFeed = await Notification.find({})
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .lean();
 
-  activityFeed.forEach((activity) => {
-    const entityLabel = titleCase(activity.entityType || "");
-    const actionLabel = titleCase(activity.action || "");
-    const actorName = activity.actor?.name || "System";
-    const actorRoleLabel = activity.actor?.role
-      ? titleCase(activity.actor.role)
-      : "";
+      activityFeed.forEach((activity) => {
+        const entityLabel = titleCase(activity.entityType || "");
+        const actionLabel = titleCase(activity.action || "");
+        const actorName = activity.actor?.name || "System";
+        const actorRoleLabel = activity.actor?.role
+          ? titleCase(activity.actor.role)
+          : "";
 
-    const message = `${actorName}${
-      actorRoleLabel ? ` (${actorRoleLabel})` : ""
-    } ${actionLabel || "Updated"} ${entityLabel || "Record"}.`;
+        const message = `${actorName}${
+          actorRoleLabel ? ` (${actorRoleLabel})` : ""
+        } ${actionLabel || "Updated"} ${entityLabel || "Record"}.`;
 
-    notifications.push({
-      id: `activity-${activity._id}`,
-      type: `${activity.entityType}_${activity.action}`,
-      action: activity.action,
-      entityType: activity.entityType,
-      entity: {
-        id: activity.entityId,
-        type: activity.entityType,
-        name: activity.entityName,
-      },
-      title: entityLabel
-        ? `${entityLabel}${activity.entityName ? `: ${activity.entityName}` : ""}`
-        : activity.entityName || entityLabel,
-      message,
-      date: activity.createdAt,
-      status: actionStatusMap[activity.action] || "info",
-      actor: activity.actor,
-      details: activity.details,
+        notifications.push({
+          id: `activity-${activity._id}`,
+          type: `${activity.entityType}_${activity.action}`,
+          action: activity.action,
+          entityType: activity.entityType,
+          entity: {
+            id: activity.entityId,
+            type: activity.entityType,
+            name: activity.entityName,
+          },
+          title: entityLabel
+            ? `${entityLabel}${activity.entityName ? `: ${activity.entityName}` : ""}`
+            : activity.entityName || entityLabel,
+          message,
+          date: activity.createdAt,
+          status: actionStatusMap[activity.action] || "info",
+          actor: activity.actor,
+          details: activity.details,
+        });
+      });
+    } else {
+      const lastSevenDays = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+      const newTasks = await Task.find({
+        assignedTo: req.user._id,
+        createdAt: { $gte: lastSevenDays },
+      })
+        .sort({ createdAt: -1 })
+        .limit(30)
+        .select("title createdAt priority dueDate");
+
+      newTasks.forEach((task) => {
+        notifications.push({
+          id: `task-assigned-${task._id}`,
+          type: "task_assigned",
+          taskId: task._id,
+          title: task.title,
+          message: `New task "${task.title}" assigned to you.`,
+          date: task.createdAt,
+          status: "info",
+          meta: {
+            dueDate: task.dueDate,
+            priority: task.priority,
+          },
+        });
+      });
+
+      const upcomingDeadline = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      const dueSoonTasks = await Task.find({
+        assignedTo: req.user._id,
+        status: { $ne: "Completed" },
+        dueDate: { $gte: now, $lte: upcomingDeadline },
+      })
+        .sort({ dueDate: 1 })
+        .select("title dueDate priority");
+
+      dueSoonTasks.forEach((task) => {
+        const hoursLeft = Math.max(
+          1,
+          Math.ceil((task.dueDate.getTime() - now.getTime()) / (1000 * 60 * 60))
+        );
+
+        notifications.push({
+          id: `task-due-soon-${task._id}`,
+          type: "task_due_soon",
+          taskId: task._id,
+          title: task.title,
+          message: `"${task.title}" is due in ${hoursLeft} hour${
+            hoursLeft > 1 ? "s" : ""
+          }.`,
+          date: task.dueDate,
+          status: "warning",
+          meta: {
+            dueDate: task.dueDate,
+            hoursLeft,
+            priority: task.priority,
+          },
+        });
+      });
+    }
+
+    notifications.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    const limitParam = Number.parseInt(req.query.limit, 10);
+    const hasValidLimit = Number.isFinite(limitParam) && limitParam > 0;
+    const limitedNotifications = hasValidLimit
+      ? notifications.slice(0, limitParam)
+      : notifications;
+
+    res.json({
+      notifications: limitedNotifications,
+      count: limitedNotifications.length,
+      total: notifications.length,
     });
-  });
-} else {
-const lastSevenDays = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-
-const newTasks = await Task.find({
-  assignedTo: req.user._id,
-  createdAt: { $gte: lastSevenDays },
-})
-  .sort({ createdAt: -1 })
-  .limit(30)
-  .select("title createdAt priority dueDate");
-
-newTasks.forEach((task) => {
-  notifications.push({
-    id: `task-assigned-${task._id}`,
-    type: "task_assigned",
-    taskId: task._id,
-    title: task.title,
-    message: `New task "${task.title}" assigned to you.`,
-    date: task.createdAt,
-    status: "info",
-    meta: {
-      dueDate: task.dueDate,
-      priority: task.priority,
-    },
-  });
-});
-
-const upcomingDeadline = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-const dueSoonTasks = await Task.find({
-  assignedTo: req.user._id,
-  status: { $ne: "Completed" },
-  dueDate: { $gte: now, $lte: upcomingDeadline },
-})
-  .sort({ dueDate: 1 })
-  .select("title dueDate priority");
-
-dueSoonTasks.forEach((task) => {
-  const hoursLeft = Math.max(
-    1,
-    Math.ceil((task.dueDate.getTime() - now.getTime()) / (1000 * 60 * 60))
-  );
-
-  notifications.push({
-    id: `task-due-soon-${task._id}`,
-    type: "task_due_soon",
-    taskId: task._id,
-    title: task.title,
-    message: `"${task.title}" is due in ${hoursLeft} hour${
-      hoursLeft > 1 ? "s" : ""
-    }.`,
-    date: task.dueDate,
-    status: "warning",
-    meta: {
-      dueDate: task.dueDate,
-      hoursLeft,
-      priority: task.priority,
-    },
-  });
-});
-}
-
-notifications.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-const recentNotifications = notifications.slice(0, 5);
-
-res.json({
-  notifications: recentNotifications,
-  count: recentNotifications.length,
-});
   } catch (error) {
     next(error);
   }
