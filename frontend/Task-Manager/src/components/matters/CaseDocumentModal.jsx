@@ -5,6 +5,10 @@ import { LuCloudUpload, LuX } from "react-icons/lu";
 import Modal from "../Modal";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
+import {
+  DOCUMENT_UPLOAD_DISABLED_MESSAGE,
+  DOCUMENT_UPLOAD_ENABLED,
+} from "../../utils/featureFlags";
 
 const createDefaultFormState = () => ({
   title: "",
@@ -46,6 +50,11 @@ const CaseDocumentModal = ({
 
   const handleSubmit = async (event) => {
     event?.preventDefault?.();
+
+    if (!DOCUMENT_UPLOAD_ENABLED) {
+      setError(DOCUMENT_UPLOAD_DISABLED_MESSAGE);
+      return;
+    }
 
     if (!caseId) {
       setError("Select a case file before uploading documents.");
@@ -117,117 +126,136 @@ const CaseDocumentModal = ({
           onClose?.();
         }
       }}
-      title="Upload Case Document"
+      title={DOCUMENT_UPLOAD_ENABLED ? "Upload Case Document" : "Document Upload Unavailable"}
     >
-      <form className="space-y-4" onSubmit={handleSubmit}>
-        <p className="text-xs text-slate-500">
-          Documents uploaded here will be added to{" "}
-          <span className="font-semibold">{caseLabel}</span> in{" "}
-          <span className="font-semibold">{matterLabel}</span>.
-        </p>
+      {DOCUMENT_UPLOAD_ENABLED ? (
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <p className="text-xs text-slate-500">
+            Documents uploaded here will be added to{" "}
+            <span className="font-semibold">{caseLabel}</span> in{" "}
+            <span className="font-semibold">{matterLabel}</span>.
+          </p>
 
-        <div className="space-y-2">
-          <label className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
-            Document Title
-          </label>
-          <input
-            type="text"
-            name="title"
-            value={formState.title}
-            onChange={handleInputChange}
-            className="form-input mt-0 h-11 bg-slate-50 focus:border-primary focus:ring-2 focus:ring-primary/10"
-            placeholder="e.g. Evidence Summary"
-            disabled={isSubmitting}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
-            Document Type
-          </label>
-          <input
-            type="text"
-            name="documentType"
-            value={formState.documentType}
-            onChange={handleInputChange}
-            className="form-input mt-0 h-11 bg-slate-50 focus:border-primary focus:ring-2 focus:ring-primary/10"
-            placeholder="e.g. PDF, Statement, Transcript"
-            disabled={isSubmitting}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
-            Description
-          </label>
-          <textarea
-            name="description"
-            value={formState.description}
-            onChange={handleInputChange}
-            className="form-input mt-0 bg-slate-50 focus:border-primary focus:ring-2 focus:ring-primary/10"
-            rows={3}
-            placeholder="Provide any helpful context about this document"
-            disabled={isSubmitting}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
-            File
-          </label>
-          <label className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center transition hover:border-primary/60 hover:bg-primary/5">
-            <LuCloudUpload className="text-2xl text-primary" />
-            <div className="space-y-1">
-              <p className="text-sm font-semibold text-slate-700">
-                {selectedFile ? selectedFile.name : "Choose a file"}
-              </p>
-              <p className="text-xs text-slate-500">
-                PDF, Word, Excel or image files up to 25MB
-              </p>
-            </div>
+          <div className="space-y-2">
+            <label className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
+              Document Title
+            </label>
             <input
-              type="file"
-              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.txt,image/*"
-              className="hidden"
-              onChange={handleFileChange}
+              type="text"
+              name="title"
+              value={formState.title}
+              onChange={handleInputChange}
+              className="form-input mt-0 h-11 bg-slate-50 focus:border-primary focus:ring-2 focus:ring-primary/10"
+              placeholder="e.g. Evidence Summary"
               disabled={isSubmitting}
             />
-          </label>
-          {selectedFile && !isSubmitting && (
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
+              Document Type
+            </label>
+            <input
+              type="text"
+              name="documentType"
+              value={formState.documentType}
+              onChange={handleInputChange}
+              className="form-input mt-0 h-11 bg-slate-50 focus:border-primary focus:ring-2 focus:ring-primary/10"
+              placeholder="e.g. PDF, Statement, Transcript"
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
+              Description
+            </label>
+            <textarea
+              name="description"
+              value={formState.description}
+              onChange={handleInputChange}
+              className="form-input mt-0 bg-slate-50 focus:border-primary focus:ring-2 focus:ring-primary/10"
+              rows={3}
+              placeholder="Provide any helpful context about this document"
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
+              File
+            </label>
+            <label className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center transition hover:border-primary/60 hover:bg-primary/5">
+              <LuCloudUpload className="text-2xl text-primary" />
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-slate-700">
+                  {selectedFile ? selectedFile.name : "Choose a file"}
+                </p>
+                <p className="text-xs text-slate-500">
+                  PDF, Word, Excel or image files up to 25MB
+                </p>
+              </div>
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.txt,image/*"
+                className="hidden"
+                onChange={handleFileChange}
+                disabled={isSubmitting}
+              />
+            </label>
+            {selectedFile && !isSubmitting && (
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 text-xs font-medium text-rose-500"
+                onClick={() => setSelectedFile(null)}
+              >
+                <LuX className="text-sm" /> Remove file
+              </button>
+            )}
+          </div>
+
+          {error && <p className="text-sm font-medium text-rose-500">{error}</p>}
+
+          <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
             <button
               type="button"
-              className="inline-flex items-center gap-1 text-xs font-medium text-rose-500"
-              onClick={() => setSelectedFile(null)}
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+              onClick={() => {
+                if (!isSubmitting) {
+                  onClose?.();
+                }
+              }}
+              disabled={isSubmitting}
             >
-              <LuX className="text-sm" /> Remove file
+              Cancel
             </button>
-          )}
+            <button
+              type="submit"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm shadow-primary/20 transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Uploading..." : "Upload"}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <div className="space-y-6">
+          <p className="text-sm text-slate-600">{DOCUMENT_UPLOAD_DISABLED_MESSAGE}</p>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+              onClick={() => {
+                if (!isSubmitting) {
+                  onClose?.();
+                }
+              }}
+            >
+              Close
+            </button>
+          </div>
         </div>
-
-        {error && <p className="text-sm font-medium text-rose-500">{error}</p>}
-
-        <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
-          <button
-            type="button"
-            className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
-            onClick={() => {
-              if (!isSubmitting) {
-                onClose?.();
-              }
-            }}
-            disabled={isSubmitting}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm shadow-primary/20 transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Uploading..." : "Upload"}
-          </button>
-        </div>
-      </form>
+      )}
     </Modal>
   );
 };

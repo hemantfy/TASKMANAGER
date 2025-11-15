@@ -16,6 +16,10 @@ import LoadingOverlay from "../LoadingOverlay";
 import axiosInstance from "../../utils/axiosInstance";
 import { API_PATHS, BASE_URL } from "../../utils/apiPaths";
 import { formatMediumDateTime } from "../../utils/dateUtils";
+import {
+  DOCUMENT_UPLOAD_DISABLED_MESSAGE,
+  DOCUMENT_UPLOAD_ENABLED,
+} from "../../utils/featureFlags";
 
 const Panel = ({
   children,
@@ -192,7 +196,8 @@ const DocumentsWorkspace = ({ basePath = "" }) => {
   const [documentSort, setDocumentSort] = useState("recent");
   const [error, setError] = useState(null);
   const [hasLoadedData, setHasLoadedData] = useState(false);
-  const [activeDocumentMenu, setActiveDocumentMenu] = useState(null);  
+  const [activeDocumentMenu, setActiveDocumentMenu] = useState(null);
+  const isDocumentUploadEnabled = DOCUMENT_UPLOAD_ENABLED;
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const hasSearchQuery = normalizedSearchQuery.length > 0;
@@ -1057,7 +1062,12 @@ const DocumentsWorkspace = ({ basePath = "" }) => {
           </h1>
           {searchSummary && (
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{searchSummary}</p>
-          )}          
+          )}
+          {!isDocumentUploadEnabled && (
+            <p className="mt-2 text-xs font-medium text-rose-500 dark:text-rose-300">
+              {DOCUMENT_UPLOAD_DISABLED_MESSAGE}
+            </p>
+          )}        
         </div>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3">
           <div className="relative w-full md:w-64">

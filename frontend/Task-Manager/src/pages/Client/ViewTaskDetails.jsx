@@ -11,12 +11,22 @@ import toast from "react-hot-toast";
 import { UserContext } from "../../context/userContext.jsx";
 import { hasPrivilegedAccess } from "../../utils/roleUtils";
 import TaskDocumentModal from "../../components/TaskDocumentModal";
+import {
+  DOCUMENT_UPLOAD_DISABLED_MESSAGE,
+  DOCUMENT_UPLOAD_ENABLED,
+} from "../../utils/featureFlags";
 
 const ClientViewTaskDetails = () => {
   const { id } = useParams();
   const [task, setTask] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
+  const isDocumentUploadEnabled = DOCUMENT_UPLOAD_ENABLED;
+  useEffect(() => {
+    if (!isDocumentUploadEnabled) {
+      setIsDocumentModalOpen(false);
+    }
+  }, [isDocumentUploadEnabled]);  
   const { user } = useContext(UserContext);  
 
   const getStatusTagColor = (status) => {
@@ -263,7 +273,12 @@ const ClientViewTaskDetails = () => {
   const isTaskClient =
     normalizedMatterClientId && normalizedMatterClientId === normalizedUserId;
 
-  const canUploadDocument = isPrivilegedUser || isAssignedMember || isTaskClient;
+  const canUploadDocumentByRole =
+    isPrivilegedUser || isAssignedMember || isTaskClient;
+  const canUploadDocument =
+    canUploadDocumentByRole && isDocumentUploadEnabled;
+  const showUploadDisabledMessage =
+    canUploadDocumentByRole && !isDocumentUploadEnabled;
 
       const matterClientLabel =
     task?.matter?.client?.name || task?.matter?.clientName || ""
@@ -427,7 +442,7 @@ const ClientViewTaskDetails = () => {
                   Back to Matters
                 </Link>
 
-                {canUploadDocument && (
+                {canUploadDocument ? (
                   <button
                     type="button"
                     onClick={() => setIsDocumentModalOpen(true)}
@@ -435,6 +450,12 @@ const ClientViewTaskDetails = () => {
                   >
                     <LuUpload className="text-sm" /> Upload Document
                   </button>
+                ) : (
+                  showUploadDisabledMessage && (
+                    <p className="text-xs font-medium text-rose-500">
+                      {DOCUMENT_UPLOAD_DISABLED_MESSAGE}
+                    </p>
+                  )                  
                 )}
 
                 {relatedDocuments.length > 0 && (

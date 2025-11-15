@@ -34,6 +34,10 @@ import CaseDocumentModal from "./CaseDocumentModal";
 import DeleteMatterModal from "../modals/DeleteMatterModal";
 import DeleteCaseModal from "../modals/DeleteCaseModal";
 import InvoiceModal from "../modals/InvoiceModal";
+import {
+  DOCUMENT_UPLOAD_DISABLED_MESSAGE,
+  DOCUMENT_UPLOAD_ENABLED,
+} from "../../utils/featureFlags";
 
 const trimSlashes = (value, { keepLeading = false } = {}) => {
   if (typeof value !== "string") {
@@ -142,6 +146,7 @@ const MattersWorkspace = ({ basePath = "" }) => {
   const [matterInvoices, setMatterInvoices] = useState([]);
   const [openInvoiceActionsId, setOpenInvoiceActionsId] = useState(null);
   const [invoiceBeingEdited, setInvoiceBeingEdited] = useState(null);
+  const isDocumentUploadEnabled = DOCUMENT_UPLOAD_ENABLED;
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const hasSearchQuery = normalizedSearchQuery.length > 0;  
@@ -206,6 +211,12 @@ const MattersWorkspace = ({ basePath = "" }) => {
 
     initialize();
   }, [fetchWorkspaceData]);
+
+  useEffect(() => {
+    if (!isDocumentUploadEnabled) {
+      setIsCaseDocumentModalOpen(false);
+    }
+  }, [isDocumentUploadEnabled]);
 
   const handleRefresh = async () => {
     if (isRefreshing) {
@@ -1492,12 +1503,13 @@ const MattersWorkspace = ({ basePath = "" }) => {
           <div className="flex flex-wrap items-center gap-3 md:flex-nowrap md:self-start">
             {isMatterView ? (
              isCaseView ? (
-              <button
-                type="button"
-                onClick={() => {
-                  if (!selectedCase) {
-                    return;
-                  }
+              isDocumentUploadEnabled ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!selectedCase) {
+                      return;
+                    }
 
                     setIsCaseDocumentModalOpen(true);
                   }}
@@ -1508,6 +1520,17 @@ const MattersWorkspace = ({ basePath = "" }) => {
                   Upload Document
                 </button>
               ) : (
+                <div className="flex flex-col gap-2">
+                  <span className="inline-flex items-center gap-2 rounded-xl bg-slate-200/80 px-4 py-2 text-sm font-medium text-slate-600 dark:bg-slate-800/60 dark:text-slate-200">
+                    <LuUpload className="h-4 w-4" />
+                    Upload Disabled
+                  </span>
+                  <p className="text-xs font-medium text-rose-500">
+                    {DOCUMENT_UPLOAD_DISABLED_MESSAGE}
+                  </p>
+                </div>
+              )
+            ) : (                
                 <>
                   <button
                     type="button"

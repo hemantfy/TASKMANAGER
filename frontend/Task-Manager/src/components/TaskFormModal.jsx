@@ -14,6 +14,10 @@ import { PRIORITY_DATA } from "../utils/data";
 import axiosInstance from "../utils/axiosInstance";
 import { API_PATHS, BASE_URL } from "../utils/apiPaths";
 import { formatDateInputValue } from "../utils/dateUtils";
+import {
+  DOCUMENT_UPLOAD_DISABLED_MESSAGE,
+  DOCUMENT_UPLOAD_ENABLED,
+} from "../utils/featureFlags";
 
 const createDefaultTaskData = () => ({
   title: "",
@@ -61,7 +65,13 @@ const TaskFormModal = ({ isOpen, onClose, taskId, onSuccess }) => {
   const [isLoadingCases, setIsLoadingCases] = useState(false);
   const [assignedUserDetails, setAssignedUserDetails] = useState([]);
   const [taskDocuments, setTaskDocuments] = useState([]);
-  const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false); 
+  const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
+  const isDocumentUploadEnabled = DOCUMENT_UPLOAD_ENABLED;
+  useEffect(() => {
+    if (!isDocumentUploadEnabled) {
+      setIsDocumentModalOpen(false);
+    }
+  }, [isDocumentUploadEnabled]);
 
   const isEditing = useMemo(() => Boolean(taskId), [taskId]);
 
@@ -867,15 +877,26 @@ const TaskFormModal = ({ isOpen, onClose, taskId, onSuccess }) => {
                       <p className="mt-1 text-xs text-slate-500 transition-colors duration-300 dark:text-slate-400">
                         Upload evidence, briefs and working files. Uploaded documents are accessible to assignees and the client.
                       </p>
+                      {!isDocumentUploadEnabled && (
+                        <p className="mt-3 text-xs font-medium text-rose-500">
+                          {DOCUMENT_UPLOAD_DISABLED_MESSAGE}
+                        </p>
+                      )}                      
                     </div>
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-white shadow-sm shadow-primary/20 transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
-                      onClick={() => setIsDocumentModalOpen(true)}
-                      disabled={!isEditing || loading}
-                    >
-                      <LuUpload className="text-sm" /> Upload
-                    </button>
+                    {isDocumentUploadEnabled ? (
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-white shadow-sm shadow-primary/20 transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+                        onClick={() => setIsDocumentModalOpen(true)}
+                        disabled={!isEditing || loading}
+                      >
+                        <LuUpload className="text-sm" /> Upload
+                      </button>
+                    ) : (
+                      <span className="inline-flex items-center gap-2 rounded-full bg-slate-200/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 dark:bg-slate-800/60 dark:text-slate-300">
+                        Upload Disabled
+                      </span>
+                    )}
                   </div>
 
                   {taskDocuments.length > 0 ? (
