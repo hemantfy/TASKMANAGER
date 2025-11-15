@@ -446,6 +446,15 @@ const InvoicesWorkspace = ({
       return;
     }
 
+    const confirmed = window.confirm(
+      "Are you sure you want to update this invoice?"
+    );
+
+    if (!confirmed) {
+      setOpenInvoiceActionsId(null);
+      return;
+    }
+
     setOpenInvoiceActionsId(null);
     setInvoiceBeingEdited(invoice);
     setIsInvoiceModalOpen(true);
@@ -457,7 +466,15 @@ const InvoicesWorkspace = ({
         return;
       }
 
+      const confirmed = window.confirm(
+        "Are you sure you want to delete this invoice?"
+      );
+
       setOpenInvoiceActionsId(null);
+
+      if (!confirmed) {
+        return;
+      }
 
       const invoiceId =
         invoice?.raw?._id ||

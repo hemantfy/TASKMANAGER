@@ -663,6 +663,15 @@ const MattersWorkspace = ({ basePath = "" }) => {
       return;
     }
 
+    const confirmed = window.confirm(
+      "Are you sure you want to update this invoice?"
+    );
+
+    if (!confirmed) {
+      setOpenInvoiceActionsId(null);
+      return;
+    }
+
     setOpenInvoiceActionsId(null);
     setInvoiceBeingEdited(invoice);
     setIsInvoiceModalOpen(true);
@@ -671,6 +680,15 @@ const MattersWorkspace = ({ basePath = "" }) => {
   const handleInvoiceDelete = useCallback(
     async (invoice) => {
       if (!invoice) {
+        return;
+      }
+
+      const confirmed = window.confirm(
+        "Are you sure you want to delete this invoice?"
+      );
+
+      if (!confirmed) {
+        setOpenInvoiceActionsId(null);
         return;
       }
 
